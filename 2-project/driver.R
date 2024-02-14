@@ -30,7 +30,7 @@ project.single <- function(setup, simulate, mcii=NULL, contemp.only=F, adm.level
         era5.source <- era5
         era5.sourceb <- era5b
     } else if (adm.level == 1) {
-        era5.sourceb <- era5.adm1
+        era5.source <- era5.adm1
         era5.sourceb <- era5.adm1b
     }
 
