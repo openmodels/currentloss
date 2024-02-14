@@ -25,13 +25,18 @@ gdppcs3 <- gdppcs2 %>% group_by(Country.Code) %>% reframe(year=year, gdppc=value
 era5b <- era5 %>% left_join(gdppcs3, by=c('ISO'='Country.Code', 'Year'='year'))
 era5.adm1b <- era5.adm1 %>% left_join(gdppcs3, by=c('ISO'='Country.Code', 'Year'='year'))
 
+adm0.cols <- c('ISO')
+adm1.cols <- c('ISO', 'ADM1_Code')
+
 project.single <- function(setup, simulate, mcii=NULL, contemp.only=F, adm.level=0) {
     if (adm.level == 0) {
         era5.source <- era5
         era5.sourceb <- era5b
+        era5.cols <- adm0.cols
     } else if (adm.level == 1) {
         era5.source <- era5.adm1
         era5.sourceb <- era5.adm1b
+        era5.cols <- adm1.cols
     }
 
     ## Setup for projection
@@ -40,7 +45,7 @@ project.single <- function(setup, simulate, mcii=NULL, contemp.only=F, adm.level
     for (year in years) {
         subera5 <- subset(era5.sourceb, Year == year)
         projs <- simulate(setupinfo, year, subera5, contemp.only=contemp.only)
-        results.proj <- rbind(results.proj, data.frame(Year=year, ISO=subera5$ISO, projs=projs))
+        results.proj <- rbind(results.proj, cbind(subera5[, era5.cols, drop=F], data.frame(Year=year, projs=projs)))
     }
 
     ## Setup for counterfactual
@@ -54,10 +59,10 @@ project.single <- function(setup, simulate, mcii=NULL, contemp.only=F, adm.level
             subera5.base$Year <- yy
         }
         bases <- simulate(setupinfo, yy, subera5.base, contemp.only=contemp.only)
-        results.base <- rbind(results.base, data.frame(Year=yy, ISO=subera5.base$ISO, bases=bases))
+        results.base <- rbind(results.base, cbind(subera5[, era5.cols, drop=F], data.frame(Year=yy, bases=bases)))
     }
 
-    results <- results.proj %>% left_join(results.base, by=c('Year', 'ISO'))
+    results <- results.proj %>% left_join(results.base, by=c('Year', era5.cols))
     results$dimpact <- results$projs - results$bases
     results
 }
