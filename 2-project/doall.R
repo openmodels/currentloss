@@ -11,8 +11,8 @@ metadata <- read_xlsx("Current Losses Estimate Metadata.xlsx")
 polydata <- attr(importShapefile("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses/data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
 papers <- list("Dell et al. 2012" = "../src/models/djo.R", "Callahan & Mankin 2022" = "../src/models/callahanmankin.R",
-                "Burke et al. 2015" = "../src/models/burkeetal.R","Pretis et al. 2018" = "../src/models/pretis.R", 
-                "Baarsch et al. 2020" = "../src/models/baarsch.R", "Acevedo et al. 2020" = "../src/models/acevedo.R", 
+                "Burke et al. 2015" = "../src/models/burkeetal.R","Pretis et al. 2018" = "../src/models/pretis.R",
+                "Baarsch et al. 2020" = "../src/models/baarsch.R", "Acevedo et al. 2020" = "../src/models/acevedo.R",
                "Kahn et al. 2021" = "../src/models/kahnetal.R", "Kotz et al. 2022" = "../src/models/kotzetal.R"
                 )
 
@@ -29,7 +29,7 @@ for (paper in names(papers)) {
             funcs <- get.funcs(name)
             if (is.null(funcs))
                 next
-            oneres <- project.single(funcs$setup, funcs$simulate, contemp.only=contemp.only)
+            oneres <- project.single(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper == "Kotz et al. 2022", 1, 0))
             if (contemp.only == F)
                 oneres.not.contemp.only <- oneres
             else {
@@ -99,7 +99,7 @@ for (paper in names(papers)) {
         print(c(paper, name))
         funcs <- get.funcs(name)
         contemp.only <- results$contemp.only[results$paper == paper & results$name == name & results$preferred][1]
-        onemcres <- project.mc(funcs$setup, funcs$simulate, contemp.only=contemp.only)
+        onemcres <- project.mc(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper == "Kotz et al. 2022", 1, 0))
         mcres <- rbind(mcres, cbind(onemcres, name=name, paper=paper, contemp.only))
     }
 }
