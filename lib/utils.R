@@ -1,9 +1,9 @@
 library(PBSmapping)
 
-polydata <- attr(importShapefile("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses/data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
+polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
 get.poors <- function(baseyear) {
-    gdppcs <- read.csv("socioeconomics/API_NY.GDP.PCAP.KD_DS2_en_csv_v2_3630804/API_NY.GDP.PCAP.KD_DS2_en_csv_v2_3630804.csv", skip=3)
+    gdppcs <- read.csv("data/socioeconomics/API_NY.GDP.PCAP.KD_DS2_en_csv_v2_3630804/API_NY.GDP.PCAP.KD_DS2_en_csv_v2_3630804.csv", skip=3)
     gdppc0s <- data.frame()
     for (ii in 1:nrow(gdppcs)) {
         nonnas <- which(!is.na(gdppcs[ii, which(names(gdppcs) == paste0('X', baseyear)):ncol(gdppcs)]))
