@@ -64,13 +64,16 @@ project.single <- function(setup, simulate, mcii=NULL, contemp.only=F, adm.level
 
     results <- results.proj %>% left_join(results.base, by=c('Year', era5.cols))
     results$dimpact <- results$projs - results$bases
+
+    if (adm.level == 1)
+        results <- results %>% group_by(Year, ISO) %>% summarize(projs=mean(projs), bases=mean(bases), dimpact=mean(dimpact))
     results
 }
 
-project.mc <- function(setup, simulate, contemp.only=F) {
+project.mc <- function(setup, simulate, contemp.only=F, adm.level=0) {
     results <- data.frame()
     for (mcii in 1:MCNUM) {
-        results <- rbind(results, cbind(project.single(setup, simulate, mcii, contemp.only=contemp.only), mc=mcii))
+        results <- rbind(results, cbind(project.single(setup, simulate, mcii, contemp.only=contemp.only, adm.level=adm.level), mc=mcii))
     }
     results
 }

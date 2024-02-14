@@ -63,6 +63,7 @@ get.funcs <- function(name) {
 if (F) {
     funcs <- get.funcs('Main')
     oneres <- project.single(funcs$setup, funcs$simulate, adm.level=1)
-    plot((oneres %>% filter(ISO == 'THA'))$dimpact)
-    plot((oneres %>% filter(ISO == 'NOR'))$dimpact)
+    ## oneres.adm0 <- oneres %>% group_by(Year, ISO) %>% summarize(dimpact=mean(dimpact))
+    plot((oneres.adm0 %>% filter(ISO == 'THA'))$dimpact)
+    plot((oneres.adm0 %>% filter(ISO == 'NOR'))$dimpact)
 }
