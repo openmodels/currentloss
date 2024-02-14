@@ -46,7 +46,7 @@ load.solowdata <- function() {
     df.non2 <- read.iw("data/capital/tabula-A1-nonrenewable.csv", 'Nonrenewable Capital')
     df.ren2 <- read.iw("data/capital/tabula-A2-renewable.csv", 'Renewable Capital')
 
-    era5 <- read.csv("data/era5-t2m-combo.csv")
+    era5 <- read.csv("data/era5-t2m-combo-adm0.csv")
     era5b <- era5 %>% left_join(subset(era5, Year < 1960) %>% group_by(ISO) %>% summarize(t2m=mean(t2m)), by='ISO', suffix=c('', '.hist'))
     era5b$warming <- era5b$t2m - era5b$t2m.hist
 

@@ -1,8 +1,9 @@
-if (F) {
-    setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
+## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
+## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
-    source("driver.R")
-    source("utils.R")
+if (F) {
+    source("src/2-project/driver.R")
+    source("src/lib/utils.R")
 }
 
 get.funcs <- function(name) {
@@ -61,7 +62,7 @@ get.funcs <- function(name) {
 
 if (F) {
     funcs <- get.funcs('Main')
-    oneres <- project.single(funcs$setup, funcs$simulate)
+    oneres <- project.single(funcs$setup, funcs$simulate, adm.level=1)
     plot((oneres %>% filter(ISO == 'THA'))$dimpact)
     plot((oneres %>% filter(ISO == 'NOR'))$dimpact)
 }
