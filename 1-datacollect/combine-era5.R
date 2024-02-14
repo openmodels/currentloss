@@ -9,6 +9,8 @@ combo <- data.frame()
 for (year in available.years) {
     print(year)
     df <- read.csv(paste0("popt2m/era5-t2m-", year, "-adm0.csv"))
+    ## In 2023, got doubled observations-- one normal, one 0 or -30 C; Otherwise, only 1 obs per time x ADM0, so no effect
+    df <- df %>% group_by(time, ADMIN, ADM0_A3) %>% summarize(t2m=max(t2m), t2mmin=max(t2mmin), t2mmax=max(t2mmax))
     df2a <- df %>% group_by(ADMIN, ADM0_A3) %>% summarize(t2m=mean(t2m))
     df$month <- sapply(df$time, function(dd) substring(dd, 1, 7))
     df2b <- df %>% group_by(month, ADMIN, ADM0_A3) %>%
@@ -37,6 +39,8 @@ for (year in available.years) {
     print(year)
     for (seg in 0:22) {
         df <- read.csv(paste0("popt2m/era5-t2m-", year, "-adm1-", seg, ".csv"))
+        ## In 2023, got doubled observations-- one normal, one 0 or -30 C; Otherwise, only 1 obs per time x ADM1, so no effect
+        df <- df %>% group_by(time, admin, adm0_a3, name, diss_me) %>% summarize(t2m=max(t2m), t2mmin=max(t2mmin), t2mmax=max(t2mmax))
         df2a <- df %>% group_by(admin, adm0_a3, name, diss_me) %>% summarize(t2m=mean(t2m))
         df$month <- sapply(df$time, function(dd) substring(dd, 1, 7))
         df2b <- df %>% group_by(month, admin, adm0_a3, name, diss_me) %>%
