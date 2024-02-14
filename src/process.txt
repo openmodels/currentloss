@@ -1,0 +1,28 @@
+0. collect-era5.py, combine-era5.R
+1. Project all: doall.R -> mcres.RData
+2. Combine up to totals in a given year, country, MC draw: cumul.R -> mctotres.RData
+3. Best estimate: randforest.R -> mcrfres.RData
+4. Foreign effects (from UK): trade.R -> tradeloss.RData
+5. Capital model: solow.R -> solow/
+6. Synthesis: figures.R
+
+
+
+2. Decide on meta-analysis approach
+3. Improve Solow model with resources
+4. 
+
+Results calculation
+
+Stage 1:
+For a given Monte Carlo draw:
+ - Project results from all models using draw-specific parameters
+ - Combine results within country-year, using meta-analysis approach
+ - Record results
+
+Stage 2:
+ - Run model for each country, giving distribution of results by
+ country-year
+
+Stage 3:
+ - Produce main outputs
