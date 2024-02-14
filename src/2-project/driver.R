@@ -1,15 +1,17 @@
+## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses/data")
+## setwd("~/jrising@udel.edu - Google Drive/My Drive/Research/Current Losses/data")
+
 library(dplyr)
 library(reshape2)
 
 MCNUM <- 3000
 
-#Input_Taky
-setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses/data")
 
-era5 <- read.csv("era5-t2m-combo.csv")
+era5 <- read.csv("era5-t2m-combo-adm0.csv")
 era5 <- era5 %>% arrange(ISO)
 
-## era5.adm1 <- ...
+era5.adm1 <- read.csv("era5-t2m-combo-adm1.csv")
+era5.adm1 <- era5.adm1 %>% arrange(ADM1_Code)
 
 years <- unique(era5$Year)
 years.base <- years[1:20]
@@ -21,13 +23,22 @@ gdppcs2$year <- sapply(gdppcs2$variable, function(ss) as.numeric(substring(ss, 2
 gdppcs3 <- gdppcs2 %>% group_by(Country.Code) %>% reframe(year=year, gdppc=value, Lgdppc=lag(value, 1), growth=log(gdppc) - log(Lgdppc))
 
 era5b <- era5 %>% left_join(gdppcs3, by=c('ISO'='Country.Code', 'Year'='year'))
+era5.adm1b <- era5.adm1 %>% left_join(gdppcs3, by=c('ISO'='Country.Code', 'Year'='year'))
 
 project.single <- function(setup, simulate, mcii=NULL, contemp.only=F, adm.level=0) {
+    if (adm.level == 0) {
+        era5.source <- era5
+        era5.sourceb <- era5b
+    } else if (adm.level == 1) {
+        era5.sourceb <- era5.adm1
+        era5.sourceb <- era5.adm1b
+    }
+
     ## Setup for projection
     setupinfo <- setup(mcii)
     results.proj <- data.frame()
     for (year in years) {
-        subera5 <- subset(era5b, Year == year)
+        subera5 <- subset(era5.sourceb, Year == year)
         projs <- simulate(setupinfo, year, subera5, contemp.only=contemp.only)
         results.proj <- rbind(results.proj, data.frame(Year=year, ISO=subera5$ISO, projs=projs))
     }
@@ -37,9 +48,9 @@ project.single <- function(setup, simulate, mcii=NULL, contemp.only=F, adm.level
     results.base <- data.frame()
     for (yy in years) {
         if (yy %in% years.base)
-            subera5.base <- subset(era5, Year == yy) %>% left_join(subset(gdppcs3, year == yy), by=c('ISO'='Country.Code'))
+            subera5.base <- subset(era5.source, Year == yy) %>% left_join(subset(gdppcs3, year == yy), by=c('ISO'='Country.Code'))
         else {
-            subera5.base <- subset(era5, Year == sample(years.base, 1)) %>% left_join(subset(gdppcs3, year == yy), by=c('ISO'='Country.Code'))
+            subera5.base <- subset(era5.source, Year == sample(years.base, 1)) %>% left_join(subset(gdppcs3, year == yy), by=c('ISO'='Country.Code'))
             subera5.base$Year <- yy
         }
         bases <- simulate(setupinfo, yy, subera5.base, contemp.only=contemp.only)
