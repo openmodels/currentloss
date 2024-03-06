@@ -1,21 +1,20 @@
-setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses/data")
+## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses/data")
+## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 library(readxl)
 library(PBSmapping)
 library(MASS)
 
-source("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses/src/2-project/driver.R")
-source("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses/src/lib/utils.R")
+source("src/2-project/driver.R")
+source("src/lib/utils.R")
 
-metadata <- read_xlsx("Current Losses Estimate Metadata.xlsx")
-polydata <- attr(importShapefile("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses/data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
+metadata <- read_xlsx("data/Current Losses Estimate Metadata.xlsx")
+polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
-papers <- list("Dell et al. 2012" = "../src/models/djo.R", "Callahan & Mankin 2022" = "../src/models/callahanmankin.R",
-                "Burke et al. 2015" = "../src/models/burkeetal.R","Pretis et al. 2018" = "../src/models/pretis.R",
-                "Baarsch et al. 2020" = "../src/models/baarsch.R", "Acevedo et al. 2020" = "../src/models/acevedo.R",
-               "Kahn et al. 2021" = "../src/models/kahnetal.R", "Kotz et al. 2022" = "../src/models/kotzetal.R"
-                )
-
+papers <- list("Dell et al. 2012" = "src/models/djo.R", "Callahan & Mankin 2022" = "src/models/callahanmankin.R",
+                "Burke et al. 2015" = "src/models/burkeetal.R","Pretis et al. 2018" = "src/models/pretis.R",
+                "Baarsch et al. 2020" = "src/models/baarsch.R", "Acevedo et al. 2020" = "src/models/acevedo.R",
+               "Kahn et al. 2021" = "src/models/kahnetal.R", "Kotz et al. 2022" = "src/models/kotzetal.R")
 
 results <- data.frame()
 allres <- data.frame()
