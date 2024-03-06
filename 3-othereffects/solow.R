@@ -43,7 +43,8 @@ data {
 
   real<lower=0, upper=1> deprrate_prior;
 
-  vector[T] gdpgrowshock;
+  vector[T] gdpgrowshock_contemp; // instantaneous shock
+  vector[T] gdpgrowshock_cumul; // cumulative shock
   vector[T] warming;
 }
 parameters {
@@ -79,22 +80,35 @@ parameters {
   real<lower=0> gdp_error;
 }
 transformed parameters {
-  vector<lower=0>[T-1] product; // starts in year 2
+  vector<lower=0>[T-1] product; // calculates year 1 product for year 2 capital
   vector<lower=0>[T] rencap_model;
   vector<lower=0>[T] procap_model;
-  vector<lower=0>[T] humcap_model;
+  vector<lower=0>[T] humcap_univ;
+
+  vector<lower=0, upper=1>[T-1] cumulpart;
+
+  vector<lower=0>[T-1] product_nocc; // calculates year 1 product for year 2 capital
+  vector<lower=0>[T] rencap_nocc;
+  vector<lower=0>[T] procap_nocc;
 
   rencap_model[1] = rencap0part * maxrencap0;
   procap_model[1] = procap0part * maxprocap0;
-  humcap_model[1] = humcap0part * maxhumcap0;
+  humcap_univ[1] = humcap0part * maxhumcap0;
+
+  rencap_nocc[1] = rencap0part * maxrencap0;
+  procap_nocc[1] = procap0part * maxprocap0;
 
   for (tt in 2:T) {
     // Y = TFP * GDPLoss * R^alpha * K^beta * H^gamma * L^(1 - alpha - beta - gamma)
-    // NEED TO ADD replace GDPLoss with (ContempGDPLoss + Fraction_t DelayedGDPLoss), with Fraction_t between 0 and 1
-    product[tt-1] = (tfp + dtfpdt * (tt-1)) * (1 - gdpgrowshock[tt-1]) * pow(rencap_model[tt-1], (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2))) * pow(procap_model[tt-1], (shares0[2] + (tt-2) * (sharesT[2] - shares0[2]) / (T-2))) * pow(humcap_model[tt-1], (shares0[3] + (tt-2) * (sharesT[3] - shares0[3]) / (T-2))) * pow(pop[tt-1], (shares0[4] + (tt-2) * (sharesT[4] - shares0[4]) / (T-2)));
+    product[tt-1] = (tfp + dtfpdt * (tt-1)) * (1 - ((1 - cumulpart[tt-1]) * gdpgrowshock_contemp[tt-1] + cumulpart[tt-1] * gdpgrowshock_cumul[tt-1])) * pow(rencap_model[tt-1], (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2))) * pow(procap_model[tt-1], (shares0[2] + (tt-2) * (sharesT[2] - shares0[2]) / (T-2))) * pow(humcap_univ[tt-1], (shares0[3] + (tt-2) * (sharesT[3] - shares0[3]) / (T-2))) * pow(pop[tt-1], (shares0[4] + (tt-2) * (sharesT[4] - shares0[4]) / (T-2)));
     rencap_model[tt] = rencap_model[tt-1] * (1 + (1 - renwarmeffect * warming[tt-1]) * rickerr * exp(-rickerb * rencap_model[tt-1] / maxrencap0)) - (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2)) * product[tt-1] / (1 + (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2)) * product[tt-1] / rencap_model[tt-1]);
     procap_model[tt] = procap_model[tt-1] + (saverate0 + dsaveratedt * (tt-2)) * product[tt-1] - deprrate * procap_model[tt-1];
-    humcap_model[tt] = humcap_model[tt-1] * (1 + dloghumcapdt);
+    humcap_univ[tt] = humcap_univ[tt-1] * (1 + dloghumcapdt);
+
+    // Same calculations, but without climate change effect
+    product_nocc[tt-1] = (tfp + dtfpdt * (tt-1)) * pow(rencap_nocc[tt-1], (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2))) * pow(procap_nocc[tt-1], (shares0[2] + (tt-2) * (sharesT[2] - shares0[2]) / (T-2))) * pow(humcap_univ[tt-1], (shares0[3] + (tt-2) * (sharesT[3] - shares0[3]) / (T-2))) * pow(pop[tt-1], (shares0[4] + (tt-2) * (sharesT[4] - shares0[4]) / (T-2)));
+    rencap_nocc[tt] = rencap_nocc[tt-1] * (1 + rickerr * exp(-rickerb * rencap_nocc[tt-1] / maxrencap0)) - (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2)) * product_nocc[tt-1] / (1 + (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2)) * product_nocc[tt-1] / rencap_nocc[tt-1]);
+    procap_nocc[tt] = procap_nocc[tt-1] + (saverate0 + dsaveratedt * (tt-2)) * product_nocc[tt-1] - deprrate * procap_nocc[tt-1];
   }
 }
 model {
@@ -106,7 +120,7 @@ model {
   for (ii in 1:N2) {
     rencap[ii] ~ lognormal(log(rencap_model[cap_year[ii]]), rencap_error);
     procap[ii] ~ lognormal(log(procap_model[cap_year[ii]]), procap_error);
-    humcap[ii] ~ lognormal(log(humcap_model[cap_year[ii]]), humcap_error);
+    humcap[ii] ~ lognormal(log(humcap_univ[cap_year[ii]]), humcap_error);
   }
   for (ii in 1:N3) {
     natgdp[ii] ~ normal(shares0[1] + (natgdp_year[ii]-2) * (sharesT[1] - shares0[1]) / (T-2), rencapshare_error);
@@ -114,7 +128,8 @@ model {
   for (ii in 1:N4) {
     sav[ii] ~ normal(saverate0 + dsaveratedt * (sav_year[ii]-2), sav_error);
   }
-  // NEED TO ADD: gdpgrowshock ~ normal(product / UNAFFECTEDPRODUCT)
+
+  gdpgrowshock_cumul ~ normal(log(product / product_nocc), gdp_error);
 
   // Model logic
   dsaveratedt ~ normal(0, sav_error);
@@ -177,7 +192,7 @@ for (mcii in allmc) {
                           product.end.true=mean(la$product[, 62]), product.end.nocc=mean(solowout$product[, 62]),
                           rencap.end.true=mean(la$rencap_model[, 63]), rencap.end.nocc=mean(solowout$rencap_model[, 63]),
                           procap.end.true=mean(la$procap_model[, 63]), procap.end.nocc=mean(solowout$procap_model[, 63]),
-                          humcap.end.true=mean(la$humcap_model[, 63]), humcap.end.nocc=mean(solowout$humcap_model[, 63]),
+                          humcap.end.true=mean(la$humcap_univ[, 63]), humcap.end.nocc=mean(solowout$humcap_univ[, 63]),
                           renwarmeffect=mean(la$renwarmeffect), ess, lp)
         row$product.chg <- 1 - row$product.end.nocc / row$product.end.true
         row$rencap.chg <- 1 - row$rencap.end.nocc / row$rencap.end.true
