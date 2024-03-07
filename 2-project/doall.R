@@ -38,8 +38,8 @@ for (paper in names(papers)) {
 
             byyear <- oneres %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
                 group_by(Year) %>% summarize(dimpact.pop=sum(dimpact * POP_EST, na.rm=T) / sum(POP_EST[!is.na(dimpact)]))
-            results <- rbind(results, cbind(byyear, name=name, paper=paper, contemp.only))
-            allres <- rbind(allres, cbind(oneres, name=name, paper=paper, contemp.only))
+            results <- rbind(results, cbind(byyear, name=name, paper=paper, contemp.only=contemp.only))
+            allres <- rbind(allres, cbind(oneres, name=name, paper=paper, contemp.only=contemp.only))
         }
     }
 }
@@ -71,7 +71,7 @@ ggplot(subset(results, preferred), aes(Year, dimpact.pop, colour=paper, group=pa
     geom_line() +
     geom_line(data=results2, size=2, colour='black') +
     theme_bw() + ylab("Impact (change in growth rate)")
-ggsave("../figures/allimpacts.pdf", width=8, height=4)
+ggsave("figures/allimpacts.pdf", width=8, height=4)
 
 allres2 <- allres %>% group_by(Year, ISO, name, paper) %>%
     summarize(projs.lags=ifelse(any(contemp.only), projs[!contemp.only] - projs[contemp.only], NA),
@@ -87,7 +87,7 @@ ggplot(results2, aes(Year, dimpact.pop.lags, colour=paper, group=paste(paper, na
     geom_line() +
     geom_line(data=results3, size=2, colour='black') +
     theme_bw()
-ggsave("../figures/lagimpacts.pdf", width=8, height=4)
+ggsave("figures/lagimpacts.pdf", width=8, height=4)
 
 ## Now make the Monte Carlo
 MCNUM <- 30 # Have lots of models
@@ -99,7 +99,7 @@ for (paper in names(papers)) {
         funcs <- get.funcs(name)
         contemp.only <- results$contemp.only[results$paper == paper & results$name == name & results$preferred][1]
         onemcres <- project.mc(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper == "Kotz et al. 2022", 1, 0))
-        mcres <- rbind(mcres, cbind(onemcres, name=name, paper=paper, contemp.only))
+        mcres <- rbind(mcres, cbind(onemcres, name=name, paper=paper, contemp.only=contemp.only))
     }
 }
 

@@ -1,6 +1,6 @@
 0. collect-era5.py, combine-era5.R
 1. Project all: doall.R -> mcres.RData
-2. Combine up to totals in a given year, country, MC draw: cumul.R -> mctotres.RData
+2. De-cumulate Kotz et al.: decumul.R -> mcres-decumul.RData
 3. Best estimate: randforest.R -> mcrfres.RData
 4. Foreign effects (from UK): trade.R -> tradeloss.RData
 5. Capital model: solow.R -> solow/

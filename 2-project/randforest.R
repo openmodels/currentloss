@@ -8,7 +8,7 @@ library(rpart.plot)
 library(PBSmapping)
 
 ## allres <- read.csv("allres.csv")
-load("mctotres.Rdata")
+load("mcres.Rdata")
 allres <- df.imp2
 allres$name[is.na(allres$name)] <- "NA"
 
