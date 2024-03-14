@@ -1,4 +1,5 @@
-setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
+## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
+## setwd("~/research/currentloss")
 
 library(ranger)
 library(readxl)
@@ -8,16 +9,25 @@ library(rpart.plot)
 library(PBSmapping)
 
 ## allres <- read.csv("allres.csv")
-load("mcres.Rdata")
-allres <- df.imp2
-allres$name[is.na(allres$name)] <- "NA"
+load("data/mcres.RData")
+load("data/mcres-decumul.RData")
 
-## Find rows for valid models that are NA (before some point in that model)
-allstat <- allres %>% group_by(ISO, paper, name) %>% summarize(status=ifelse(all(is.na(totimpact)), NA, max(Year[is.na(totimpact) & Year < 2000]))) %>% group_by(paper, name) %>% summarize(status=max(status, na.rm=T))
-allresfix <- allres %>% group_by(ISO, paper, name) %>% mutate(totimpact=ifelse(all(is.na(totimpact)), NA, ifelse(all(!is.na(totimpact[Year > 1970 & Year < 2000])), totimpact, c(rep(0, 1970 - 1940 + 1), totimpact[Year > 1970]))))
-allstat2 <- allresfix %>% group_by(ISO, paper, name) %>% summarize(status=ifelse(all(is.na(totimpact)), NA, max(Year[is.na(totimpact) & Year < 2000]))) %>% group_by(paper, name) %>% summarize(status=max(status, na.rm=T))
+for (persist in c("0.08", "0.21")) {
+    allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[persist]])
+
+    ## Find rows for valid models that are NA (before some point in that model)
+    allstat <- allres %>% group_by(ISO, paper, name) %>% summarize(status=ifelse(all(is.na(dimpact)), NA, max(Year[is.na(dimpact) & Year < 2000]))) %>%
+      group_by(paper, name) %>% summarize(status=max(status, na.rm=T))
+    allresfix <- allres %>% group_by(ISO, paper, name) %>% filter(!all(is.na(dimpact))) %>%
+      mutate(dimpact=ifelse(is.na(dimpact), 0, dimpact))
+    allres2 <- allres %>% left_join(allresfix, by=c('ISO', 'Year', 'paper', 'name', 'mc'), suffix=c('.ori', '.fix'))
+    allres2$dimpact <- ifelse(is.na(allres2$dimpact.ori), allres2$dimpact.fix, allres2$dimpact.ori)
+    allstat2 <- allres2 %>% group_by(ISO, paper, name) %>% summarize(status=ifelse(all(is.na(dimpact)), NA, max(Year[is.na(dimpact) & Year < 2000]))) %>%
+      group_by(paper, name) %>% summarize(status=max(status, na.rm=T))
 
 metadata <- read_xlsx("data/Current Losses Estimate Metadata.xlsx")
+metadata <- subset(metadata, !is.na(Paper) & Paper != "Rising & Tahmid")
+
 metadata$Name[is.na(metadata$Name)] <- "NA"
 metadata$Dependent[is.na(metadata$Dependent)] <- "NA"
 metadata$`Weather weight`[is.na(metadata$`Weather weight`)] <- "NA"
@@ -25,7 +35,7 @@ metadata$`Weather weight`[grep("Pop.", metadata$`Weather weight`)] <- "Pop. weig
 metadata$`Rich/Poor`[is.na(metadata$`Rich/Poor`)] <- "NA"
 metadata$`Rich/Poor`[metadata$`Rich/Poor` == "Project poor only"] <- "Subsetted"
 metadata$Temp[is.na(metadata$Temp)] <- "NA"
-metadata$Prec....13[is.na(metadata$Prec....13)] <- "NA"
+metadata$Prec.[is.na(metadata$Prec.)] <- "NA"
 metadata$`Year FE`[is.na(metadata$`Year FE`)] <- "NA"
 metadata$`Trends`[is.na(metadata$`Trends`)] <- "NA"
 metadata$`Trends`[metadata$`Trends` %in% c("Implicit linear by region", "Linear by Unit", "By Country", "Linear, By Country")] <- "Linear, by Unit"
@@ -46,9 +56,9 @@ metadata$Q.Poverty <- 1 * (metadata$`Rich/Poor` == "Interact")
 metadata$Q.Temp <- ifelse(metadata$Temp %in% c("Quad", "Interacted with average", "Linear Spline"), 1,
                    ifelse(metadata$Temp %in% c("1 Lag", "10 Lags", "5 Lags", "Quad of Historical Differences", "VarT, DT, LDT, DT:T, LDT:LT"), 0.75,
                    ifelse(metadata$Temp != "NA", 0.5, 0)))
-metadata$Q.Prec <- ifelse(metadata$Prec....13 %in% c("Quad", "Interacted with average", "Segmented", "Linear Spline", "Indicatators"), 1,
-                   ifelse(metadata$Prec....13 %in% c("10 Lags", "1 Lag", "5 Lags"), 0.75,
-                   ifelse(metadata$Prec....13 != "NA", 0.5, 0)))
+metadata$Q.Prec <- ifelse(metadata$Prec. %in% c("Quad", "Interacted with average", "Segmented", "Linear Spline", "Indicatators"), 1,
+                   ifelse(metadata$Prec. %in% c("10 Lags", "1 Lag", "5 Lags"), 0.75,
+                   ifelse(metadata$Prec. != "NA", 0.5, 0)))
 metadata$Q.YearFE <- ifelse(metadata$`Year FE` == "By Region", 1,
                      ifelse(metadata$`Year FE` == "By Continent", 0.75,
                      ifelse(metadata$`Year FE` == "Yes", 0.5, 0)))
@@ -68,33 +78,38 @@ years <- unique(allres$Year)
 
 results <- data.frame()
 for (mcii in 1:MCNUM) {
-    allres2 <- subset(allresfix, mc == mcii)
+    allres3 <- subset(allres2, mc == mcii)
 
     for (iso in isos) {
         for (year in years) {
             print(c(mcii, iso, year))
 
-            allres3 <- subset(allres2, !is.na(totimpact) & Year == year & ISO == iso) %>% left_join(metadata, by=c('paper'='Paper', 'name'='Name'))
-            values <- allres3[, c('totimpact', 'Q.Weather', 'Q.Poverty', 'Q.Temp', 'Q.Prec', 'Q.YearFE', 'Q.Trends', 'Q.OtherFE', 'Q.Control', 'Q.GLags', 'Q.YearLate', 'Q.YearSpan')]
+            allres4 <- subset(allres3, !is.na(dimpact) & Year == year & ISO == iso) %>% left_join(metadata, by=c('paper'='Paper', 'name'='Name'))
+            values <- allres4[, c('dimpact', 'Q.Weather', 'Q.Poverty', 'Q.Temp', 'Q.Prec', 'Q.YearFE', 'Q.Trends',
+	    	      		  'Q.OtherFE', 'Q.Control', 'Q.GLags', 'Q.YearLate', 'Q.YearSpan')]
 
-            ## mod <- rpart(dimpact ~ `Dependent` + `Weather weight` + `Rich/Poor` + `Temp` + `Prec....13` + `Year FE` + `Trends` + `Other FE` + `Growth Lags` + `Dataset` + `Year Coverage`, data=values)
+            ## mod <- rpart(dimpact ~ `Dependent` + `Weather weight` + `Rich/Poor` + `Temp` + `Prec.` +
+	    ##  `Year FE` + `Trends` + `Other FE` + `Growth Lags` + `Dataset` + `Year Coverage`, data=values)
             ## rpart.plot(mod)
 
-            rfmod <- ranger(totimpact ~ ., data=values, num.trees=500, max.depth=12, verbose=TRUE)
-            predictions <- predict(rfmod, data.frame(Q.Weather=1, Q.Poverty=1, Q.Temp=1, Q.Prec=1, Q.YearFE=1, Q.Trends=1, Q.OtherFE=1, Q.Control=1, Q.GLags=1, Q.YearLate=1, Q.YearSpan=1))
+            rfmod <- ranger(dimpact ~ ., data=values, num.trees=500, max.depth=12, verbose=TRUE)
+            predictions <- predict(rfmod, data.frame(Q.Weather=1, Q.Poverty=1, Q.Temp=1, Q.Prec=1, Q.YearFE=1, Q.Trends=1,
+	      Q.OtherFE=1, Q.Control=1, Q.GLags=1, Q.YearLate=1, Q.YearSpan=1))
 
-            results <- rbind(results, data.frame(mc=mcii, Year=year, ISO=iso, totimpact=mean(predictions$predictions)))
+            results <- rbind(results, data.frame(mc=mcii, Year=year, ISO=iso, dimpact=mean(predictions$predictions)))
         }
     }
 }
 
-save(results, file="mcrfres.RData")
-## load("mcrfres.RData")
+save(results, file=paste0("data/mcrfres-", persist, ".RData"))
+}
+
+## load("data/mcrfres-0.08.RData")
 
 polydata <- attr(importShapefile("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses/data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
 results2 <- results %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
-    group_by(Year, mc) %>% summarize(gloimpact=sum(totimpact * POP_EST) / sum(POP_EST)) %>%
+    group_by(Year, mc) %>% summarize(gloimpact=sum(dimpact * POP_EST) / sum(POP_EST)) %>%
     group_by(Year) %>% summarize(mu=mean(gloimpact),
                                  ci25=quantile(gloimpact, .25),
                                  ci75=quantile(gloimpact, .75))
