@@ -11,6 +11,7 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 mcstart <- 1
+persist <- "0.08"
 
 source("src/lib/utils2.R")
 
