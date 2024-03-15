@@ -132,7 +132,7 @@ model {
     sav[ii] ~ normal(saverate0 + dsaveratedt * (sav_year[ii]-2), sav_error);
   }
 
-  gdpgrowshock_cumul ~ normal(-(log(product) - (log(product_nocc) - (1 - cumulpart) * gdpgrowshock_cumul)), gdp_error);
+  gdpgrowshock_cumul ~ normal(-(log(product) - (log(product_nocc) - (1 - cumulpart) .* gdpgrowshock_cumul)), gdp_error);
 
   // Model logic
   dsaveratedt ~ normal(0, sav_error);
