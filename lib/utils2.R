@@ -5,6 +5,8 @@ library(countrycode)
 
 ## Grab pre-Solow results for countries without capital info
 load(paste0("data/mcrfres-", persist, ".RData"))
+results2 <- results %>% group_by(ISO, mc) %>%
+    mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - as.numeric(persist))^(0:30), sides=1)[-1:-30])
 
 ## Grab global tradeloss data
 load(paste0("data/tradeloss-", persist, ".RData"))
@@ -74,7 +76,7 @@ load.solowdata.mc <- function(mcii) {
         left_join(df.pop2, by=c('Year', 'ISO'='Country Code')) %>%
         left_join(df.sav2, by=c('Year', 'ISO'='Country Code')) %>%
         left_join(df.nat2, by=c('Year', 'ISO'='Country Code')) %>%
-        left_join(subset(results, mc == mcii), by=c('Year', 'ISO')) %>%
+        left_join(subset(results2, mc == mcii), by=c('Year', 'ISO')) %>%
         left_join(subset(tradeloss, mc == mcii), by=c('Year'='year', 'ISO')) %>%
         left_join(era5b[, c('Year', 'ISO', 'warming')], by=c('Year', 'ISO'))
     df$ISO <- factor(df$ISO, levels=levels(df.pro$ISO))
@@ -87,7 +89,7 @@ load.solowdata.mc <- function(mcii) {
                 `Renewable Capital`=1e9 * `Renewable Capital` / denom,
                 Labor=Labor / denom, Population=Population / denom,
                 SavingRate=SavingRate / 100, NaturalGDP=NaturalGDP / 100,
-                growshock=-(totimpact - fracloss), warming=warming)
+                gdpgrowshock_contemp=-dimpact, gdpgrowshock_cumul=-(totimpact - fracloss), warming=warming)
 
     assign("df", df, envir = .GlobalEnv)
     assign("df2", df2, envir = .GlobalEnv)
