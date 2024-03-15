@@ -119,12 +119,15 @@ make.stan.data <- function(iso) {
                       natgdp=df2$NaturalGDP[!is.na(df2$NaturalGDP) & df2$ISO == iso],
                       natgdp_year=df2$Year[!is.na(df2$NaturalGDP) & df2$ISO == iso] - 1959,
 
-                      deprrate_prior=0.05, gdpgrowshock=df2$growshock[df2$ISO == iso],
+                      deprrate_prior=0.05, gdpgrowshock_contemp=df2$gdpgrowshock_contemp[df2$ISO == iso],
+                      gdpgrowshock_cumul=df2$gdpgrowshock_cumul[df2$ISO == iso],
                       warming=df2$warming[df2$ISO == iso])
 
     stan.data$rencap[is.na(stan.data$rencap) | stan.data$rencap == 0] <- 0.1
-    if (any(is.na(stan.data$gdpgrowshock)))
-        stan.data$gdpgrowshock[is.na(stan.data$gdpgrowshock)] <- -(df$totimpact[df$ISO == iso] - tradeloss.global$fracloss[tradeloss.global$year >= 1960])[is.na(stan.data$gdpgrowshock)]
+    if (any(is.na(stan.data$gdpgrowshock_contemp)))
+        stan.data$gdpgrowshock_contemp[is.na(stan.data$gdpgrowshock_contemp)] <- -(df$totimpact[df$ISO == iso] - tradeloss.global$fracloss[tradeloss.global$year >= 1960])[is.na(stan.data$gdpgrowshock_contemp)]
+    if (any(is.na(stan.data$gdpgrowshock_cumul)))
+        stan.data$gdpgrowshock_cumul[is.na(stan.data$gdpgrowshock_cumul)] <- -(df$totimpact[df$ISO == iso] - tradeloss.global$fracloss[tradeloss.global$year >= 1960])[is.na(stan.data$gdpgrowshock_cumul)]
 
     if (sum(!is.na(df2$SavingRate) & df2$ISO == iso) == 0) {
         rows <- df2[sample(which(!is.na(df2$SavingRate)), 10),]
