@@ -79,6 +79,7 @@ parameters {
   simplex[4] shares0; // ren, pro, hum, pop
   simplex[4] sharesT; // ren, pro, hum, pop
   real<lower=0> shares_error;
+  vector<lower=0, upper=1>[T-1] cumulpart;
 
   real<lower=0> gdp_error;
 }
@@ -87,8 +88,6 @@ transformed parameters {
   vector<lower=0>[T] rencap_model;
   vector<lower=0>[T] procap_model;
   vector<lower=0>[T] humcap_univ;
-
-  vector<lower=0, upper=1>[T-1] cumulpart;
 
   vector<lower=0>[T-1] product_nocc; // calculates year 1 product for year 2 capital
   vector<lower=0>[T] rencap_nocc;
@@ -132,7 +131,7 @@ model {
     sav[ii] ~ normal(saverate0 + dsaveratedt * (sav_year[ii]-2), sav_error);
   }
 
-  gdpgrowshock_cumul ~ normal(-(log(product) - (log(product_nocc) - (1 - cumulpart) .* gdpgrowshock_cumul)), gdp_error);
+  gdpgrowshock_cumul[2:T] ~ normal(-(log(product) - (log(product_nocc) - (1 - cumulpart) .* gdpgrowshock_cumul[2:T])), gdp_error);
 
   // Model logic
   dsaveratedt ~ normal(0, sav_error);
@@ -147,11 +146,11 @@ model {
 }"
 
 if (mcstart == 'x')
-    pastsolow <- rbind(read.csv("solow-v3.csv"), read.csv("solow-v3-11.csv"), read.csv("solow-v3-21.csv"), read.csv("solow-v3-26.csv"))
-if (mcstart == 1 && file.exists("solow-v3.csv")) {
-    sumbymc <- read.csv("solow-v3.csv")
-} else if (mcstart != 1 && file.exists(paste0("solow-v3-", mcstart, ".csv"))) {
-    sumbymc <- read.csv(paste0("solow-v3-", mcstart, ".csv"))
+    pastsolow <- rbind(read.csv("solow-v4.csv"), read.csv("solow-v4-11.csv"), read.csv("solow-v4-21.csv"), read.csv("solow-v4-26.csv"))
+if (mcstart == 1 && file.exists("solow-v4.csv")) {
+    sumbymc <- read.csv("solow-v4.csv")
+} else if (mcstart != 1 && file.exists(paste0("solow-v4-", mcstart, ".csv"))) {
+    sumbymc <- read.csv(paste0("solow-v4-", mcstart, ".csv"))
 } else
     sumbymc <- data.frame()
 
@@ -202,12 +201,12 @@ for (mcii in allmc) {
         row$procap.chg <- 1 - row$procap.end.nocc / row$procap.end.true
         row$humcap.chg <- 1 - row$humcap.end.nocc / row$humcap.end.true
 
-        save(la, file=paste0("data/solow/v3-", iso, "-", mcii, ".RData"))
+        save(la, file=paste0("data/solow/v4-", iso, "-", mcii, ".RData"))
 
         sumbymc <- rbind(sumbymc, row)
         if (mcstart == 1)
-            write.csv(sumbymc, "solow-v3.csv", row.names=F)
+            write.csv(sumbymc, "solow-v4.csv", row.names=F)
         else
-            write.csv(sumbymc, paste0("solow-v3-", mcstart, ".csv"), row.names=F)
+            write.csv(sumbymc, paste0("solow-v4-", mcstart, ".csv"), row.names=F)
     }
 }
