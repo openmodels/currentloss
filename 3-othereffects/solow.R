@@ -103,7 +103,7 @@ transformed parameters {
 
   for (tt in 2:T) {
     // Y = TFP * GDPLoss * R^alpha * K^beta * H^gamma * L^(1 - alpha - beta - gamma)
-    product[tt-1] = (tfp + dtfpdt * (tt-1)) * (1 - ((1 - cumulpart[tt-1]) * gdpgrowshock_contemp[tt-1] + cumulpart[tt-1] * gdpgrowshock_cumul[tt-1])) * pow(rencap_model[tt-1], (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2))) * pow(procap_model[tt-1], (shares0[2] + (tt-2) * (sharesT[2] - shares0[2]) / (T-2))) * pow(humcap_univ[tt-1], (shares0[3] + (tt-2) * (sharesT[3] - shares0[3]) / (T-2))) * pow(pop[tt-1], (shares0[4] + (tt-2) * (sharesT[4] - shares0[4]) / (T-2)));
+    product[tt-1] = (tfp + dtfpdt * (tt-1)) * (1 - (gdpgrowshock_contemp[tt-1] + cumulpart[tt-1] * (gdpgrowshock_cumul[tt-1] - gdpgrowshock_contemp[tt-1]))) * pow(rencap_model[tt-1], (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2))) * pow(procap_model[tt-1], (shares0[2] + (tt-2) * (sharesT[2] - shares0[2]) / (T-2))) * pow(humcap_univ[tt-1], (shares0[3] + (tt-2) * (sharesT[3] - shares0[3]) / (T-2))) * pow(pop[tt-1], (shares0[4] + (tt-2) * (sharesT[4] - shares0[4]) / (T-2)));
     rencap_model[tt] = rencap_model[tt-1] * (1 + (1 - renwarmeffect * warming[tt-1]) * rickerr * exp(-rickerb * rencap_model[tt-1] / maxrencap0)) - (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2)) * product[tt-1] / (1 + (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2)) * product[tt-1] / rencap_model[tt-1]);
     procap_model[tt] = procap_model[tt-1] + (saverate0 + dsaveratedt * (tt-2)) * product[tt-1] - deprrate * procap_model[tt-1];
     humcap_univ[tt] = humcap_univ[tt-1] * (1 + dloghumcapdt);
@@ -132,7 +132,7 @@ model {
     sav[ii] ~ normal(saverate0 + dsaveratedt * (sav_year[ii]-2), sav_error);
   }
 
-  gdpgrowshock_cumul ~ normal(log(product / product_nocc), gdp_error);
+  gdpgrowshock_cumul ~ normal(-(log(product) - (log(product_nocc) - (1 - cumulpart) * gdpgrowshock_cumul)), gdp_error);
 
   // Model logic
   dsaveratedt ~ normal(0, sav_error);
