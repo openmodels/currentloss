@@ -1,8 +1,7 @@
-setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
+## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
+## setwd("~/research/currentloss")
 
 library(dplyr)
-
-redo.results <- T
 
 ## https://pdfs.semanticscholar.org/542c/47f8fe03a36eb9871115e8b226288c519032.pdf?_ga=2.131851215.1529047367.1645760744-972231136.1645760744
 ## https://www.piie.com/system/files/documents/wp19-5.pdf
@@ -14,32 +13,41 @@ mod <- lm(dgdp ~ 0 + dexport + dimport, data=df)
 comtrade <- rbind(read.csv("data/trade/uncomtrade-1992.csv"), read.csv("data/trade/uncomtrade-2002.csv"),
                   read.csv("data/trade/uncomtrade-2012.csv"), read.csv("data/trade/uncomtrade-2022.csv"))
 
-load("mcrfres.RData")
+for (persist in c("0.08", "0.21")) {
+for (redo.results in c(T, F)) {
+if (persist == "0.08" && redo.results)
+  next
+
+load(paste0("data/mcrfres-", persist, ".RData"))
+
+results2 <- results %>% group_by(ISO, mc) %>%
+      mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - as.numeric(persist))^(0:30), sides=1)[-1:-30])
+
 if (redo.results) {
     tradeloss.orig <- data.frame(ISO=c())
 } else {
-    load("tradeloss.RData")
+    load(paste0("data/tradeloss-", persist, ".RData"))
     tradeloss.orig <- tradeloss
 }
 
 tradeloss <- data.frame()
-for (iso in unique(results$ISO)) {
+for (iso in unique(results2$ISO)) {
     if (iso %in% tradeloss.orig$ISO)
         next
     comtrade.iso <- subset(comtrade, ReporterISO == iso & PartnerISO != 'W00')
-    results.iso <- subset(results, ISO == iso)
+    results2.iso <- subset(results2, ISO == iso)
 
-    for (mcii in unique(results.iso$mc)) {
+    for (mcii in unique(results2.iso$mc)) {
         print(c(iso, mcii))
-        for (year in unique(results.iso$Year)) {
-            maxgrow <- max(0, results.iso$totimpact[results.iso$ISO == iso & results.iso$Year == year & results.iso$mc == mcii])
+        for (year in unique(results2.iso$Year)) {
+            maxgrow <- max(0, results2.iso$totimpact[results2.iso$ISO == iso & results2.iso$Year == year & results2.iso$mc == mcii])
 
             if (year <= min(comtrade.iso$Period))
-                calcdf <- subset(comtrade.iso, Period == min(comtrade.iso$Period)) %>% left_join(subset(results, Year == year & mc == mcii), by=c('PartnerISO'='ISO'))
+                calcdf <- subset(comtrade.iso, Period == min(comtrade.iso$Period)) %>% left_join(subset(results2, Year == year & mc == mcii), by=c('PartnerISO'='ISO'))
             else if (year >= max(comtrade.iso$Period))
-                calcdf <- subset(comtrade.iso, Period == max(comtrade.iso$Period)) %>% left_join(subset(results, Year == year & mc == mcii), by=c('PartnerISO'='ISO'))
+                calcdf <- subset(comtrade.iso, Period == max(comtrade.iso$Period)) %>% left_join(subset(results2, Year == year & mc == mcii), by=c('PartnerISO'='ISO'))
             else if (year %in% comtrade.iso$Period)
-                calcdf <- subset(comtrade.iso, Period == year) %>% left_join(subset(results, Year == year & mc == mcii), by=c('PartnerISO'='ISO'))
+                calcdf <- subset(comtrade.iso, Period == year) %>% left_join(subset(results2, Year == year & mc == mcii), by=c('PartnerISO'='ISO'))
             else {
                 yearbefore <- max(comtrade.iso$Period[comtrade.iso$Period < year])
                 yearafter <- min(comtrade.iso$Period[comtrade.iso$Period > year])
@@ -51,7 +59,7 @@ for (iso in unique(results$ISO)) {
                 comtrade.mix$Fobvalue <- ifelse(is.na(comtrade.mix$Fobvalue.bef), comtrade.mix$Fobvalue.aft,
                                          ifelse(is.na(comtrade.mix$Fobvalue.aft), comtrade.mix$Fobvalue.bef,
                                                 portionafter * comtrade.mix$Fobvalue.aft + (1 - portionafter) * comtrade.mix$Fobvalue.bef))
-                calcdf <- comtrade.mix %>% left_join(subset(results, Year == year & mc == mcii), by=c('PartnerISO'='ISO'))
+                calcdf <- comtrade.mix %>% left_join(subset(results2, Year == year & mc == mcii), by=c('PartnerISO'='ISO'))
             }
 
             ## Limit any growth to growth of country
@@ -68,9 +76,13 @@ for (iso in unique(results$ISO)) {
     }
 
     if (redo.results) {
-        save(tradeloss, file="tradeloss.RData")
+        save(tradeloss, file=paste0("data/tradeloss-", persist, ".RData"))
+	if (nrow(tradeloss) > nrow(results2)/2)
+	    break
     } else {
-        save(tradeloss, file="tradeloss2.RData")
+        save(tradeloss, file=paste0("data/tradeloss2-", persist, ".RData"))
     }
 }
 
+}
+}
