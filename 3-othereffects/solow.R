@@ -1,4 +1,5 @@
-setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
+## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
+## setwd("~/research/currentloss")
 
 library(readxl)
 library(dplyr)
@@ -8,7 +9,7 @@ library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
-mcstart <- 21
+mcstart <- 1
 
 source("src/lib/utils2.R")
 
