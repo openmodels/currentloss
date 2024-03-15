@@ -1,5 +1,6 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
 ## setwd("~/research/currentloss")
+## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 library(readxl)
 library(dplyr)

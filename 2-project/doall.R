@@ -1,4 +1,4 @@
-## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses/data")
+## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 library(readxl)
@@ -60,7 +60,7 @@ for (paper in names(papers)) {
     }
 }
 
-write.csv(allres, "allres.csv", row.names=F)
+write.csv(allres, "data/allres.csv", row.names=F)
 
 library(ggplot2)
 
@@ -103,4 +103,4 @@ for (paper in names(papers)) {
     }
 }
 
-save(mcres, file="mcres.RData")
+save(mcres, file="data/mcres.RData")
