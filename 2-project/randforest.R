@@ -1,5 +1,6 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
 ## setwd("~/research/currentloss")
+## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 library(ranger)
 library(readxl)
@@ -8,7 +9,6 @@ library(rpart)
 library(rpart.plot)
 library(PBSmapping)
 
-## allres <- read.csv("allres.csv")
 load("data/mcres.RData")
 load("data/mcres-decumul.RData")
 
@@ -104,9 +104,9 @@ for (mcii in 1:MCNUM) {
 save(results, file=paste0("data/mcrfres-", persist, ".RData"))
 }
 
-## load("data/mcrfres-0.08.RData")
+load("data/mcrfres-0.08.RData")
 
-polydata <- attr(importShapefile("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses/data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
+polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
 results2 <- results %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
     group_by(Year, mc) %>% summarize(gloimpact=sum(dimpact * POP_EST) / sum(POP_EST)) %>%
@@ -131,5 +131,30 @@ ggplot(results2, aes(Year, mu, linetype=Year <= 1970)) +
     geom_line() + geom_ribbon(aes(ymin=ci25, ymax=ci75), alpha=.5) +
     theme_bw() + scale_y_continuous("Global population-weighted GDP loss", labels=scales::percent) +
     scale_x_continuous(NULL, limits=c(1950, 2022), expand=c(0, 0)) +
-    guides(linetype=F) + geom_text(x=1960, y=-.002, label="(Insignificant change)")
+    guides(linetype=F)
 ggsave("figures/randforest.pdf", width=6.5, height=5)
+
+## Combined figure
+allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.08"]])
+
+allres2 <- allres %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
+    group_by(paper, name, Year, mc) %>% summarize(gloimpact=sum(dimpact * POP_EST) / sum(POP_EST)) %>%
+    group_by(paper, name, Year) %>% summarize(mu=mean(gloimpact))
+
+allres3 <- allres2 %>% group_by(Year) %>% summarize(mu=median(mu, na.rm=T))
+
+labels <- data.frame(Year=c(2018, 2018), xend=c(1997, 1997),
+                     y=c(results2$mu[results2$Year == 2018], allres3$mu[allres3$Year == 2018]),
+                     yend=c(-.035, .015), label=c("Random Forest", "Median Model"))
+
+ggplot(allres2, aes(Year, mu)) +
+    coord_cartesian(ylim=c(-.04, .02)) +
+    geom_line(aes(colour=paper, group=paste(paper, name))) +
+    geom_line(data=allres3, size=2, colour='black', alpha=.75) +
+    geom_line(data=results2, size=2, colour='#b15928', alpha=.75) +
+    geom_segment(data=labels, aes(xend=xend, y=y, yend=yend)) +
+    geom_label(data=labels, aes(x=xend, y=yend, label=label), vjust="center", hjust="center") +
+    theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1940, 2022)) +
+    scale_colour_discrete("Reference:")
+ggsave("figures/allimpacts-withrf.pdf", width=8, height=4)

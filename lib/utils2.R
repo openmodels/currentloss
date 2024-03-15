@@ -4,15 +4,14 @@ library(reshape2)
 library(countrycode)
 
 ## Grab pre-Solow results for countries without capital info
-load("mcrfres.RData")
+load(paste0("mcrfres-", persist, ".RData"))
 
 ## Grab global tradeloss data
-load("tradeloss.RData")
-tradeloss <- tradeloss
-#tradeloss1 <- tradeloss
+load(paste0("tradeloss-", persist, ".RData"))
+tradeloss1 <- tradeloss
 
-#load("tradeloss2.RData")
-#tradeloss <- rbind(tradeloss, tradeloss1)
+load(paste0("tradeloss2-", persist, ".RData"))
+tradeloss <- rbind(tradeloss, tradeloss1)
 
 tradeloss.global <- tradeloss %>% group_by(year) %>% dplyr::summarize(fracloss=mean(fracloss, na.rm=T))
 

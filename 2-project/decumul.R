@@ -47,12 +47,12 @@ for (persist in c(0.08, 0.21)) {
         }
     }
 
-    decumul.bypersist[[persist]] <- mcres.kotz
+    decumul.bypersist[[as.character(persist)]] <- mcres.kotz
 }
 
 save(decumul.bypersist, file="data/mcres-decumul.RData")
 
-mcres.final <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[0.08]])
+mcres.final <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.08"]])
 
 library(dplyr)
 results <- mcres.final %>% group_by(Year, ISO, name, paper) %>% summarize(dimpact=mean(dimpact))
