@@ -1,16 +1,20 @@
-setwd("~/research/currentloss")
+## setwd("~/research/currentloss")
+## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 library(Hmisc)
 library(PBSmapping)
-source("utils2.R")
+
+persist <- "0.08"
+source("src/lib/utils2.R")
+
 load.solowdata()
 
-allyr <- results %>%
+allyr <- results2 %>%
     left_join(tradeloss, by=c('mc', 'Year'='year', 'ISO')) %>%
     left_join(tradeloss.global, by=c('Year'='year'), suffix=c('', '.global'))
 allyr$fracloss[is.na(allyr$fracloss)] <- allyr$fracloss.global[is.na(allyr$fracloss)]
 
-solowdone <- read.csv("solow-v3.csv")
+solowdone <- read.csv("data/solow-v4.csv")
 
 allyr$product.true <- NA
 allyr$product.nocc <- NA
@@ -27,7 +31,7 @@ for (mcii in 1:30) {
 
         stan.data <- make.stan.data(iso)
 
-        load(paste0("solow/v3-", iso, "-", mcii, ".RData"))
+        load(paste0("data/solow/v4-", iso, "-", mcii, ".RData"))
 
         solowout <- model.solow(la, stan.data, F, rencaptrue=la$rencap_model)
 
@@ -40,7 +44,7 @@ for (mcii in 1:30) {
         allyr$product.true[allyr$mc == mcii & allyr$Year %in% 1961:2022 & allyr$ISO == iso] <- product.true
         allyr$product.nocc[allyr$mc == mcii & allyr$Year %in% 1961:2022 & allyr$ISO == iso] <- product.nocc
         allyr$allcap.true[allyr$mc == mcii & allyr$Year %in% 1961:2022 & allyr$ISO == iso] <- allcap.true[2:length(allcap.true)]
-        allyr$allcap.nocc[allyr$mc == mcii & allyr$Year %in% 1961:2022 & allyr$ISO == iso] <- allcap.nocc[2:length(allcap.true)] # NOTE: 2:length added after report
+        allyr$allcap.nocc[allyr$mc == mcii & allyr$Year %in% 1961:2022 & allyr$ISO == iso] <- allcap.nocc[2:length(allcap.true)]
     }
 }
 
@@ -48,7 +52,7 @@ allyr$product.chg <- 1 - allyr$product.nocc / allyr$product.true
 allyr$partprod.chg <- (allyr$product.chg - (allyr$totimpact - allyr$fracloss)) * runif(nrow(allyr)) + allyr$totimpact - allyr$fracloss
 allyr$itlimpact <- -allyr$fracloss
 
-solowdone <- read.csv("solow-v3.csv")
+solowdone <- read.csv("data/solow-v4.csv")
 solowdone2 <- solowdone %>% group_by(ISO) %>% mutate(ess.adj=ifelse(is.na(ess), min(solowdone$ess, na.rm=T), ess), weight.ess=ess.adj / sum(ess.adj), lp.adj=ifelse(lp > 1, lp, exp(lp - 1)), weight.lp=lp.adj / sum(lp.adj), weight=weight.ess * weight.lp) # (sign(totimpact.end + itlimpact.end) == sign(product.chg)) * # drops entries where sign(Solow) <> sign(impact)
 solowdone3 <- solowdone2[!duplicated(paste(solowdone2$ISO, solowdone2$mc)),]
 
@@ -63,8 +67,8 @@ allyr.ww <- allyr %>% left_join(solowdone3, by=c('ISO', 'mc'), suffix=c('', '.so
                is.na(weight) ~ 0,
                TRUE ~ weight / sum(weight, na.rm=T)))
 
-save(allyr.ww, file="allyr-ww.RData")
-## load("allyr-ww.RData")
+save(allyr.ww, file="data/allyr-ww.RData")
+## load("data/allyr-ww.RData")
 
 allyr2 <- allyr.ww %>% group_by(ISO, Year) %>%
     filter(weight.norm > 1e-9) %>%
@@ -85,12 +89,12 @@ ggsave("figures/timeseries.pdf", width=8, height=4)
 
 ## Create population and GDP-weighted means
 
-df.gdp2 <- read.wb("capital/API_NY.GDP.MKTP.KD_DS2_en_excel_v2_5871893.xls", 'GDP.2015')
+df.gdp2 <- read.wb("data/capital/API_NY.GDP.MKTP.KD_DS2_en_excel_v2_5871893.xls", 'GDP.2015')
 df.gdp3 <- df.gdp2 %>% group_by(`Country Code`) %>%
     dplyr::summarize(GDP.Year=ifelse(any(!is.na(GDP.2015)), Year[tail(which(!is.na(GDP.2015)), 1)], NA),
                      GDP.2015=ifelse(any(!is.na(GDP.2015)), GDP.2015[tail(which(!is.na(GDP.2015)), 1)], NA))
 
-df.pop2 <- read.wb("capital/API_SP.POP.TOTL_DS2_en_excel_v2_5871620.xls", 'POP')
+df.pop2 <- read.wb("data/capital/API_SP.POP.TOTL_DS2_en_excel_v2_5871620.xls", 'POP')
 df.pop3 <- df.pop2 %>% group_by(`Country Code`) %>%
     dplyr::summarize(POP.Year=ifelse(any(!is.na(POP)), Year[tail(which(!is.na(POP)), 1)], NA),
                      POP=ifelse(any(!is.na(POP)), POP[tail(which(!is.na(POP)), 1)], NA))
