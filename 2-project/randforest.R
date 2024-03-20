@@ -104,6 +104,7 @@ for (mcii in 1:MCNUM) {
 save(results, file=paste0("data/mcrfres-", persist, ".RData"))
 }
 
+persist <- 0.08
 load("data/mcrfres-0.08.RData")
 
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
@@ -127,12 +128,12 @@ ggplot(results2, aes(Year, muloess)) +
     geom_line() + geom_ribbon(aes(ymin=ci25loess, ymax=ci75loess), alpha=.5) +
     theme_bw() + xlab(NULL) + scale_y_continuous("Global population-weighted GDP loss", labels=scales::percent)
 
-ggplot(results2, aes(Year, mu, linetype=Year <= 1970)) +
+ggplot(results2, aes(Year, mu)) +
     geom_line() + geom_ribbon(aes(ymin=ci25, ymax=ci75), alpha=.5) +
     theme_bw() + scale_y_continuous("Global population-weighted GDP loss", labels=scales::percent) +
     scale_x_continuous(NULL, limits=c(1950, 2022), expand=c(0, 0)) +
     guides(linetype=F)
-ggsave("figures/randforest.pdf", width=6.5, height=5)
+ggsave(paste0("figures/randforest-", persist, ".pdf"), width=6.5, height=5)
 
 ## Combined figure
 allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.08"]])
@@ -148,13 +149,37 @@ labels <- data.frame(Year=c(2018, 2018), xend=c(1997, 1997),
                      yend=c(-.035, .015), label=c("Random Forest", "Median Model"))
 
 ggplot(allres2, aes(Year, mu)) +
-    coord_cartesian(ylim=c(-.04, .02)) +
-    geom_line(aes(colour=paper, group=paste(paper, name))) +
+    coord_cartesian(ylim=c(-.05, .025)) +
+    geom_line(aes(colour=paper, group=paste(paper, name)), linewidth=.3) +
+    geom_line(data=allres3, size=2, colour='black', alpha=.75) +
+    geom_segment(data=labels[2,], aes(xend=xend, y=y, yend=yend)) +
+    geom_label(data=labels[2,], aes(x=xend, y=yend, label=label), vjust="center", hjust="center") +
+    theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1940, 2023)) +
+    scale_colour_discrete("Reference:")
+ggsave(paste0("figures/allimpacts-", persist, ".pdf"), width=8, height=4)
+
+ggplot(allres2, aes(Year, mu)) +
+    coord_cartesian(ylim=c(-.05, .025)) +
+    geom_line(aes(colour=paper, group=paste(paper, name)), linewidth=.3) +
     geom_line(data=allres3, size=2, colour='black', alpha=.75) +
     geom_line(data=results2, size=2, colour='#b15928', alpha=.75) +
     geom_segment(data=labels, aes(xend=xend, y=y, yend=yend)) +
     geom_label(data=labels, aes(x=xend, y=yend, label=label), vjust="center", hjust="center") +
     theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
-    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1940, 2022)) +
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1940, 2023)) +
     scale_colour_discrete("Reference:")
-ggsave("figures/allimpacts-withrf.pdf", width=8, height=4)
+ggsave(paste0("figures/allimpacts-withrf-", persist, ".pdf"), width=8, height=4)
+
+ggplot(allres2, aes(Year, mu)) +
+    coord_cartesian(ylim=c(-.05, .025)) +
+    geom_line(aes(colour=paper, group=paste(paper, name)), linewidth=0) +
+    geom_line(data=allres3, size=2, colour='black', alpha=.75) +
+    geom_line(data=results2, size=2, colour='#b15928', alpha=.75) +
+    geom_ribbon(data=results2, aes(ymin=ci25, ymax=ci75), alpha=.5) +
+    geom_segment(data=labels, aes(xend=xend, y=y, yend=yend)) +
+    geom_label(data=labels, aes(x=xend, y=yend, label=label), vjust="center", hjust="center") +
+    theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1940, 2023)) +
+    scale_colour_discrete("Reference:")
+ggsave(paste0("figures/allimpacts-withrfci-", persist, ".pdf"), width=8, height=4)

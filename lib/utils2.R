@@ -156,7 +156,7 @@ model.solow <- function(la, stan.data, withcc, rencaptrue=NULL) {
     for (tt in 2:stan.data$T) {
         product[, tt-1] = (la$tfp + la$dtfpdt * (tt-1)) * (rencap_model[, tt-1]^(la$shares0[, 1] + (tt-2) * (la$sharesT[, 1] - la$shares0[, 1]) / (stan.data$T-2))) * (procap_model[, tt-1]^(la$shares0[, 2] + (tt-2) * (la$sharesT[, 2] - la$shares0[, 2]) / (stan.data$T-2))) * (humcap_model[, tt-1]^(la$shares0[, 3] + (tt-2) * (la$sharesT[, 3] - la$shares0[, 3]) / (stan.data$T-2))) * (stan.data$pop[tt-1]^(la$shares0[, 4] + (tt-2) * (la$sharesT[, 4] - la$shares0[, 4]) / (stan.data$T-2)))
         if (withcc == T || withcc == "prodonly")
-            product[, tt-1] <- product[, tt-1] * (1 - (stan.dat$gdpgrowshock_contemp[tt-1] + la$cumulpart[tt-1] * (stan.dat$gdpgrowshock_cumul[tt-1] - stan.dat$gdpgrowshock_contemp[tt-1])))
+            product[, tt-1] <- product[, tt-1] * (1 - (stan.data$gdpgrowshock_contemp[tt-1] + la$cumulpart[tt-1] * (stan.data$gdpgrowshock_cumul[tt-1] - stan.data$gdpgrowshock_contemp[tt-1])))
         if (withcc == T)
             rickerr2 <- (1 - la$renwarmeffect * stan.data$warming[tt-1]) * la$rickerr
         else

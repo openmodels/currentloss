@@ -1,4 +1,5 @@
-setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
+## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
+## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 library(dplyr)
 library(reshape2)
@@ -7,13 +8,14 @@ library(Hmisc)
 library(PBSmapping)
 library(countrycode)
 
+persist = 0.08
 source("src/lib/utils2.R")
 
-presolow <- subset(results, Year == 2022) %>%
+presolow <- subset(results2, Year == 2022) %>%
     left_join(subset(tradeloss, year == 2022), by=c('mc', 'Year'='year', 'ISO'))
 presolow$fracloss[is.na(presolow$fracloss)] <- tail(tradeloss.global$fracloss, 1)
 
-sumbymc <- read.csv("solow-v3-21.csv")
+sumbymc <- read.csv("data/solow-v4-ccpc.csv")
 sumbymc$itlimpact.end[is.na(sumbymc$itlimpact.end)] <- tail(tradeloss.global$fracloss, 1)
 
 sumbymc2 <- sumbymc %>% group_by(ISO) %>% mutate(ess.adj=ifelse(is.na(ess), min(sumbymc$ess, na.rm=T), ess), weight.ess=ess.adj / sum(ess.adj), lp.adj=ifelse(lp > 1, lp, exp(lp - 1)), weight.lp=lp.adj / sum(lp.adj), weight=weight.ess * weight.lp) #(sign(totimpact.end + itlimpact.end) == sign(product.chg)) * weight.ess * weight.lp) # drops entries where sign(Solow) <> sign(impact)
