@@ -11,7 +11,7 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 mcstart <- 1
-persist <- "0.08"
+persist <- "0.21"
 
 source("src/lib/utils2.R")
 
@@ -146,11 +146,11 @@ model {
 }"
 
 if (mcstart == 'x')
-    pastsolow <- rbind(read.csv("solow-v4.csv"), read.csv("solow-v4-11.csv"), read.csv("solow-v4-21.csv"), read.csv("solow-v4-26.csv"))
-if (mcstart == 1 && file.exists("solow-v4.csv")) {
-    sumbymc <- read.csv("solow-v4.csv")
-} else if (mcstart != 1 && file.exists(paste0("solow-v4-", mcstart, ".csv"))) {
-    sumbymc <- read.csv(paste0("solow-v4-", mcstart, ".csv"))
+    pastsolow <- rbind(read.csv(paste0("solow-v4-", persist, ".csv"))) #, read.csv("solow-v4-11.csv"), read.csv("solow-v4-21.csv"), read.csv("solow-v4-26.csv"))
+if (mcstart == 1 && file.exists(paste0("solow-v4-", persist, ".csv"))) {
+    sumbymc <- read.csv(paste0("solow-v4-", persist, ".csv"))
+} else if (mcstart != 1 && file.exists(paste0("solow-v4-", persist, "-", mcstart, ".csv"))) {
+    sumbymc <- read.csv(paste0("solow-v4-", persist, "-", mcstart, ".csv"))
 } else
     sumbymc <- data.frame()
 
@@ -201,12 +201,12 @@ for (mcii in allmc) {
         row$procap.chg <- 1 - row$procap.end.nocc / row$procap.end.true
         row$humcap.chg <- 1 - row$humcap.end.nocc / row$humcap.end.true
 
-        save(la, file=paste0("data/solow/v4-", iso, "-", mcii, ".RData"))
+        save(la, file=paste0("data/solow-", persist, "/v4-", iso, "-", mcii, ".RData"))
 
         sumbymc <- rbind(sumbymc, row)
         if (mcstart == 1)
-            write.csv(sumbymc, "solow-v4.csv", row.names=F)
+            write.csv(sumbymc, paste0("solow-v4-", persist, ".csv"), row.names=F)
         else
-            write.csv(sumbymc, paste0("solow-v4-", mcstart, ".csv"), row.names=F)
+            write.csv(sumbymc, paste0("solow-v4-", persist, "-", mcstart, ".csv"), row.names=F)
     }
 }
