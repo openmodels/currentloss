@@ -74,15 +74,15 @@ allyr2 <- allyr.ww %>% group_by(ISO, Year) %>%
     filter(weight.norm > 1e-9) %>%
     dplyr::summarize(totimpact=wtd.median(totimpact, weights=weight.norm, normwt=T), itlimpact=wtd.median(itlimpact, weights=weight.norm, normwt=T), solow=ifelse(rep(all(is.na(partprod.chg)), length(partprod.chg)), NA, wtd.median(partprod.chg - totimpact - itlimpact, weights=weight.norm, normwt=T)), total=ifelse(rep(all(is.na(partprod.chg)), length(partprod.chg)), wtd.median(totimpact + itlimpact, weights=weight.norm, normwt=T), wtd.median(partprod.chg, weights=weight.norm, normwt=T)), prod25=ifelse(rep(all(is.na(partprod.chg)), length(partprod.chg)), wtd.quantile(totimpact + itlimpact, .25, weights=weight.norm, normwt=T), wtd.quantile(partprod.chg, .25, weights=weight.norm, normwt=T)), prod75=ifelse(rep(all(is.na(partprod.chg)), length(partprod.chg)), wtd.quantile(totimpact + itlimpact, .75, weights=weight.norm, normwt=T), wtd.quantile(partprod.chg, .75, weights=weight.norm, normwt=T)))
 
-tohighlight <- c('USA', 'CHN', 'IND', 'BEL', 'RUS', 'BRA', 'AUS', 'MDV', 'NGA', 'SAU')
+tohighlight <- c('USA', 'CHN', 'IND', 'BEL', 'RUS', 'BRA', 'AUS', 'MDV', 'NGA', 'THA')
 allyr2$label <- ifelse(allyr2$ISO %in% tohighlight, allyr2$ISO, 'XXX')
 
 ggplot(allyr2, aes(Year, total, group=ISO, colour=label)) +
-    coord_cartesian(ylim=c(-.2, .15)) +
+    coord_cartesian(ylim=c(-.3, .15)) +
     geom_hline(yintercept=0) +
     geom_line(data=subset(allyr2, label == 'XXX' & total != 0), linewidth=.1) +
     geom_line(data=subset(allyr2, label != 'XXX' & total != 0), linewidth=1) +
-    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1950, 2022)) + scale_y_continuous("Change in GDP due to climate change (%)", labels=scales::percent) +
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1950, 2023)) + scale_y_continuous("Change in GDP due to climate change (%)", labels=scales::percent) +
     scale_colour_manual(NULL, breaks=c(tohighlight, 'XXX'), values=c('#a6cee3', '#1f78b4', '#b2df8a', '#33a02c', '#fb9a99', '#e31a1c', '#fdbf6f', '#ff7f00', '#b15928', '#6a3d9a', '#00000080'), labels=c(countrycode(tohighlight, 'iso3c', 'country.name'), 'Others')) +
     theme_bw()
 ggsave("figures/timeseries.pdf", width=8, height=4)
@@ -119,11 +119,11 @@ allyr3.gdp$prod75loess <- tail(predict(loess(prod75 ~ Year, allyr3.gdp, span=.25
 
 allyr4 <- rbind(cbind(allyr3.pop, weights="Population"), cbind(allyr3.gdp, weights="Output"))
 
-ggplot(allyr4, aes(Year, totalloess)) +
-    geom_line(aes(colour=weights)) + geom_ribbon(aes(ymin=prod25loess, ymax=prod75loess, group=weights), alpha=.5) +
-    theme_bw() + scale_y_continuous("Global weighted changing in GDP (%)", labels=scales::percent) +
-    scale_x_continuous(NULL, expand=c(0, 0)) + scale_colour_discrete("Weighting:")
-ggsave("figures/globaltime.pdf", width=6.5, height=4)
+## ggplot(allyr4, aes(Year, totalloess)) +
+##     geom_line(aes(colour=weights)) + geom_ribbon(aes(ymin=prod25loess, ymax=prod75loess, group=weights), alpha=.5) +
+##     theme_bw() + scale_y_continuous("Global weighted changing in GDP (%)", labels=scales::percent) +
+##     scale_x_continuous(NULL, expand=c(0, 0)) + scale_colour_discrete("Weighting:")
+## ggsave("figures/globaltime.pdf", width=6.5, height=4)
 
 ggplot(allyr3.pop, aes(Year)) +
     geom_line(aes(y=totimpact, colour="Direct Impact")) +

@@ -51,10 +51,21 @@ for (persist in c(0.08, 0.21)) {
 }
 
 save(decumul.bypersist, file="data/mcres-decumul.RData")
+## load("data/mcres-decumul.RData")
+
+library(dplyr)
+
+if (F) {
+    for (persist in c(0.08, 0.21)) {
+        df.test <- decumul.bypersist[[as.character(persist)]] %>% group_by(paper, name, ISO, mc) %>%
+            mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - persist)^(0:30), sides=1)[-1:-30])
+        stopifnot(all(df.test$ISO == mcres.kotz$ISO & df.test$Year == mcres.kotz$Year & df.test$name == mcres.kotz$name))
+        print(quantile(df.test$totimpact - mcres.kotz$dimpact))
+    }
+}
 
 mcres.final <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.08"]])
 
-library(dplyr)
 results <- mcres.final %>% group_by(Year, ISO, name, paper) %>% summarize(dimpact=mean(dimpact))
 
 library(PBSmapping)
@@ -67,8 +78,8 @@ results3 <- results2 %>% group_by(Year) %>% summarize(dimpact.pop=median(dimpact
 
 library(ggplot2)
 ggplot(results2, aes(Year, dimpact.pop)) +
-    coord_cartesian(ylim=c(-0.04, 0.01)) +
-    geom_line(aes(colour=paper, group=paste(paper, name))) +
+    coord_cartesian(ylim=c(-0.05, 0.02)) +
+    geom_line(aes(colour=paper, group=paste(paper, name)), linewidth=.3) +
     geom_line(data=results3, size=2, colour='black') +
     theme_bw() + ylab("Impact (change in growth rate)")
 ggsave("figures/allimpacts.pdf", width=8, height=4)

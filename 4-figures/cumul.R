@@ -7,18 +7,21 @@ library(ggplot2)
 
 source("src/lib/distance.R")
 
-## df.imp <- read.csv("allres.csv")
-## df.imp2 <- rbind(df.imp %>% filter(paper == "Kotz et al. 2022" & preferred) %>% mutate(totimpact=dimpact),
-##       df.imp %>% filter(paper != "Kotz et al. 2022" & preferred) %>% group_by(paper, name, ISO) %>%
-##       mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - .08)^(0:30), sides=1)[-1:-30]))
-
 load("data/mcres.RData")
+load("data/mcres-decumul.RData")
 
-unique(paste(mcres$paper, mcres$name)[!is.na(mcres$dimpact)])
+mcres.final <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.08"]])
 
-df.imp2 <- rbind(mcres %>% filter(paper == "Kotz et al. 2022") %>% mutate(totimpact=dimpact),
-      mcres %>% filter(paper != "Kotz et al. 2022") %>% group_by(paper, name, ISO, mc) %>%
-      mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - .08)^(0:30), sides=1)[-1:-30]))
+df.imp2 <-
+    mcres.final %>% group_by(paper, name, ISO, mc) %>%
+    mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - 0.08)^(0:30), sides=1)[-1:-30])
+
+if (F) {
+    mcres.kotz <- subset(mcres, paper == "Kotz et al. 2022")
+    df.imp2.kotz <- subset(df.imp2, paper == "Kotz et al. 2022")
+    stopifnot(all(df.imp2.kotz$ISO == mcres.kotz$ISO & df.imp2.kotz$Year == mcres.kotz$Year & df.imp2.kotz$name == mcres.kotz$name))
+    print(quantile(df.imp2.kotz$totimpact - mcres.kotz$dimpact))
+}
 
 shp <- importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp")
 polydata <- attr(shp, 'PolyData')
@@ -32,21 +35,16 @@ ggplot(df.imp2pop, aes(Year, totimpact.pop)) +
     geom_line(aes(colour=paper, group=paste(paper, name))) +
     geom_line(data=df.imp2popmed, size=2, colour='black') +
     theme_bw() + scale_y_continuous("Direct Impact (% change in GDP)", labels=scales::percent) + xlab(NULL) +
-    scale_colour_discrete("Reference:") + xlim(1950, 2022)
-ggsave("figures/totimpacts.pdf", width=8, height=4)
+    scale_colour_discrete("Reference:") + scale_x_continuous(limits=c(1950, 2022), expand=c(0, 0))
+ggsave("figures/totimpacts-0.08.pdf", width=8, height=4)
 
-#############################
-##Now we should save the df.imp2 as "mctotres.Rdata" for running the randforest.R script##
-
-save(df.imp2, file="mctotres.Rdata")
-## load("mctotres.Rdata")
-
-## totimpacts with RF plot
-load("mcrfres.RData")
+load("data/mcrfres-0.08.RData")
 
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
-results2 <- results %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
+results2 <- results %>% group_by(ISO, mc) %>%
+    mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - 0.08)^(0:30), sides=1)[-1:-30]) %>%
+    left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
     group_by(Year, mc) %>% summarize(gloimpact=sum(totimpact * POP_EST) / sum(POP_EST)) %>%
     group_by(Year) %>% summarize(mu=mean(gloimpact),
                                  ci25=quantile(gloimpact, .25),
@@ -57,7 +55,7 @@ labels <- data.frame(Year=c(1988, 1997), xend=c(1987, 2003),
                      yend=c(-.04, .015), labelyend=c(-.045, .02), label=c("Random Forest", "Median Model"))
 
 ggplot(df.imp2pop, aes(Year, totimpact.pop)) +
-    coord_cartesian(ylim=c(-.1, .02)) +
+    coord_cartesian(ylim=c(-.15, .05)) +
     geom_line(aes(colour=paper, group=paste(paper, name))) +
     geom_line(data=df.imp2popmed, size=2, colour='black', alpha=.75) +
     geom_line(data=results2, aes(y=mu), size=2, colour='#b15928', alpha=.75) +
@@ -66,7 +64,7 @@ ggplot(df.imp2pop, aes(Year, totimpact.pop)) +
     theme_bw() + scale_y_continuous("Direct Impact (% change in GDP)", labels=scales::percent) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1940, 2022)) +
     scale_colour_discrete("Reference:")
-ggsave("figures/totimpacts-withrf.pdf", width=8, height=4)
+ggsave("figures/totimpacts-withrf-0.08.pdf", width=8, height=4)
 
 ## Presentation Fig 1: Models only
 ggplot(df.imp2pop, aes(Year, totimpact.pop)) +
