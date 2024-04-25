@@ -1,8 +1,65 @@
-load.data <- function(year) {
-    FD.global <<- READ THE FILE
+library(raster)
+library(dplyr)
+
+io.byyear <- list() # "YEAR"=list("TT"=matrix, labels=data.frame)
+
+## Returns list("TT"=matrix, labels=data.frame)
+## Caches the result in io.byyear
+load.io <- function(year) {
+    if (year < 1990)
+        return(load.io(1990))
+    if (year > 2016)
+        return(load.io(2016))
+
+    yearstr <- as.character(year)
+    if (yearstr %in% names(io.byyear))
+        return(io.byyear[[yearstr]])
+
+    datapath <- paste0("data/I_O data/Eora26/Eora26_", year, "_bp")
+    TT <- as.matrix(read.delim(file.path(datapath, paste0("Eora26_", year, "_bp_T.txt")), sep='\t', header=F))
+    VA <- as.matrix(read.delim(file.path(datapath, paste0("Eora26_", year, "_bp_VA.txt")), sep='\t', header=F))
+    FD <- as.matrix(read.delim(file.path(datapath, paste0("Eora26_", year, "_bp_FD.txt")), sep='\t', header=F))
+
+    rTT <- raster(TT)
+    rTT2 <- aggregate(rTT, 26, sum)
+    TT2 <- as.matrix(rTT2)
+
+    labels <- read.delim(file.path(datapath, "labels_T.txt"), sep='\t', header=F)
+    labels$V1 <- factor(labels$V1, levels=unique(labels$V1))
+
+    labels$VA <- colSums(VA)
+    labels$FD <- rowSums(FD)
+
+    labels2 <- labels %>% group_by(V1) %>% summarize(VA=sum(VA), FD=sum(FD))
+
+    io.byyear[[yearstr]] <<- list(TT=TT2, labels=labels2)
+    return(io.byyear[[yearstr]])
 }
 
-calc.total.loss <- function(directloss) {
-    DO CALCULATIONS ... -> FD after impacts
-    DIVIDE FD after impacts by FD before impact -> loss with trade
+calc.domar.loss <- function(year, isos, dimpact) {
+    io <- load.io(year)
+
+    labels <- io$labels
+    labels2 <- labels %>% left_join(data.frame(V1=isos, dimpact=dimpact), by='V1')
+
+    total.sales <- rowSums(io$TT) + labels2$FD
+    labels2$gdp <- labels2$FD + labels2$VA
+    global.gdp <- sum(labels2$gdp)
+    weights <- total.sales / global.gdp
+
+    dimpact.level <- exp(labels2$dimpact) - 1
+    total.change <- sum(weights * ifelse(is.na(dimpact.level), 0, dimpact.level))
+    trade.effect <- total.change - sum(dimpact.level * labels2$gdp, na.rm=T) / sum(labels2$gdp)
+
+    return(trade.effect)
+}
+
+if (F) {
+    ## Test
+    load("data/mcrfres-0.08.RData")
+    losses <- subset(results, mc == 1 & Year == 2015)
+    isos <- losses$ISO
+    dimpact <- losses$dimpact
+
+    calc.domar.loss(2015, isos, dimpact)
 }
