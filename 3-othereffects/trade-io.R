@@ -39,19 +39,27 @@ load.io <- function(year) {
 calc.domar.loss <- function(year, isos, dimpact) {
     io <- load.io(year)
 
+    ## Match up known impacts to IO countries
     labels <- io$labels
+    isos[isos == 'SDN'] <- 'SUD'
+    isos[isos == 'PSX'] <- 'PSE'
     labels2 <- labels %>% left_join(data.frame(V1=isos, dimpact=dimpact), by='V1')
+    labels2$dimpact[labels2$V1 == 'ANT'] <- labels2$dimpact[labels2$V1 == 'NLD']
 
+    ## Calculate Domar weights
     total.sales <- rowSums(io$TT) + labels2$FD
     labels2$gdp <- labels2$FD + labels2$VA
     global.gdp <- sum(labels2$gdp)
     weights <- total.sales / global.gdp
 
+    ## Calculate global GDP loss
     dimpact.level <- exp(labels2$dimpact) - 1
     total.change <- sum(weights * ifelse(is.na(dimpact.level), 0, dimpact.level))
-    trade.effect <- total.change - sum(dimpact.level * labels2$gdp, na.rm=T) / sum(labels2$gdp)
 
-    return(trade.effect)
+    ## Extract out the additional
+    total.trade.effect <- total.change - sum(dimpact.level * labels2$gdp, na.rm=T) / global.gdp
+
+    return(rep(total.trade.effect, length(isos)))
 }
 
 if (F) {
