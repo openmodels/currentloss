@@ -35,7 +35,7 @@ metadata$`Weather weight`[grep("Pop.", metadata$`Weather weight`)] <- "Pop. weig
 metadata$`Rich/Poor`[is.na(metadata$`Rich/Poor`)] <- "NA"
 metadata$`Rich/Poor`[metadata$`Rich/Poor` == "Project poor only"] <- "Subsetted"
 metadata$Temp[is.na(metadata$Temp)] <- "NA"
-metadata$Prec.[is.na(metadata$Prec.)] <- "NA"
+metadata$Prec....13[is.na(metadata$Prec....13)] <- "NA"
 metadata$`Year FE`[is.na(metadata$`Year FE`)] <- "NA"
 metadata$`Trends`[is.na(metadata$`Trends`)] <- "NA"
 metadata$`Trends`[metadata$`Trends` %in% c("Implicit linear by region", "Linear by Unit", "By Country", "Linear, By Country")] <- "Linear, by Unit"
@@ -56,9 +56,9 @@ metadata$Q.Poverty <- 1 * (metadata$`Rich/Poor` == "Interact")
 metadata$Q.Temp <- ifelse(metadata$Temp %in% c("Quad", "Interacted with average", "Linear Spline"), 1,
                    ifelse(metadata$Temp %in% c("1 Lag", "10 Lags", "5 Lags", "Quad of Historical Differences", "VarT, DT, LDT, DT:T, LDT:LT"), 0.75,
                    ifelse(metadata$Temp != "NA", 0.5, 0)))
-metadata$Q.Prec <- ifelse(metadata$Prec. %in% c("Quad", "Interacted with average", "Segmented", "Linear Spline", "Indicatators"), 1,
-                   ifelse(metadata$Prec. %in% c("10 Lags", "1 Lag", "5 Lags"), 0.75,
-                   ifelse(metadata$Prec. != "NA", 0.5, 0)))
+metadata$Q.Prec <- ifelse(metadata$Prec....13 %in% c("Quad", "Interacted with average", "Segmented", "Linear Spline", "Indicatators"), 1,
+                   ifelse(metadata$Prec....13 %in% c("10 Lags", "1 Lag", "5 Lags"), 0.75,
+                   ifelse(metadata$Prec....13 != "NA", 0.5, 0)))
 metadata$Q.YearFE <- ifelse(metadata$`Year FE` == "By Region", 1,
                      ifelse(metadata$`Year FE` == "By Continent", 0.75,
                      ifelse(metadata$`Year FE` == "Yes", 0.5, 0)))
@@ -88,7 +88,7 @@ for (mcii in 1:MCNUM) {
             values <- allres4[, c('dimpact', 'Q.Weather', 'Q.Poverty', 'Q.Temp', 'Q.Prec', 'Q.YearFE', 'Q.Trends',
 	    	      		  'Q.OtherFE', 'Q.Control', 'Q.GLags', 'Q.YearLate', 'Q.YearSpan')]
 
-            ## mod <- rpart(dimpact ~ `Dependent` + `Weather weight` + `Rich/Poor` + `Temp` + `Prec.` +
+            ## mod <- rpart(dimpact ~ `Dependent` + `Weather weight` + `Rich/Poor` + `Temp` + `Prec....13` +
 	    ##  `Year FE` + `Trends` + `Other FE` + `Growth Lags` + `Dataset` + `Year Coverage`, data=values)
             ## rpart.plot(mod)
 
