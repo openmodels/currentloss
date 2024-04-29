@@ -1,3 +1,5 @@
+## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
+
 library(raster)
 library(dplyr)
 
