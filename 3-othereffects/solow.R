@@ -131,7 +131,7 @@ model {
     sav[ii] ~ normal(saverate0 + dsaveratedt * (sav_year[ii]-2), sav_error);
   }
 
-  gdpgrowshock_cumul[2:T] ~ normal(-(log(product) - (log(product_nocc) - (1 - cumulpart) .* gdpgrowshock_cumul[2:T])), gdp_error);
+  gdpgrowshock_cumul[2:T] ~ normal(-(log(product) - (log(product_nocc) - (1 - cumulpart) .* gdpgrowshock_cumul[2:T])), gdp_error); // gdpgrowshock is a log quantity, so gdp_error can apply to both
 
   // Model logic
   dsaveratedt ~ normal(0, sav_error);

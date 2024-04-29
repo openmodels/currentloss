@@ -1,7 +1,6 @@
 library(dplyr)
-library(readxl)
-library(reshape2)
 library(countrycode)
+source("loadutils.R")
 
 ## Grab pre-Solow results for countries without capital info
 load(paste0("data/mcrfres-", persist, ".RData"))
@@ -17,12 +16,6 @@ tradeloss <- rbind(tradeloss, tradeloss1)
 
 tradeloss.global <- tradeloss %>% group_by(year) %>% dplyr::summarize(fracloss=mean(fracloss, na.rm=T))
 
-read.wb <- function(filepath, value.name) {
-    df <- read_xls(filepath, skip=3)
-    df2 <- melt(df[, c(-1, -3, -4)], 'Country Code', variable.name='Year', value.name=value.name)
-    df2$Year <- as.numeric(as.character(df2$Year))
-    df2
-}
 
 read.iw <- function(filepath, value.name) {
     df.pro <- read.csv(filepath)
