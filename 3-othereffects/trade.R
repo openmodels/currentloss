@@ -3,37 +3,34 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 library(dplyr)
+source("src/lib/loadutils.R")
+source("src/3-othereffects/trade-io.R")
 
 comtrade <- rbind(read.csv("data/trade/uncomtrade-1992.csv"), read.csv("data/trade/uncomtrade-2002.csv"),
                   read.csv("data/trade/uncomtrade-2012.csv"), read.csv("data/trade/uncomtrade-2022.csv"))
 
-slrimpact <- read.csv("data/slrbyadm0-final.csv")
-
 ## Get all GDPs (for SLR fraction calc)
-df.gdp2 <- read.wb("data/capital/API_NY.GDP.MKTP.KD_DS2_en_excel_v2_5871893.xls", 'GDP.2015')
-df.gdp3 <- subset(df.gdp2, `Country Code` %in% unique(df.gdp2$`Country Code`[!is.na(df.gdp2$GDP.2015)]) & !(`Country Code` %in% c("LIE", 'NCL'))) %>% group_by(`Country Code`) %>%
-    reframe(Year=Year, GDP.2015.est=approx(Year, GDP.2015, Year, rule=2)$y)
-df.gdp3$GDP.2019.est <- df.gdp3$GDP.2015.est * 106.87654 / 100
-
-slr <- read.csv("data/slrbyadm0-final.csv")
-slr2 <- slr %>% left_join(df.gdp3, by=c('ISO'='Country Code', 'year'='Year')) %>%
-    group_by(ISO, year) %>% reframe(mc=1:30, slrloss=rnorm(30, mu / GDP.2019.est, ((q95 - q05) / diff(qnorm(c(.05, .95)))) / GDP.2019.est) / 10) # XXX: 1/10
-
+df.gdp3 <- load.gdp3()
+slr2 <- load.slr2(df.gdp3)
 
 for (persist in c("0.08", "0.21")) {
     load(paste0("data/mcrfres-", persist, ".RData"))
 
     results2 <- results %>% group_by(ISO, mc) %>%
-        mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - as.numeric(persist))^(0:30), sides=1)[-1:-30])
-
-    tradeloss <- data.frame()
+        mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - as.numeric(persist))^(0:30), sides=1)[-1:-30]) %>%
+        left_join(slr2, by=c('ISO', 'Year'='year', 'mc'))
+    results2$slrloss[is.na(results2$slrloss)] <- 0
 
     for (year in unique(results2$Year)) {
+        tradeloss <- data.frame()
         for (mcii in unique(results2$mc)) {
+            print(c(persist, year, mcii))
+            thisyear <- data.frame()
             for (iso in unique(results2$ISO)) {
-                print(c(year, iso, mcii))
 
                 comtrade.iso <- subset(comtrade, ReporterISO == iso & PartnerISO != 'W00')
+                if (nrow(comtrade.iso) == 0)
+                    next
                 results2.iso <- subset(results2, ISO == iso)
 
                 maxgrow <- max(0, results2.iso$totimpact[results2.iso$ISO == iso & results2.iso$Year == year & results2.iso$mc == mcii])
@@ -59,31 +56,33 @@ for (persist in c("0.08", "0.21")) {
                 }
 
                 ## Limit any growth to growth of country
-                calcdf$cif.lost <- calcdf$Cifvalue * pmax(-calcdf$totimpact, -maxgrow)
-                calcdf$fob.lost <- calcdf$Fobvalue * pmax(-calcdf$totimpact, -maxgrow)
+                calcdf$cif.lost <- calcdf$Cifvalue * pmax(-calcdf$totimpact + calcdf$slrloss, -maxgrow)
+                calcdf$fob.lost <- calcdf$Fobvalue * pmax(-calcdf$totimpact + calcdf$slrloss, -maxgrow)
+
+                ## Fill in NAs, with preference based on direction
+                calcdf$fob.lost[is.na(calcdf$fob.lost) & calcdf$FlowDesc == 'Export'] <- calcdf$cif.lost[is.na(calcdf$fob.lost) & calcdf$FlowDesc == 'Export']
+                calcdf$Fobvalue[is.na(calcdf$fob.lost) & calcdf$FlowDesc == 'Export'] <- calcdf$Cifvalue[is.na(calcdf$fob.lost) & calcdf$FlowDesc == 'Export']
+                calcdf$cif.lost[is.na(calcdf$cif.lost) & calcdf$FlowDesc == 'Import'] <- calcdf$fob.lost[is.na(calcdf$cif.lost) & calcdf$FlowDesc == 'Import']
+                calcdf$Cifvalue[is.na(calcdf$cif.lost) & calcdf$FlowDesc == 'Import'] <- calcdf$Fobvalue[is.na(calcdf$cif.lost) & calcdf$FlowDesc == 'Import']
 
                 fracloss.import <- sum(calcdf$cif.lost[calcdf$FlowDesc == 'Import'], na.rm=T) / sum(calcdf$Cifvalue[calcdf$FlowDesc == 'Import'], na.rm=T)
                 fracloss.export <- sum(calcdf$fob.lost[calcdf$FlowDesc == 'Export'], na.rm=T) / sum(calcdf$Fobvalue[calcdf$FlowDesc == 'Export'], na.rm=T)
 
+                thisyear <- rbind(thisyear, data.frame(ISO=iso, mc=mcii, year, fracloss.import, fracloss.export))
+            }
 
+            ## Scale to the Domar loss
+            results2.year <- subset(results2, Year == year & mc == mcii)
+            domar.loss <- calc.domar.loss(year, results2.year$ISO, results2.year$totimpact - results2.year$slrloss)
 
+            thisyear2 <- thisyear %>% left_join(df.gdp3, by=c('ISO'='Country Code', 'year'='Year'))
+            ## domar.loss[1] * sum(thisyear2$GDP.2019.est) = A * sum(thisyear2$fracloss.export * thisyear2$GDP.2019.est)
+            scaleby <- domar.loss[1] * sum(thisyear2$GDP.2019.est, na.rm=T) / sum(ifelse(is.na(thisyear2$fracloss.export), 0, thisyear2$fracloss.export) * thisyear2$GDP.2019.est, na.rm=T)
+            thisyear2$tradeloss <- thisyear2$fracloss.export * scaleby
 
-
-
-                ## Convert to %, just in case future model cares
-            dgdp <- predict(mod, data.frame(dimport=-100 * fracloss.import, dexport=-100 * fracloss.export))
-            tradeloss <- rbind(tradeloss, data.frame(ISO=iso, mc=mcii, year, fracloss=-dgdp / 100))
+            tradeloss <- rbind(tradeloss, thisyear2[, c('ISO', 'mc', 'year', 'tradeloss')])
         }
-    }
-
-    if (redo.results) {
-        save(tradeloss, file=paste0("data/tradeloss-", persist, ".RData"))
-	if (nrow(tradeloss) > nrow(results2)/2)
-	    break
-    } else {
-        save(tradeloss, file=paste0("data/tradeloss2-", persist, ".RData"))
+        save(tradeloss, file=paste0("data/tradeloss/tradeloss-", year, "-", persist, ".RData"))
     }
 }
 
-}
-}
