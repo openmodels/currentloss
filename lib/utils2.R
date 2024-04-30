@@ -13,7 +13,6 @@ tradeloss <- load.tradeloss(persist)
 
 tradeloss.global <- tradeloss %>% group_by(year) %>% dplyr::summarize(tradeloss=mean(tradeloss, na.rm=T))
 
-
 read.iw <- function(filepath, value.name) {
     df.pro <- read.csv(filepath)
     df.pro$ISO <- countryname(df.pro$Country, 'iso3c')
@@ -57,7 +56,9 @@ load.solowdata <- function() {
 }
 
 load.solowdata.mc <- function(mcii) {
-    df <- data.frame(ISO=levels(df.pro$ISO)) %>% left_join(df.gdp2, by=c('ISO'='Country Code')) %>%
+    df <- data.frame(ISO=levels(df.pro$ISO)) %>%
+        left_join(subset(results2, mc == mcii & Year >= 1960), by='ISO') %>%
+        left_join(df.gdp2, by=c('Year', 'ISO'='Country Code')) %>%
         left_join(df.pro2[, c('ISO', 'Year', 'Produced Capital')], by=c('Year', 'ISO')) %>%
         left_join(df.hum2[, c('ISO', 'Year', 'Human Capital')], by=c('Year', 'ISO')) %>%
         left_join(df.non2[, c('ISO', 'Year', 'Nonrenewable Capital')], by=c('Year', 'ISO')) %>%
@@ -66,7 +67,6 @@ load.solowdata.mc <- function(mcii) {
         left_join(df.pop2, by=c('Year', 'ISO'='Country Code')) %>%
         left_join(df.sav2, by=c('Year', 'ISO'='Country Code')) %>%
         left_join(df.nat2, by=c('Year', 'ISO'='Country Code')) %>%
-        left_join(subset(results2, mc == mcii), by=c('Year', 'ISO')) %>%
         left_join(subset(slr2, mc == mcii), by=c('Year'='year', 'ISO')) %>%
         left_join(subset(tradeloss, mc == mcii), by=c('Year'='year', 'ISO')) %>%
         left_join(era5b[, c('Year', 'ISO', 'warming')], by=c('Year', 'ISO'))
