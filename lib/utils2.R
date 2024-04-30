@@ -11,7 +11,7 @@ df.gdp3 <- load.gdp3()
 slr2 <- load.slr2(df.gdp3)
 tradeloss <- load.tradeloss(persist)
 
-tradeloss.global <- tradeloss %>% group_by(year) %>% dplyr::summarize(fracloss=mean(fracloss, na.rm=T))
+tradeloss.global <- tradeloss %>% group_by(year) %>% dplyr::summarize(tradeloss=mean(tradeloss, na.rm=T))
 
 
 read.iw <- function(filepath, value.name) {
@@ -67,9 +67,11 @@ load.solowdata.mc <- function(mcii) {
         left_join(df.sav2, by=c('Year', 'ISO'='Country Code')) %>%
         left_join(df.nat2, by=c('Year', 'ISO'='Country Code')) %>%
         left_join(subset(results2, mc == mcii), by=c('Year', 'ISO')) %>%
+        left_join(subset(slr2, mc == mcii), by=c('Year'='year', 'ISO')) %>%
         left_join(subset(tradeloss, mc == mcii), by=c('Year'='year', 'ISO')) %>%
         left_join(era5b[, c('Year', 'ISO', 'warming')], by=c('Year', 'ISO'))
     df$ISO <- factor(df$ISO, levels=levels(df.pro$ISO))
+    df$slrloss[is.na(df$slrloss)] <- 0
 
     df2 <- subset(df, !is.na(ISO)) %>% group_by(ISO) %>%
         reframe(Year=Year, denom=min(Population, na.rm=T), GDP.2005=GDP.2005 / denom,
@@ -79,7 +81,7 @@ load.solowdata.mc <- function(mcii) {
                 `Renewable Capital`=1e9 * `Renewable Capital` / denom,
                 Labor=Labor / denom, Population=Population / denom,
                 SavingRate=SavingRate / 100, NaturalGDP=NaturalGDP / 100,
-                gdpgrowshock_contemp=-dimpact, gdpgrowshock_cumul=-(totimpact - fracloss), warming=warming)
+                gdpgrowshock_contemp=-dimpact, gdpgrowshock_cumul=-(totimpact - tradeloss - slrloss), warming=warming)
 
     assign("df", df, envir = .GlobalEnv)
     assign("df2", df2, envir = .GlobalEnv)
@@ -115,9 +117,9 @@ make.stan.data <- function(iso) {
 
     stan.data$rencap[is.na(stan.data$rencap) | stan.data$rencap == 0] <- 0.1
     if (any(is.na(stan.data$gdpgrowshock_contemp)))
-        stan.data$gdpgrowshock_contemp[is.na(stan.data$gdpgrowshock_contemp)] <- -(df$totimpact[df$ISO == iso] - tradeloss.global$fracloss[tradeloss.global$year >= 1960])[is.na(stan.data$gdpgrowshock_contemp)]
+        stan.data$gdpgrowshock_contemp[is.na(stan.data$gdpgrowshock_contemp)] <- -(df$totimpact[df$ISO == iso] - df$slrloss[df$ISO == iso] - tradeloss.global$tradeloss[tradeloss.global$year >= 1960])[is.na(stan.data$gdpgrowshock_contemp)]
     if (any(is.na(stan.data$gdpgrowshock_cumul)))
-        stan.data$gdpgrowshock_cumul[is.na(stan.data$gdpgrowshock_cumul)] <- -(df$totimpact[df$ISO == iso] - tradeloss.global$fracloss[tradeloss.global$year >= 1960])[is.na(stan.data$gdpgrowshock_cumul)]
+        stan.data$gdpgrowshock_cumul[is.na(stan.data$gdpgrowshock_cumul)] <- -(df$totimpact[df$ISO == iso] - df$slrloss[df$ISO == iso] - tradeloss.global$tradeloss[tradeloss.global$year >= 1960])[is.na(stan.data$gdpgrowshock_cumul)]
 
     if (sum(!is.na(df2$SavingRate) & df2$ISO == iso) == 0) {
         rows <- df2[sample(which(!is.na(df2$SavingRate)), 10),]
