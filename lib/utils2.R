@@ -1,6 +1,6 @@
 library(dplyr)
 library(countrycode)
-source("loadutils.R")
+source("src/lib/loadutils.R")
 
 ## Grab pre-Solow results for countries without capital info
 load(paste0("data/mcrfres-", persist, ".RData"))
