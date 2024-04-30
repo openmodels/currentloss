@@ -26,6 +26,9 @@ load.solowdata <- function() {
     df.gdp2$GDP.2005 <- df.gdp2$GDP.2015 * 83.6 / 100
     df.lab2 <- read.wb("data/capital/API_SL.TLF.TOTL.IN_DS2_en_excel_v2_5871833.xls", 'Labor')
     df.pop2 <- read.wb("data/capital/API_SP.POP.TOTL_DS2_en_excel_v2_5871620.xls", 'Population')
+    df.pop2.last <- subset(df.pop2, Year == 2022)
+    df.pop2.last$Year <- 2023
+    df.pop2 <- rbind(df.pop2, df.pop2.last)
     df.sav2 <- read.wb("data/capital/API_NY.GNS.ICTR.ZS_DS2_en_excel_v2_5871648.xls", 'SavingRate')
     df.nat2 <- read.wb("data/capital/API_NV.AGR.TOTL.ZS_DS2_en_excel_v2_5871737.xls", 'NaturalGDP')
 
