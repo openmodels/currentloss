@@ -7,12 +7,9 @@ load(paste0("data/mcrfres-", persist, ".RData"))
 results2 <- results %>% group_by(ISO, mc) %>%
     mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - as.numeric(persist))^(0:30), sides=1)[-1:-30])
 
-## Grab global tradeloss data
-load(paste0("data/tradeloss-", persist, ".RData"))
-tradeloss1 <- tradeloss
-
-load(paste0("data/tradeloss2-", persist, ".RData"))
-tradeloss <- rbind(tradeloss, tradeloss1)
+df.gdp3 <- load.gdp3()
+slr2 <- load.slr2(df.gdp3)
+tradeloss <- load.tradeloss(persist)
 
 tradeloss.global <- tradeloss %>% group_by(year) %>% dplyr::summarize(fracloss=mean(fracloss, na.rm=T))
 
