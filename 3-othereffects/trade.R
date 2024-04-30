@@ -75,7 +75,11 @@ for (persist in c("0.08", "0.21")) {
             results2.year <- subset(results2, Year == year & mc == mcii)
             domar.loss <- calc.domar.loss(year, results2.year$ISO, results2.year$totimpact - results2.year$slrloss)
 
-            thisyear2 <- thisyear %>% left_join(df.gdp3, by=c('ISO'='Country Code', 'year'='Year'))
+            if (year <= 2022) {
+                thisyear2 <- thisyear %>% left_join(df.gdp3, by=c('ISO'='Country Code', 'year'='Year'))
+            } else {
+                thisyear2 <- thisyear %>% left_join(subset(df.gdp3, Year == 2022), by=c('ISO'='Country Code'))
+            }
             ## domar.loss[1] * sum(thisyear2$GDP.2019.est) = A * sum(thisyear2$fracloss.export * thisyear2$GDP.2019.est)
             scaleby <- domar.loss[1] * sum(thisyear2$GDP.2019.est, na.rm=T) / sum(ifelse(is.na(thisyear2$fracloss.export), 0, thisyear2$fracloss.export) * thisyear2$GDP.2019.est, na.rm=T)
             thisyear2$tradeloss <- thisyear2$fracloss.export * scaleby
