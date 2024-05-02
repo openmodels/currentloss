@@ -30,9 +30,13 @@ load.io <- function(year) {
     labels$V1 <- factor(labels$V1, levels=unique(labels$V1))
 
     labels$VA <- colSums(VA)
-    labels$FD <- rowSums(FD) XXX - this isnt right
 
-    labels2 <- labels %>% group_by(V1) %>% summarize(VA=sum(VA), FD=sum(FD))
+    labels2 <- labels %>% group_by(V1) %>% summarize(VA=sum(VA))
+
+    FD2 <- matrix(0, nrow(FD), ncol(TT2))
+    for (ii in 1:6)
+        FD2[,] <- FD2 + FD[, seq(ii, ncol(FD), by=6)]
+    labels2$FD <- colSums(FD2)
 
     io.byyear[[yearstr]] <<- list(TT=TT2, labels=labels2)
     return(io.byyear[[yearstr]])
