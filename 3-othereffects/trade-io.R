@@ -64,6 +64,17 @@ calc.domar.loss <- function(year, isos, dimpact) {
     return(rep(total.trade.effect, length(isos)))
 }
 
+calc.final.demand.method <- function(year, isos, dimpact) {
+    ## ...
+    ## return([trade loss for each iso])
+}
+
+calc.leontief.method <- function(year, isos, dimpact) {
+    ## ...
+    ## return([trade loss for each iso])
+}
+
+
 if (F) {
     ## Test
     load("data/mcrfres-0.08.RData")
