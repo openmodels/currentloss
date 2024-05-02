@@ -7,10 +7,9 @@ library(dplyr)
 library(reshape2)
 library(countrycode)
 library(rstan)
-rstan_options(auto_write = TRUE)
-options(mc.cores = parallel::detectCores())
+library(parallel)
 
-mcstart <- 1
+do.mcs <- 3:30
 persist <- "0.08"
 
 source("src/lib/utils2.R")
@@ -145,35 +144,24 @@ model {
   shares_error ~ normal(0, 0.1);
 }"
 
-if (mcstart == 'x')
-    pastsolow <- rbind(read.csv(paste0("solow-v4-", persist, ".csv"))) #, read.csv("solow-v4-11.csv"), read.csv("solow-v4-21.csv"), read.csv("solow-v4-26.csv"))
-if (mcstart == 1 && file.exists(paste0("solow-v4-", persist, ".csv"))) {
-    sumbymc <- read.csv(paste0("solow-v4-", persist, ".csv"))
-} else if (mcstart != 1 && file.exists(paste0("solow-v4-", persist, "-", mcstart, ".csv"))) {
-    sumbymc <- read.csv(paste0("solow-v4-", persist, "-", mcstart, ".csv"))
-} else
-    sumbymc <- data.frame()
+mod <- stan_model(model_code=stan.model)
 
-fit <- NA
-if (mcstart == 'x') {
-    allmc <- 30:1
-} else
-    allmc <- mcstart:30
-
-for (mcii in allmc) {
+for (mcii in do.mcs) {
     load.solowdata.mc(mcii)
 
-    for (iso in levels(df.pro$ISO)) {
-        if (mcstart == 'x') {
-            if (paste(iso, mcii) %in% paste(pastsolow$ISO, pastsolow$mc))
-                next
-        } else if (paste(iso, mcii) %in% paste(sumbymc$ISO, sumbymc$mc))
-            next
+    cl <- makeCluster(detectCores())
+    clusterEvalQ(cl, {
+        library(rstan)
+    })
+
+    clusterExport(cl, c("df", "df2", "mod", "mcii", "make.stan.data", "model.solow", "persist", "tradeloss.global"))
+
+    allrows <- parLapply(cl, levels(df.pro$ISO), function(iso) {
         print(c(iso, mcii))
         stan.data <- make.stan.data(iso)
 
         fit <- tryCatch({
-            stan(model_code=stan.model, data=stan.data, open_progress=F, fit=fit, chains=1)
+            sampling(mod, data=stan.data, open_progress=F, chains=1, cores=1)
         }, error=function(ee) {
             NULL
         })
@@ -190,7 +178,8 @@ for (mcii in allmc) {
         lp <- mean(la$lp__)
 
         row <- data.frame(ISO=iso, mc=mcii, totimpact.end=df$totimpact[df$ISO == iso & df$Year == max(df$Year)],
-                          itlimpact.end=-df$fracloss[df$ISO == iso & df$Year == max(df$Year)],
+                          slrimpact.end=-df$slrloss[df$ISO == iso & df$Year == max(df$Year)],
+                          itlimpact.end=-df$tradeloss[df$ISO == iso & df$Year == max(df$Year)],
                           product.end.true=mean(la$product[, 62]), product.end.nocc=mean(solowout$product[, 62]),
                           rencap.end.true=mean(la$rencap_model[, 63]), rencap.end.nocc=mean(solowout$rencap_model[, 63]),
                           procap.end.true=mean(la$procap_model[, 63]), procap.end.nocc=mean(solowout$procap_model[, 63]),
@@ -203,10 +192,14 @@ for (mcii in allmc) {
 
         save(la, file=paste0("data/solow-", persist, "/v4-", iso, "-", mcii, ".RData"))
 
-        sumbymc <- rbind(sumbymc, row)
-        if (mcstart == 1)
-            write.csv(sumbymc, paste0("solow-v4-", persist, ".csv"), row.names=F)
-        else
-            write.csv(sumbymc, paste0("solow-v4-", persist, "-", mcstart, ".csv"), row.names=F)
-    }
+        row
+    })
+
+    stopCluster(cl)
+
+    sumbymc <- data.frame()
+    for (ii in 1:length(allrows))
+        sumbymc <- rbind(sumbymc, allrows[[ii]])
+
+    write.csv(sumbymc, paste0("data/solow-v4-", persist, "-", mcii, ".csv"), row.names=F)
 }
