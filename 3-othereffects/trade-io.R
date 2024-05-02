@@ -30,7 +30,7 @@ load.io <- function(year) {
     labels$V1 <- factor(labels$V1, levels=unique(labels$V1))
 
     labels$VA <- colSums(VA)
-    labels$FD <- rowSums(FD)
+    labels$FD <- rowSums(FD) XXX - this isnt right
 
     labels2 <- labels %>% group_by(V1) %>% summarize(VA=sum(VA), FD=sum(FD))
 
