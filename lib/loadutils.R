@@ -13,6 +13,11 @@ load.gdp3 <- function() {
     df.gdp3 <- subset(df.gdp2, `Country Code` %in% unique(df.gdp2$`Country Code`[!is.na(df.gdp2$GDP.2015)]) & !(`Country Code` %in% c("LIE", 'NCL'))) %>% group_by(`Country Code`) %>%
         reframe(Year=Year, GDP.2015.est=approx(Year, GDP.2015, Year, rule=2)$y)
     df.gdp3$GDP.2019.est <- df.gdp3$GDP.2015.est * 106.87654 / 100
+
+    df.gdp3.last <- subset(df.gdp3, Year == 2022)
+    df.gdp3.last$Year <- 2023
+    df.gdp3 <- rbind(df.gdp3, df.gdp3.last)
+
     df.gdp3
 }
 
@@ -31,4 +36,15 @@ load.tradeloss <- function(persist) {
     }
 
     tradeloss.all
+}
+
+load.solowsum <- function(persist) {
+    solowsum <- data.frame()
+    for (mc in 1:30) {
+        filepath <- paste0("data/solow-v4-", persist, "-", mc, ".csv")
+        if (file.exists(filepath))
+            solowsum <- rbind(solowsum, read.csv(filepath))
+    }
+
+    solowsum
 }
