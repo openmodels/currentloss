@@ -126,3 +126,4 @@ library(ggplot2)
 
 load("data/allyr-ww.RData")
 
+## Huge tradelosses in 1991 and 2017
