@@ -26,6 +26,9 @@ allyr$product.true <- NA
 allyr$product.nocc <- NA
 allyr$allcap.true <- NA
 allyr$allcap.nocc <- NA
+allyr$rencap.true <- NA
+allyr$rencap.nocc <- NA
+allyr$rencap.ccpc <- NA
 
 for (mcii in 1:30) {
     load.solowdata.mc(mcii)
@@ -47,15 +50,24 @@ for (mcii in 1:30) {
 
         allcap.true <- (colMeans(la$rencap_model) + colMeans(la$procap_model)) * denom
         allcap.nocc <- (colMeans(solowout$rencap_model) + colMeans(solowout$procap_model)) * denom
+        rencap.true <- colMeans(la$rencap_model) * denom
+        rencap.nocc <- colMeans(solowout$rencap_model) * denom
 
         allyr$product.true[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- product.true
         allyr$product.nocc[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- product.nocc
         allyr$allcap.true[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- allcap.true[2:length(allcap.true)]
         allyr$allcap.nocc[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- allcap.nocc[2:length(allcap.true)]
+        allyr$rencap.true[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- rencap.true[2:length(rencap.true)]
+        allyr$rencap.nocc[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- rencap.nocc[2:length(rencap.true)]
+
+        solowout2 <- model.solow(la, stan.data, "prodonly")
+        rencap.ccpc <- colMeans(solowout2$rencap_model) * denom
+        allyr$rencap.ccpc[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- rencap.ccpc[2:length(rencap.true)]
     }
 }
 
 allyr$product.chg <- 1 - allyr$product.nocc / allyr$product.true
+allyr$rencap.chg.ccpc <- 1 - allyr$rencap.ccpc / allyr$rencap.true
 
 solowsum2 <- solowsum %>% group_by(ISO) %>% mutate(weight.ess=ess / sum(ess), lp.adj=ifelse(lp > 1, lp, exp(lp - 1)), weight.lp=lp.adj / sum(lp.adj), weight=weight.ess * weight.lp)
 solowsum3 <- solowsum2[!duplicated(paste(solowsum2$ISO, solowsum2$mc)),]
@@ -82,7 +94,7 @@ tohighlight <- c('USA', 'CHN', 'IND', 'BEL', 'RUS', 'BRA', 'AUS', 'MDV', 'NGA', 
 allyr2$label <- ifelse(allyr2$ISO %in% tohighlight, allyr2$ISO, 'XXX')
 
 ggplot(allyr2, aes(Year, total, group=ISO, colour=label)) +
-    coord_cartesian(ylim=c(-.3, .15)) +
+    coord_cartesian(ylim=c(-.55, .1)) +
     geom_hline(yintercept=0) +
     geom_line(data=subset(allyr2, label == 'XXX' & total != 0), linewidth=.1) +
     geom_line(data=subset(allyr2, label != 'XXX' & total != 0), linewidth=1) +
@@ -228,7 +240,7 @@ log2lev <- function(xx) {
 df.gdp3 <- load.gdp3()
 
 pdf <- allyr.ww %>% left_join(polydata, by=c('ISO'='ADM0_A3')) %>%
-    left_join(df.gdp3b, by=c('Year', 'ISO'='Country Code')) %>%
+    left_join(df.gdp3, by=c('Year', 'ISO'='Country Code')) %>%
     left_join(df.pro2b, by=c('Year', 'ISO')) %>% left_join(df.ren2b, by=c('Year', 'ISO')) %>%
     filter(INCOME_GRP %in% c("5. Low income", "4. Lower middle income", "3. Upper middle income")) %>%
     mutate(totimpact.usd=(log2lev(totimpact) / (1 + log2lev(totimpact))) * GDP.2015.est / 1e9,
