@@ -116,3 +116,13 @@ ggplot(df3, aes(denom * `Per Person Human Capital`, denom * humcap_univ.mu)) +
     geom_abline(yintercept=0, slope=1) + scale_x_log10() + scale_y_log10() +
     theme_bw() + xlab("Reported Per Person Human Capital (2005 USD)") +
     ylab("Modeled Per Person Human Capital (2005 USD)")
+
+## What's going on with single-year drops?
+
+## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
+
+library(dplyr)
+library(ggplot2)
+
+load("data/allyr-ww.RData")
+
