@@ -26,13 +26,13 @@ results2.year <- subset(results2, Year == year & mc == mcii)
 isos <- results2.year$ISO
 dimpact <- results2.year$totimpact - results2.year$slrloss
 
-domar.loss <- calc.domar.distribute(year, isos, dimpact)
+domar.loss <- calc.domar.distribute.method(year, isos, dimpact)
 fd.method <- calc.final.demand.method(year, isos, dimpact)
 ll.method <- calc.leontief.method(year, isos, dimpact)
 
-
-toplot <- data.frame(ISO=isos, domar.loss=domar.loss2$tradeloss, fd.method, ll.method)
+toplot <- data.frame(ISO=isos, domar.loss, fd.method, ll.method)
 
 library(GGally)
 
-ggpairs(toplot, columns = 2:4, axisLabels = "show")
+ggpairs(toplot, columns = 2:4, axisLabels = "show", columnLabels=c('Distributed Domar', 'Final Demand', 'Leontief Inverse'))
+ggsave("figures/trade-compare.pdf", width=8.5, height=5)
