@@ -1,5 +1,5 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
-## setwd("~/research/currentloss")
+setwd("~/research/currentloss")
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 library(readxl)
@@ -9,7 +9,7 @@ library(countrycode)
 library(rstan)
 library(parallel)
 
-do.mcs <- 3:30
+do.mcs <- 1:30
 persist <- "0.08"
 trade.method <- 'fd'
 
@@ -147,7 +147,10 @@ model {
 
 mod <- stan_model(model_code=stan.model)
 
-for (mcii in do.mcs) {
+for (mcii in 1:30) {
+    if (file.exists(paste0("data/solow-", persist, "/solow-v4-", persist, "-", mcii, ".csv")))
+        next
+    print(mcii)
     load.solowdata.mc(mcii)
 
     cl <- makeCluster(detectCores())
@@ -167,10 +170,10 @@ for (mcii in do.mcs) {
             NULL
         })
         if (is.null(fit))
-            next
+	    return(data.frame())
         la <- extract(fit, permute=T)
         if (is.null(la))
-            next
+	    return(data.frame())
 
         ## Simulate without climate change
         solowout <- model.solow(la, stan.data, F, rencaptrue=la$rencap_model)
