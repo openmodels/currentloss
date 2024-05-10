@@ -5,6 +5,7 @@
 4. SLR effects: slr.R -> slrbyadm0-final.csv
 4. Foreign effects (from UK): trade.R -> tradeloss-MM
 5. Capital model: solow.R -> solow/
+6. Synthesis prep: prepare.R
 6. Synthesis 1: timeseries.R
 6. Synthesis 2: figures.R
 
