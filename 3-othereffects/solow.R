@@ -11,6 +11,7 @@ library(parallel)
 
 do.mcs <- 3:30
 persist <- "0.08"
+trade.method <- 'fd'
 
 source("src/lib/utils2.R")
 
@@ -190,7 +191,7 @@ for (mcii in do.mcs) {
         row$procap.chg <- 1 - row$procap.end.nocc / row$procap.end.true
         row$humcap.chg <- 1 - row$humcap.end.nocc / row$humcap.end.true
 
-        save(la, file=paste0("data/solow-", persist, "/v4-", iso, "-", mcii, ".RData"))
+        save(la, file=paste0("data/solow-", persist, "-", trade.method, "/v4-", iso, "-", mcii, ".RData"))
 
         row
     })
@@ -201,5 +202,5 @@ for (mcii in do.mcs) {
     for (ii in 1:length(allrows))
         sumbymc <- rbind(sumbymc, allrows[[ii]])
 
-    write.csv(sumbymc, paste0("data/solow-v4-", persist, "-", mcii, ".csv"), row.names=F)
+    write.csv(sumbymc, paste0("data/solow-", persist, "-", trade.method, "/solow-v4-", persist, "-", mcii, ".csv"), row.names=F)
 }
