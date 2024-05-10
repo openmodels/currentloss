@@ -9,7 +9,7 @@ results2 <- results %>% group_by(ISO, mc) %>%
 
 df.gdp3 <- load.gdp3()
 slr2 <- load.slr2(df.gdp3)
-tradeloss <- load.tradeloss(persist)
+tradeloss <- load.tradeloss(trade.method, persist)
 
 tradeloss.global <- tradeloss %>% group_by(year) %>% dplyr::summarize(tradeloss=mean(tradeloss, na.rm=T))
 
