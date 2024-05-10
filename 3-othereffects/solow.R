@@ -148,8 +148,10 @@ model {
 
 mod <- stan_model(model_code=stan.model)
 
+dir.create(paste0("data/solow-", persist, "-", trade.method))
+
 for (mcii in 1:30) {
-    if (file.exists(paste0("data/solow-", persist, "/solow-v4-", persist, "-", mcii, ".csv")))
+    if (file.exists(paste0("data/solow-", persist, "-", trade.method, "/solow-v4-", persist, "-", mcii, ".csv")))
         next
     print(mcii)
     load.solowdata.mc(mcii)
