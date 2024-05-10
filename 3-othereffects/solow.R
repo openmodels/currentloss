@@ -161,7 +161,7 @@ for (mcii in 1:30) {
         library(rstan)
     })
 
-    clusterExport(cl, c("df", "df2", "mod", "mcii", "make.stan.data", "model.solow", "persist", "tradeloss.global"))
+    clusterExport(cl, c("df", "df2", "mod", "mcii", "make.stan.data", "model.solow", "persist", "tradeloss.global", "trade.method"))
 
     allrows <- parLapply(cl, levels(df.pro$ISO), function(iso) {
         print(c(iso, mcii))
