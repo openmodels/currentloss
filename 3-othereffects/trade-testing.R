@@ -23,8 +23,16 @@ results2$slrloss[is.na(results2$slrloss)] <- 0
 
 results2.year <- subset(results2, Year == year & mc == mcii)
 
-domar.loss <- calc.domar.loss(year, results2.year$ISO, results2.year$totimpact - results2.year$slrloss)
-fd.method <- calc.final.demand.method(year, results2.year$ISO, results2.year$totimpact - results2.year$slrloss)
-ll.method <- calc.leontief.method(year, results2.year$ISO, results2.year$totimpact - results2.year$slrloss)
+isos <- results2.year$ISO
+dimpact <- results2.year$totimpact - results2.year$slrloss
 
-toplot <- data.frame(ISO=results2.year$ISO, domar.loss, fd.method, ll.method)
+domar.loss <- calc.domar.distribute(year, isos, dimpact)
+fd.method <- calc.final.demand.method(year, isos, dimpact)
+ll.method <- calc.leontief.method(year, isos, dimpact)
+
+
+toplot <- data.frame(ISO=isos, domar.loss=domar.loss2$tradeloss, fd.method, ll.method)
+
+library(GGally)
+
+ggpairs(toplot, columns = 2:4, axisLabels = "show")
