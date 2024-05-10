@@ -69,3 +69,23 @@ ggplot(pdf, aes(year, mu - mu[year == 1960], group=source)) +
 pred2 <- pred %>% group_by(ISO) %>% mutate(q17=q17 - q17[year == 1960], mu=mu - mu[year == 1960], q83=q83 - q83[year == 1960])
 write.csv(pred2, "data/slrbyadm0-final.csv", row.names=F)
 
+## Compare to GDP
+source("src/lib/loadutils.R")
+
+df.gdp3 <- load.gdp3()
+
+pred3 <- pred2 %>% left_join(df.gdp3, by=c('ISO'='Country Code', 'year'='Year'))
+
+pred3$q17.frac <- pred3$q17 / pred3$GDP.2019.est
+pred3$mu.frac <- pred3$mu / pred3$GDP.2019.est
+pred3$q83.frac <- pred3$q83 / pred3$GDP.2019.est
+
+labels <- subset(pred3, year == 2023 & mu.frac > 0.002)
+labels <- labels[order(labels$GDP.2019.est),]
+
+gp <- ggplot(pred3, aes(year, mu.frac, group=ISO)) +
+    geom_ribbon(aes(ymin=q17.frac, ymax=q83.frac), alpha=.1) +
+    geom_line(linewidth=.1) +
+    geom_label(data=labels, aes(x=2025, y=round(mu.frac * 5e2) / 5e2, label=ISO), size=2) +
+    theme_bw() + xlab(NULL) + scale_y_continuous("GDP lost to coastal impacts (%)", expand=c(0, 0), labels=scales::percent)
+ggsave("figures/si/slr-byiso.pdf", gp, width=6.5, height=4.5)

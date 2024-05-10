@@ -5,10 +5,11 @@ library(Hmisc)
 library(PBSmapping)
 
 persist <- "0.08"
+trade.method <- 'fd'
 source("src/lib/utils2.R")
 
 load.solowdata()
-solowsum <- load.solowsum(persist)
+solowsum <- load.solowsum(persist, trade.method)
 
 df.gdp2.last <- df.gdp2 %>% group_by(`Country Code`) %>%
     dplyr::summarize(GDP.Year=ifelse(any(!is.na(GDP.2015)), Year[tail(which(!is.na(GDP.2015)), 1)], NA),
