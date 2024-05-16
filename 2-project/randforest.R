@@ -9,10 +9,13 @@ library(rpart)
 library(rpart.plot)
 library(PBSmapping)
 
+rf.approaches <- c("all", "controls", "nonlinear", "dataset")
+
 load("data/mcres.RData")
 load("data/mcres-decumul.RData")
 
 for (persist in c("0.08", "0.21")) {
+for (rf.approach in rf.approaches[4]) { # XXX: Currently do not do all, since already have that
     allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[persist]])
 
     ## Find rows for valid models that are NA (before some point in that model)
@@ -82,104 +85,44 @@ for (mcii in 1:MCNUM) {
 
     for (iso in isos) {
         for (year in years) {
-            print(c(mcii, iso, year))
+            print(c(rf.approach, persist, mcii, iso, year))
 
             allres4 <- subset(allres3, !is.na(dimpact) & Year == year & ISO == iso) %>% left_join(metadata, by=c('paper'='Paper', 'name'='Name'))
-            values <- allres4[, c('dimpact', 'Q.Weather', 'Q.Poverty', 'Q.Temp', 'Q.Prec', 'Q.YearFE', 'Q.Trends',
-	    	      		  'Q.OtherFE', 'Q.Control', 'Q.GLags', 'Q.YearLate', 'Q.YearSpan')]
 
-            ## mod <- rpart(dimpact ~ `Dependent` + `Weather weight` + `Rich/Poor` + `Temp` + `Prec....13` +
-	    ##  `Year FE` + `Trends` + `Other FE` + `Growth Lags` + `Dataset` + `Year Coverage`, data=values)
-            ## rpart.plot(mod)
+            if (rf.approach == 'all') {
+                values <- allres4[, c('dimpact', 'Q.Weather', 'Q.Poverty', 'Q.Temp', 'Q.Prec', 'Q.YearFE', 'Q.Trends',
+                                      'Q.OtherFE', 'Q.Control', 'Q.GLags', 'Q.YearLate', 'Q.YearSpan')]
+
+                ## mod <- rpart(dimpact ~ `Dependent` + `Weather weight` + `Rich/Poor` + `Temp` + `Prec....13` +
+                ##  `Year FE` + `Trends` + `Other FE` + `Growth Lags` + `Dataset` + `Year Coverage`, data=values)
+                ## rpart.plot(mod)
+
+                preddf <- data.frame(Q.Weather=1, Q.Poverty=1, Q.Temp=1, Q.Prec=1, Q.YearFE=1, Q.Trends=1,
+                                     Q.OtherFE=1, Q.Control=1, Q.GLags=1, Q.YearLate=1, Q.YearSpan=1)
+            } else if (rf.approach == 'controls') {
+                values <- allres4[, c('dimpact', 'Q.YearFE', 'Q.Trends',
+                                      'Q.OtherFE', 'Q.Control', 'Q.GLags')]
+                preddf <- data.frame(Q.YearFE=1, Q.Trends=1, Q.OtherFE=1, Q.Control=1, Q.GLags=1)
+            } else if (rf.approach == 'nonlinear') {
+                values <- allres4[, c('dimpact', 'Q.Poverty', 'Q.Temp', 'Q.Prec')]
+                preddf <- data.frame(Q.Poverty=1, Q.Temp=1, Q.Prec=1)
+            } else if (rf.approach == 'dataset') {
+                values <- allres4[, c('dimpact', 'Q.Weather', 'Q.YearLate', 'Q.YearSpan')]
+                preddf <- data.frame(Q.Weather=1, Q.YearLate=1, Q.YearSpan=1)
+            }
 
             rfmod <- ranger(dimpact ~ ., data=values, num.trees=500, max.depth=12, verbose=TRUE)
-            predictions <- predict(rfmod, data.frame(Q.Weather=1, Q.Poverty=1, Q.Temp=1, Q.Prec=1, Q.YearFE=1, Q.Trends=1,
-	      Q.OtherFE=1, Q.Control=1, Q.GLags=1, Q.YearLate=1, Q.YearSpan=1))
+            predictions <- predict(rfmod, preddf)
 
             results <- rbind(results, data.frame(mc=mcii, Year=year, ISO=iso, dimpact=mean(predictions$predictions)))
         }
     }
 }
 
-save(results, file=paste0("data/mcrfres-", persist, ".RData"))
+    if (rf.approach == 'all') {
+        save(results, file=paste0("data/mcrfres-", persist, ".RData"))
+    } else {
+        save(results, file=paste0("data/mcrfres-", persist, "-", rf.approach, ".RData"))
+    }
 }
-
-persist <- 0.08
-load("data/mcrfres-0.08.RData")
-
-polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
-
-results2 <- results %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
-    group_by(Year, mc) %>% summarize(gloimpact=sum(dimpact * POP_EST) / sum(POP_EST)) %>%
-    group_by(Year) %>% summarize(mu=mean(gloimpact),
-                                 ci25=quantile(gloimpact, .25),
-                                 ci75=quantile(gloimpact, .75))
-##results2.loess <- rbind(data.frame(Year=1850:1939, mu=0, ci25=0, ci75=0), results2)
-## results2$muloess = tail(predict(loess(mu ~ 0 + Year, results2.loess, span=.25)), nrow(results2))
-## results2$ci25loess = tail(predict(loess(ci25 ~ Year, results2.loess, span=.25)), nrow(results2))
-## results2$ci75loess = tail(predict(loess(ci75 ~ Year, results2.loess, span=.25)), nrow(results2))
-
-results2$muloess = predict(loess(mu ~ 0 + Year, results2, span=.24))
-results2$ci25loess = predict(loess(ci25 ~ Year, results2, span=.24))
-results2$ci75loess = predict(loess(ci75 ~ Year, results2, span=.24))
-
-library(ggplot2)
-ggplot(results2, aes(Year, muloess)) +
-    geom_line() + geom_ribbon(aes(ymin=ci25loess, ymax=ci75loess), alpha=.5) +
-    theme_bw() + xlab(NULL) + scale_y_continuous("Global population-weighted GDP loss", labels=scales::percent)
-
-ggplot(results2, aes(Year, mu)) +
-    geom_line() + geom_ribbon(aes(ymin=ci25, ymax=ci75), alpha=.5) +
-    theme_bw() + scale_y_continuous("Global population-weighted GDP loss", labels=scales::percent) +
-    scale_x_continuous(NULL, limits=c(1950, 2022), expand=c(0, 0)) +
-    guides(linetype=F)
-ggsave(paste0("figures/randforest-", persist, ".pdf"), width=6.5, height=5)
-
-## Combined figure
-allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.08"]])
-
-allres2 <- allres %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
-    group_by(paper, name, Year, mc) %>% summarize(gloimpact=sum(dimpact * POP_EST) / sum(POP_EST)) %>%
-    group_by(paper, name, Year) %>% summarize(mu=mean(gloimpact))
-
-allres3 <- allres2 %>% group_by(Year) %>% summarize(mu=median(mu, na.rm=T))
-
-labels <- data.frame(Year=c(2018, 2018), xend=c(1997, 1997),
-                     y=c(results2$mu[results2$Year == 2018], allres3$mu[allres3$Year == 2018]),
-                     yend=c(-.035, .015), label=c("Random Forest", "Median Model"))
-
-ggplot(allres2, aes(Year, mu)) +
-    coord_cartesian(ylim=c(-.05, .025)) +
-    geom_line(aes(colour=paper, group=paste(paper, name)), linewidth=.3) +
-    geom_line(data=allres3, size=2, colour='black', alpha=.75) +
-    geom_segment(data=labels[2,], aes(xend=xend, y=y, yend=yend)) +
-    geom_label(data=labels[2,], aes(x=xend, y=yend, label=label), vjust="center", hjust="center") +
-    theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
-    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1940, 2023)) +
-    scale_colour_discrete("Reference:")
-ggsave(paste0("figures/allimpacts-", persist, ".pdf"), width=8, height=4)
-
-ggplot(allres2, aes(Year, mu)) +
-    coord_cartesian(ylim=c(-.05, .025)) +
-    geom_line(aes(colour=paper, group=paste(paper, name)), linewidth=.3) +
-    geom_line(data=allres3, size=2, colour='black', alpha=.75) +
-    geom_line(data=results2, size=2, colour='#b15928', alpha=.75) +
-    geom_segment(data=labels, aes(xend=xend, y=y, yend=yend)) +
-    geom_label(data=labels, aes(x=xend, y=yend, label=label), vjust="center", hjust="center") +
-    theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
-    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1940, 2023)) +
-    scale_colour_discrete("Reference:")
-ggsave(paste0("figures/allimpacts-withrf-", persist, ".pdf"), width=8, height=4)
-
-ggplot(allres2, aes(Year, mu)) +
-    coord_cartesian(ylim=c(-.05, .025)) +
-    geom_line(aes(colour=paper, group=paste(paper, name)), linewidth=0) +
-    geom_line(data=allres3, size=2, colour='black', alpha=.75) +
-    geom_line(data=results2, size=2, colour='#b15928', alpha=.75) +
-    geom_ribbon(data=results2, aes(ymin=ci25, ymax=ci75), alpha=.5) +
-    geom_segment(data=labels, aes(xend=xend, y=y, yend=yend)) +
-    geom_label(data=labels, aes(x=xend, y=yend, label=label), vjust="center", hjust="center") +
-    theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
-    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1940, 2023)) +
-    scale_colour_discrete("Reference:")
-ggsave(paste0("figures/allimpacts-withrfci-", persist, ".pdf"), width=8, height=4)
+}

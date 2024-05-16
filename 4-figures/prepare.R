@@ -31,6 +31,8 @@ allyr$rencap.true <- NA
 allyr$rencap.nocc <- NA
 allyr$rencap.ccpc <- NA
 
+failures <- c()
+
 for (mcii in 1:30) {
     load.solowdata.mc(mcii)
 
@@ -41,7 +43,16 @@ for (mcii in 1:30) {
 
         stan.data <- make.stan.data(iso)
 
-        load(paste0("data/solow-", persist, "/v4-", iso, "-", mcii, ".RData"))
+        success <- tryCatch({
+            load(paste0("data/solow-", persist, "-", trade.method, "/v4-", iso, "-", mcii, ".RData"))
+            T
+        }, error=function(e) {
+            F
+        })
+        if (!success) {
+            failures <- c(failures, paste(mcii, iso))
+            next
+        }
 
         solowout <- model.solow(la, stan.data, F, rencaptrue=la$rencap_model)
 
@@ -84,4 +95,4 @@ allyr.ww <- allyr %>% left_join(solowsum3, by=c('ISO', 'mc'), suffix=c('', '.sol
                is.na(weight) ~ 0,
                TRUE ~ weight / sum(weight, na.rm=T)))
 
-save(allyr.ww, file="data/allyr-ww.RData")
+save(allyr.ww, file=paste0("data/allyr-ww-", persist, "-", trade.method, ".RData"))

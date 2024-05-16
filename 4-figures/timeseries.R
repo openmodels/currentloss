@@ -7,6 +7,7 @@ library(PBSmapping)
 do.for.subset <- "global"
 
 persist <- "0.08"
+trade.method <- "fd"
 source("src/lib/utils2.R")
 
 load.solowdata()
@@ -15,7 +16,7 @@ df.gdp2.last <- df.gdp2 %>% group_by(`Country Code`) %>%
     dplyr::summarize(GDP.Year=ifelse(any(!is.na(GDP.2015)), Year[tail(which(!is.na(GDP.2015)), 1)], NA),
                      GDP.2015=ifelse(any(!is.na(GDP.2015)), GDP.2015[tail(which(!is.na(GDP.2015)), 1)], NA))
 
-load("data/allyr-ww.RData")
+load("data/allyr-ww-0.08-fd.RData")
 
 wtd.median <- function(xx, weights=NULL, normwt=F) {
     wtd.quantile(xx, 0.5, weights=weights, normwt=normwt)
