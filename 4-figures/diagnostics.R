@@ -1,10 +1,10 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 persist <- "0.08"
+trade.method <- "fd"
 source("src/lib/utils2.R")
 
-## load.solowdata()
-solowdone <- read.csv("data/solow-v4.csv")
+solowdone <- load.solowsum(persist, trade.method)
 
 load.solowdata()
 load.solowdata.mc(1)
@@ -17,7 +17,7 @@ for (mcii in 1:30) {
             next
         print(c(mcii, iso))
 
-        load(paste0("data/solow/v4-", iso, "-", mcii, ".RData"))
+        load(paste0("data/solow-", persist, "-", trade.method, "/v4-", iso, "-", mcii, ".RData"))
 
         rows <- sample(1000, 10)
         const.draw <- rbind(data.frame(param='tfp', value=la$tfp[rows]),
@@ -47,14 +47,14 @@ for (mcii in 1:30) {
                             data.frame(param='sharesT.pop', value=la$sharesT[rows, 4]),
                             data.frame(param='shares_error', value=la$shares_error[rows]),
                             data.frame(param='gdp_error', value=la$gdp_error[rows]))
-        years.draw <- rbind(data.frame(param='cumulpart', year=1961:2022, value=la$cumulpart[rows[1],]),
-                            data.frame(param='product', year=1961:2022, value=la$product[rows[1],]),
-                            data.frame(param='rencap_model', year=1961:2023, value=la$rencap_model[rows[1],]),
-                            data.frame(param='procap_model', year=1961:2023, value=la$procap_model[rows[1],]),
-                            data.frame(param='humcap_univ', year=1961:2023, value=la$humcap_univ[rows[1],]),
-                            data.frame(param='product_nocc', year=1961:2022, value=la$product_nocc[rows[1],]),
-                            data.frame(param='rencap_nocc', year=1961:2023, value=la$rencap_nocc[rows[1],]),
-                            data.frame(param='procap_nocc', year=1961:2023, value=la$procap_nocc[rows[1],]))
+        years.draw <- rbind(data.frame(param='cumulpart', year=1961:2023, value=la$cumulpart[rows[1],]),
+                            data.frame(param='product', year=1961:2023, value=la$product[rows[1],]),
+                            data.frame(param='rencap_model', year=1961:2024, value=la$rencap_model[rows[1],]),
+                            data.frame(param='procap_model', year=1961:2024, value=la$procap_model[rows[1],]),
+                            data.frame(param='humcap_univ', year=1961:2024, value=la$humcap_univ[rows[1],]),
+                            data.frame(param='product_nocc', year=1961:2023, value=la$product_nocc[rows[1],]),
+                            data.frame(param='rencap_nocc', year=1961:2024, value=la$rencap_nocc[rows[1],]),
+                            data.frame(param='procap_nocc', year=1961:2024, value=la$procap_nocc[rows[1],]))
 
         const.draws <- rbind(const.draws, cbind(mc=mcii, ISO=iso, const.draw))
         years.draws <- rbind(years.draws, cbind(mc=mcii, ISO=iso, years.draw))
