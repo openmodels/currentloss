@@ -4,11 +4,21 @@ load("data/totalcosts.RData")
 
 library(dplyr)
 
-df2 = df %>% filter(year <= 2023 & costtype %in% c('inundation', 'protection', 'stormCapital')) %>%
-    group_by(adm0, quantile, ssp, year, case) %>%
-    summarize(costs=sum(costs)) %>% # sum to case
-    group_by(adm0, year, case) %>%
-    summarize(q17=quantile(costs, .17), mu=mean(costs), q83=quantile(costs, .83))
+do.market.only <- T
+
+if (do.market.only) {
+    df2 = df %>% filter(year <= 2023 & costtype %in% c('inundation', 'protection', 'stormCapital')) %>%
+        group_by(adm0, quantile, ssp, year, case) %>%
+        summarize(costs=sum(costs)) %>% # sum to case
+        group_by(adm0, year, case) %>%
+        summarize(q17=quantile(costs, .17), mu=mean(costs), q83=quantile(costs, .83))
+} else {
+    df2 = df %>% filter(year <= 2023) %>%
+        group_by(adm0, quantile, ssp, year, case) %>%
+        summarize(costs=sum(costs)) %>% # sum to case
+        group_by(adm0, year, case) %>%
+        summarize(q17=quantile(costs, .17), mu=mean(costs), q83=quantile(costs, .83))
+}
 
 library(ggplot2)
 
@@ -67,7 +77,12 @@ ggplot(pdf, aes(year, mu - mu[year == 1960], group=source)) +
 ## write.csv(tosave, "data/slrbyadm0-final.csv", row.names=F)
 
 pred2 <- pred %>% group_by(ISO) %>% mutate(q17=q17 - q17[year == 1960], mu=mu - mu[year == 1960], q83=q83 - q83[year == 1960])
-write.csv(pred2, "data/slrbyadm0-final.csv", row.names=F)
+if (do.market.only) {
+    write.csv(pred2, "data/slrbyadm0-final.csv", row.names=F)
+} else {
+    write.csv(pred2, "data/slrbyadm0-final-all.csv", row.names=F)
+    stop()
+}
 
 ## Compare to GDP
 source("src/lib/loadutils.R")
