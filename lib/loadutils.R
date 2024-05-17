@@ -29,10 +29,18 @@ load.slr2 <- function(df.gdp3) {
 }
 
 load.tradeloss <- function(method, persist) {
-    tradeloss.all <- data.frame()
-    for (year in 1940:2023) {
-        load(paste0(paste0("data/tradeloss-", method, "/tradeloss-", year, "-", persist, ".RData")))
-        tradeloss.all <- rbind(tradeloss.all, tradeloss)
+    if (method != 'dd') {
+        tradeloss.all <- data.frame()
+        for (year in 1940:2023) {
+            load(paste0(paste0("data/tradeloss-", method, "/tradeloss-", year, "-", persist, ".RData")))
+            tradeloss.all <- rbind(tradeloss.all, tradeloss)
+        }
+    } else {
+        tradeloss.all <- data.frame()
+        for (mcii in 1:30) {
+            load(paste0(paste0("data/tradeloss-", method, "/tradeloss-", mcii, "-", persist, ".RData")))
+            tradeloss.all <- rbind(tradeloss.all, tradeloss)
+        }
     }
 
     tradeloss.all
