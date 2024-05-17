@@ -204,9 +204,10 @@ calc.leontief.method <- function(year, isos, dimpact) {
     for (ii in 1:ncol(AA))
         AA[, ii] <- io$TT[, ii] / total.sales[ii]
     LL <- solve(diag(ncol(AA)) - AA)
-    labels2$tradeloss <- as.numeric(-(LL %*% labels2$dimpact))
+    labels2$allloss <- as.numeric(-(LL %*% labels2$dimpact))
 
     result <- data.frame(ISO=isos, dimpact) %>% left_join(labels2, by=c('ISO'='V1'))
+    result$tradeloss <- result$allloss - result$dimpact
     result$tradeloss[is.na(result$tradeloss)] <- 0
 
     result$tradeloss

@@ -54,10 +54,15 @@ for (persist in c("0.08", "0.21")) {
 
             allglobals$yy <- allglobals$domar.change * allglobals$global.gdp
             scalebys <- log(allglobals$yy[allglobals$yy > 0]) - log(allglobals$global.fracloss[allglobals$yy > 0])
-            years <- unique(results2$Year)[allglobals$yy > 0]
-            mod <- lm(scalebys ~ years)
-            smoothscalebys <- exp(predict(mod, data.frame(years))) * exp(var(mod$resid) / 2)
-            smoothscalebys[smoothscalebys > 1] <- 1
+            ## years <- unique(results2$Year)[allglobals$yy > 0]
+            ## ploy(years, scalebys)
+            ## mod <- lm(scalebys ~ years)
+            ## smoothscalebys <- exp(predict(mod, data.frame(years=unique(results2$Year)))) * exp(var(mod$resid) / 2)
+            ## smoothscalebys[smoothscalebys > 1] <- 1
+
+            scalebys <- scalebys[scalebys < 0]
+            mod <- lm(scalebys ~ 1)
+            smoothscalebys <- exp(predict(mod, data.frame(years=unique(results2$Year)))) * exp(var(mod$resid) / 2)
 
             tradeloss <- data.frame()
             for (ii in 1:length(allthisyear)) {
