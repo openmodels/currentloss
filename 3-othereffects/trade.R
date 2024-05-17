@@ -1,13 +1,13 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
-setwd("~/research/currentloss")
+## setwd("~/research/currentloss")
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 library(dplyr)
 source("src/lib/loadutils.R")
 source("src/3-othereffects/trade-io.R")
 
-method <- 'fd'
-method.function <- calc.final.demand.method
+method <- 'dd'
+method.function <- NULL #calc.final.demand.method
 
 dir.create(paste0("data/tradeloss-", method))
 
@@ -26,17 +26,33 @@ for (persist in c("0.08", "0.21")) {
         left_join(slr2, by=c('ISO', 'Year'='year', 'mc'))
     results2$slrloss[is.na(results2$slrloss)] <- 0
 
-    for (year in unique(results2$Year)) {
-        tradeloss <- data.frame()
-        for (mcii in unique(results2$mc)) {
-            print(c(persist, year, mcii))
+    if (method != 'dd') {
+        for (year in unique(results2$Year)) {
+            tradeloss <- data.frame()
+            for (mcii in unique(results2$mc)) {
+                print(c(persist, year, mcii))
 
-            results2.year <- subset(results2, Year == year & mc == mcii)
-            losses <- method.function(year, results2.year$ISO, results2.year$totimpact - results2.year$slrloss)
+                results2.year <- subset(results2, Year == year & mc == mcii)
+                losses <- method.function(year, results2.year$ISO, results2.year$totimpact - results2.year$slrloss)
 
-            tradeloss <- rbind(tradeloss, data.frame(ISO=results2.year$ISO, mc=mcii, year, tradeloss=losses))
+                tradeloss <- rbind(tradeloss, data.frame(ISO=results2.year$ISO, mc=mcii, year, tradeloss=losses))
+            }
+            save(tradeloss, file=paste0("data/tradeloss-", method, "/tradeloss-", year, "-", persist, ".RData"))
         }
-        save(tradeloss, file=paste0("data/tradeloss-", method, "/tradeloss-", year, "-", persist, ".RData"))
+    } else {
+        for (mcii in unique(results2$mc)) {
+            alloutput <- list()
+            for (year in unique(results2$Year)) {
+                print(c(persist, year, mcii))
+
+                results2.year <- subset(results2, Year == year & mc == mcii)
+                output <- calc.domar.distribute.method1(year, results2.year$ISO, results2.year$totimpact - results2.year$slrloss)
+
+                tradeloss <- rbind(tradeloss, data.frame(ISO=results2.year$ISO, mc=mcii, year, tradeloss=losses))
+            }
+
+            tradeloss <- data.frame()
+        }
     }
 }
 
