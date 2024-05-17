@@ -46,10 +46,10 @@ load.tradeloss <- function(method, persist) {
     tradeloss.all
 }
 
-load.solowsum <- function(persist, trade.method) {
+load.solowsum <- function(persist, trade.method, solow.config='') {
     solowsum <- data.frame()
     for (mc in 1:30) {
-        filepath <- paste0("data/solow-", persist, "-", trade.method, "/solow-v4-", persist, "-", mc, ".csv")
+        filepath <- paste0("data/solow-", persist, "-", trade.method, solow.config, "/solow-v4-", persist, "-", mc, ".csv")
         if (file.exists(filepath))
             solowsum <- rbind(solowsum, read.csv(filepath))
     }
