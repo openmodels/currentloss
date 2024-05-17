@@ -41,22 +41,34 @@ ggsave("figures/eachstep-cumul.pdf", width=2.5, height=2.5)
 source("src/lib/loadutils.R")
 
 pdf <- data.frame()
-for (slrconf in c('No SLR', 'Market-only', 'All Damages')) {
+for (slrconf in c('Market-only', 'All Damages', 'Optimal Adapt.', 'No Adaptation')) {
     if (slrconf == 'No SLR') {
         pdf <- rbind(pdf, data.frame(slrconf='No SLR', year=1960:2023, mu=0, ci25=0, ci75=0))
     } else {
         if (slrconf == 'Market-only') {
             slr <- read.csv("data/slrbyadm0-final.csv")
-        } else {
+        } else if (slrconf == 'All Damages') {
             slr <- read.csv("data/slrbyadm0-final-all.csv")
-            ## Impose that this is strictly greater than market-only
+            ## ## Impose that this is strictly greater than market-only
             slr.market <- read.csv("data/slrbyadm0-final.csv")
             slr$q17 <- pmax(slr$q17, slr.market$q17)
             slr$q83 <- pmax(slr$q83, slr.market$q83)
             slr$mu <- pmax(slr$mu, slr.market$mu)
+        } else if (slrconf == 'Optimal Adapt.') {
+            slr <- read.csv("data/slrbyadm0-final-optimalfixed.csv")
+        } else if (slrconf == 'No Adaptation') {
+            slr <- read.csv("data/slrbyadm0-final-noAdaptation.csv")
+            ## slr.optim <- read.csv("data/slrbyadm0-final-optimalfixed.csv")
+            ## slr$q17 <- pmax(slr$q17, slr.optim$q17)
+            ## slr$q83 <- pmax(slr$q83, slr.optim$q83)
+            ## slr$mu <- pmax(slr$mu, slr.optim$mu)
         }
 
-        slr2 <- slr %>% group_by(ISO, year) %>% reframe(mc=1:100, slrloss=rnorm(100, mu, ((q83 - q17) / diff(qnorm(c(.17, .83))))))
+        if (slrconf == 'Market-only') {
+            slr2 <- slr %>% group_by(ISO, year) %>% reframe(mc=1:1000, slrloss=rnorm(1000, mu, ((q83 - q17) / diff(qnorm(c(.17, .83))))))
+        } else {
+            slr2 <- slr %>% group_by(ISO, year) %>% reframe(mc=1:100, slrloss=rnorm(100, mu, ((q83 - q17) / diff(qnorm(c(.17, .83))))))
+        }
 
         slr3 <- slr2 %>%
             group_by(year, mc) %>% summarize(gloslrloss=sum(slrloss, na.rm=T))
@@ -73,7 +85,6 @@ ggplot(pdf, aes(year, mu / 1e9, group=factor(slrconf))) +
     theme_bw() + theme(legend.justification=c(0,1), legend.position=c(0.01,0.99)) +
     scale_colour_discrete("SLR:") + xlab(NULL) + ylab("SLR Damages (2019 USD)")
 ggsave("figures/eachstep-slr.pdf", width=2.5, height=2.5)
-
 
 trade.names <- list('fd'="Final demand", 'dd'="Domar dist.", 'li'="Leontief Inv.")
 
