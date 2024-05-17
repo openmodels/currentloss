@@ -86,7 +86,7 @@ ggplot(pdf, aes(year, mu / 1e9, group=factor(slrconf))) +
     scale_colour_discrete("SLR:") + xlab(NULL) + ylab("SLR Damages (2019 USD)")
 ggsave("figures/eachstep-slr.pdf", width=2.5, height=2.5)
 
-trade.names <- list('fd'="Final demand", 'dd'="Domar dist.", 'li'="Leontief Inv.")
+trade.names <- list('fd'="Final demand", 'dd'="Domar dist.", 'li'="Leontief Inv. / 10")
 
 pdf <- data.frame()
 for (trade.method in c('fd', 'dd', 'li')) {
@@ -99,10 +99,39 @@ for (trade.method in c('fd', 'dd', 'li')) {
     pdf <- rbind(pdf, cbind(trade.method=trade.names[[trade.method]], tradeloss3))
 }
 
+pdf$mu[pdf$trade.method == 'Leontief Inv. / 10'] <- pdf$mu[pdf$trade.method == 'Leontief Inv. / 10'] / 10
+
 ggplot(pdf, aes(year, mu, group=trade.method)) +
     geom_line(aes(colour=trade.method)) +
     geom_ribbon(data=subset(pdf, trade.method == 'Final demand'), aes(ymin=ci25, ymax=ci75), alpha=.5) +
-    theme_bw() + theme(legend.justification=c(0,0), legend.position=c(0.01,0.01)) +
+    theme_bw() + theme(legend.justification=c(0,1), legend.position=c(0.01,0.99)) +
     scale_colour_discrete("Method") + xlab(NULL) +
     scale_y_continuous("Spill-over Losses (% GDP)", labels=scales::percent)
 ggsave("figures/eachstep-trade.pdf", width=2.5, height=2.5)
+
+wtd.median <- function(xx, weights=NULL, normwt=F) {
+    wtd.quantile(xx, 0.5, weights=weights, normwt=normwt)
+}
+
+pdf <- data.frame()
+for (solow.conf <- c('', '-additive')) { #, '-prodonly')) {
+    load("data/allyr-ww-0.08-fd.RData")
+
+    allyr2 <- allyr.ww %>%
+        mutate(solow=ifelse(is.na(product.chg), NA, product.chg - totimpact - -tradeloss - -slrloss)) %>%
+        filter(weight.norm > 1e-9 & !is.na(solow)) %>%
+        group_by(Year, ISO) %>% reframe(mc=1:30, solow=sample(solow, 30, replace=T, prob=weight.norm)) %>%
+        left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
+        group_by(Year, mc) %>% dplyr::summarize(glosolow=sum(solow * POP_EST) / sum(POP_EST)) %>%
+        group_by(Year) %>% dplyr::summarize(mu=mean(glosolow), ci25=quantile(glosolow, .25), ci75=quantile(glosolow, .75))
+
+    pdf <- rbind(pdf, cbind(solow.conf=list('X'="Preferred", 'X-additive'="Additive", 'X-prodonly'="Production-only")[[paste0('X', solow.conf)]], allyr2))
+}
+
+ggplot(pdf, aes(Year, mu, group=solow.conf)) +
+    geom_line(aes(colour=solow.conf)) +
+    geom_ribbon(data=subset(pdf, solow.conf == 'Preferred'), aes(ymin=ci25, ymax=ci75), alpha=.5) +
+    theme_bw() + theme(legend.justification=c(0,0), legend.position=c(0.01,0.01)) +
+    scale_colour_discrete("Assumptions") + xlab(NULL) +
+    scale_y_continuous("Capital-based losses (% GDP)", labels=scales::percent)
+ggsave("figures/eachstep-solow.pdf", width=2.5, height=2.5)
