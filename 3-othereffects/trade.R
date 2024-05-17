@@ -6,8 +6,8 @@ library(dplyr)
 source("src/lib/loadutils.R")
 source("src/3-othereffects/trade-io.R")
 
-method <- 'dd'
-method.function <- NULL #calc.final.demand.method
+method <- 'li'
+method.function <- calc.leontief.method #NULL #calc.final.demand.method
 
 dir.create(paste0("data/tradeloss-", method))
 
