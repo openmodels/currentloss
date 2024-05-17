@@ -3,8 +3,8 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 persist <- "0.08"
-year <- 2015
-mcii <- 1
+year <- 1991
+mcii <- 21
 
 library(dplyr)
 source("src/lib/loadutils.R")
