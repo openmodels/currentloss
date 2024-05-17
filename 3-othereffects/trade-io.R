@@ -145,13 +145,14 @@ calc.domar.distribute.method1 <- function(year, isos, dimpact) {
     thisyear2 <- thisyear %>% left_join(df.gdp3, by=c('ISO'='Country Code', 'year'='Year'))
     ## domar.change * sum(thisyear2$GDP.2019.est) = A * sum(thisyear2$fracloss.export * thisyear2$GDP.2019.est)
     ## scaleby <- domar.change * sum(thisyear2$GDP.2019.est, na.rm=T) / sum(ifelse(is.na(thisyear2$fracloss.export), 0, thisyear2$fracloss.export) * thisyear2$GDP.2019.est, na.rm=T)
+    ## log(domar.change * sum(thisyear2$GDP.2019.est)) = log(A) + log(sum(thisyear2$fracloss.export * thisyear2$GDP.2019.est))
 
-    list(global=data.frame(domar.change, global.gdp=sum(thisyear2$GDP.2019.est), global.fracloss=sum(ifelse(is.na(thisyear2$fracloss.export), 0, thisyear2$fracloss.export) * thisyear2$GDP.2019.est, na.rm=T)),
+    list(global=data.frame(domar.change, global.gdp=sum(thisyear2$GDP.2019.est, na.rm=T), global.fracloss=sum(ifelse(is.na(thisyear2$fracloss.export), 0, thisyear2$fracloss.export) * thisyear2$GDP.2019.est, na.rm=T)),
          thisyear2=thisyear2)
 }
 
 calc.domar.distribute.method2 <- function(scaleby, isos, thisyear2) {
-    thisyear2$tradeloss <- -thisyear2$fracloss.export * scaleby
+    thisyear2$tradeloss <- thisyear2$fracloss.export * scaleby
 
     domar.loss2 <- data.frame(ISO=isos) %>% left_join(thisyear2)
     domar.loss2$tradeloss

@@ -41,17 +41,30 @@ for (persist in c("0.08", "0.21")) {
         }
     } else {
         for (mcii in unique(results2$mc)) {
-            alloutput <- list()
+            allthisyear <- list()
+            allglobals <- data.frame()
             for (year in unique(results2$Year)) {
                 print(c(persist, year, mcii))
 
                 results2.year <- subset(results2, Year == year & mc == mcii)
                 output <- calc.domar.distribute.method1(year, results2.year$ISO, results2.year$totimpact - results2.year$slrloss)
-
-                tradeloss <- rbind(tradeloss, data.frame(ISO=results2.year$ISO, mc=mcii, year, tradeloss=losses))
+                allglobals <- rbind(allglobals, output$global)
+                allthisyear[[year - min(results2$Year) + 1]] <- output$thisyear2
             }
 
+            allglobals$yy <- allglobals$domar.change * allglobals$global.gdp
+            scalebys <- log(allglobals$yy[allglobals$yy > 0]) - log(allglobals$global.fracloss[allglobals$yy > 0])
+            years <- unique(results2$Year)[allglobals$yy > 0]
+            mod <- lm(scalebys ~ years)
+            smoothscalebys <- exp(predict(mod, data.frame(years))) * exp(var(mod$resid) / 2)
+            smoothscalebys[smoothscalebys > 1] <- 1
+
             tradeloss <- data.frame()
+            for (ii in 1:length(allthisyear)) {
+                losses <- calc.domar.distribute.method2(smoothscalebys[ii], results2.year$ISO, allthisyear[[ii]])
+                tradeloss <- rbind(tradeloss, data.frame(ISO=results2.year$ISO, mc=mcii, year=min(results2$Year) + ii - 1, tradeloss=losses))
+            }
+            save(tradeloss, file=paste0("data/tradeloss-", method, "/tradeloss-", mcii, "-", persist, ".RData"))
         }
     }
 }
