@@ -6,10 +6,11 @@ library(PBSmapping)
 
 persist <- "0.08"
 trade.method <- 'fd'
+solow.config <- '-prodonly'
 source("src/lib/utils2.R")
 
 load.solowdata()
-solowsum <- load.solowsum(persist, trade.method)
+solowsum <- load.solowsum(persist, trade.method, solow.config)
 
 df.gdp2.last <- df.gdp2 %>% group_by(`Country Code`) %>%
     dplyr::summarize(GDP.Year=ifelse(any(!is.na(GDP.2015)), Year[tail(which(!is.na(GDP.2015)), 1)], NA),
@@ -44,7 +45,7 @@ for (mcii in 1:30) {
         stan.data <- make.stan.data(iso)
 
         success <- tryCatch({
-            load(paste0("data/solow-", persist, "-", trade.method, "/v4-", iso, "-", mcii, ".RData"))
+            load(paste0("data/solow-", persist, "-", trade.method, solow.config, "/v4-", iso, "-", mcii, ".RData"))
             T
         }, error=function(e) {
             F
@@ -95,4 +96,4 @@ allyr.ww <- allyr %>% left_join(solowsum3, by=c('ISO', 'mc'), suffix=c('', '.sol
                is.na(weight) ~ 0,
                TRUE ~ weight / sum(weight, na.rm=T)))
 
-save(allyr.ww, file=paste0("data/allyr-ww-", persist, "-", trade.method, ".RData"))
+save(allyr.ww, file=paste0("data/allyr-ww-", persist, "-", trade.method, solow.config, ".RData"))
