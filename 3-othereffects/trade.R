@@ -6,8 +6,8 @@ library(dplyr)
 source("src/lib/loadutils.R")
 source("src/3-othereffects/trade-io.R")
 
-method <- 'fd'
-method.function <- calc.final.demand.method
+method <- 'dd'
+method.function <- calc.domar.distribute.method
 
 dir.create(paste0("data/tradeloss-", method))
 
