@@ -5,9 +5,18 @@ load("data/totalcosts.RData")
 library(dplyr)
 
 do.market.only <- T
+do.case.only <- '' #'noAdaptation' #'optimalfixed'
+
+if (do.case.only %in% unique(df$case)) {
+    df <- subset(df, case == do.case.only)
+    suffix <- paste0("-", do.case.only)
+} else
+    suffix <- ""
+if (!do.market.only)
+    suffix <- paste0(suffix, "-all")
 
 if (do.market.only) {
-    df2 = df %>% filter(year <= 2023 & costtype %in% c('inundation', 'protection', 'stormCapital')) %>%
+    df2 = df %>% filter(year <= 2023 & costtype %in% c('inundation', 'stormCapital')) %>%
         group_by(adm0, quantile, ssp, year, case) %>%
         summarize(costs=sum(costs)) %>% # sum to case
         group_by(adm0, year, case) %>%
@@ -77,12 +86,7 @@ ggplot(pdf, aes(year, mu - mu[year == 1960], group=source)) +
 ## write.csv(tosave, "data/slrbyadm0-final.csv", row.names=F)
 
 pred2 <- pred %>% group_by(ISO) %>% mutate(q17=q17 - q17[year == 1960], mu=mu - mu[year == 1960], q83=q83 - q83[year == 1960])
-if (do.market.only) {
-    write.csv(pred2, "data/slrbyadm0-final.csv", row.names=F)
-} else {
-    write.csv(pred2, "data/slrbyadm0-final-all.csv", row.names=F)
-    stop()
-}
+write.csv(pred2, paste0("data/slrbyadm0-final", suffix, ".csv"), row.names=F)
 
 ## Compare to GDP
 source("src/lib/loadutils.R")

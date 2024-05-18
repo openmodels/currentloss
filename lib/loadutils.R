@@ -29,19 +29,27 @@ load.slr2 <- function(df.gdp3) {
 }
 
 load.tradeloss <- function(method, persist) {
-    tradeloss.all <- data.frame()
-    for (year in 1940:2023) {
-        load(paste0(paste0("data/tradeloss-", method, "/tradeloss-", year, "-", persist, ".RData")))
-        tradeloss.all <- rbind(tradeloss.all, tradeloss)
+    if (method != 'dd') {
+        tradeloss.all <- data.frame()
+        for (year in 1940:2023) {
+            load(paste0(paste0("data/tradeloss-", method, "/tradeloss-", year, "-", persist, ".RData")))
+            tradeloss.all <- rbind(tradeloss.all, tradeloss)
+        }
+    } else {
+        tradeloss.all <- data.frame()
+        for (mcii in 1:30) {
+            load(paste0(paste0("data/tradeloss-", method, "/tradeloss-", mcii, "-", persist, ".RData")))
+            tradeloss.all <- rbind(tradeloss.all, tradeloss)
+        }
     }
 
     tradeloss.all
 }
 
-load.solowsum <- function(persist, trade.method) {
+load.solowsum <- function(persist, trade.method, solow.config='') {
     solowsum <- data.frame()
     for (mc in 1:30) {
-        filepath <- paste0("data/solow-", persist, "-", trade.method, "/solow-v4-", persist, "-", mc, ".csv")
+        filepath <- paste0("data/solow-", persist, "-", trade.method, solow.config, "/solow-v4-", persist, "-", mc, ".csv")
         if (file.exists(filepath))
             solowsum <- rbind(solowsum, read.csv(filepath))
     }
