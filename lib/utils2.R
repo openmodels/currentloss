@@ -179,6 +179,26 @@ model.solow <- function(la, stan.data, withcc, rencaptrue=NULL) {
     list("product"=product, "rencap_model"=rencap_model, "procap_model"=procap_model, "humcap_model"=humcap_model)
 }
 
+model.solow.prodonly <- function(la, stan.data, withcc) {
+    product <- matrix(0, 1000, stan.data$T-1)
+    procap_model <- matrix(NA, 1000, stan.data$T)
+
+    procap_model[, 1] = la$procap0part * stan.data$maxprocap0
+
+    for (tt in 2:stan.data$T) {
+        product[, tt-1] = (la$tfp + la$dtfpdt * (tt-1)) * (procap_model[, tt-1]^(la$shares0[, 1] + (tt-2) * (la$sharesT[, 1] - la$shares0[, 1]) / (stan.data$T-2))) * (stan.data$pop[tt-1]^(la$shares0[, 2] + (tt-2) * (la$sharesT[, 2] - la$shares0[, 2]) / (stan.data$T-2)))
+        if (withcc == T || withcc == "prodonly")
+            product[, tt-1] <- product[, tt-1] * (1 - (stan.data$gdpgrowshock_contemp[tt-1] + la$cumulpart[tt-1] * (stan.data$gdpgrowshock_cumul[tt-1] - stan.data$gdpgrowshock_contemp[tt-1])))
+        procap_model[, tt] = procap_model[, tt-1] + (la$saverate0 + la$dsaveratedt * (tt-2)) * product[, tt-1] - la$deprrate * procap_model[, tt-1]
+        if (any(is.na(product[, tt-1])))
+            print(c("Product", tt))
+        if (any(is.na(procap_model[, tt])))
+            print(c("ProCap", tt))
+    }
+
+    list("product"=product, "procap_model"=procap_model)
+}
+
 aosis <- c('Antigua and Barbuda', 'Bahamas', 'Barbados', 'Belize', 'Cuba', 'Dominica', 'Dominican Republic', 'Grenada', 'Guyana', 'Haiti', 'Jamaica', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines', 'Suriname', 'Trinidad and Tobago', 'Cook Islands', 'Federated States of Micronesia', 'Fiji', 'Kiribati', 'Nauru', 'Niue', 'Palau', 'Papua New Guinea', 'Republic of the Marshall Islands', 'Samoa', 'Solomon Islands', 'Tonga', 'Tuvalu', 'Vanuatu', 'Cabo Verde', 'Comoros', 'Guinea Bissau', 'Maldives', 'Mauritius', 'Sao Tome and Principe', 'Seychelles', 'Singapore', 'Timor Leste')
 g77 <- c("Afghanistan", "Algeria", "Angola", "Antigua and Barbuda", "Argentina", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belize", "Benin", "Bhutan", "Bolivia (Plurinational State of)", "Botswana", "Brazil", "Brunei Darussalam", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Côte d'Ivoire", "Cuba", "Democratic People's Republic of Korea", "Democratic Republic of the Congo", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", "Fiji", "Gabon", "Gambia", "Ghana", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "India", "Indonesia", "Iran (Islamic Republic of)", "Iraq", "Jamaica", "Jordan", "Kenya", "Kiribati", "Kuwait", "Lao People's Democratic Republic", "Lebanon", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Marshall Islands", "Mauritania", "Mauritius", "Micronesia (Federated States of)", "Mongolia", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Nicaragua", "Niger", "Nigeria", "Oman", "Pakistan", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Qatar", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Seychelles", "Sierra Leone", "Singapore", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Sri Lanka", "State of Palestine", "Sudan", "Suriname", "Syrian Arab Republic", "Tajikistan", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkmenistan", "Uganda", "United Arab Emirates", "United Republic of Tanzania", "Uruguay", "Vanuatu", "Venezuela (Bolivarian Republic of)", "Viet Nam", "Yemen", "Zambia", "Zimbabwe")
 ailac <- c("Chile", "Colombia", "Costa Rica", "Guatemala", "Honduras", "Panama", "Paraguay", "Peru")
