@@ -1,28 +1,37 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
-load("data/totalcosts.RData")
-
 library(dplyr)
 
-do.market.only <- T
+do.costtype <- 'market' # 'all'
 do.case.only <- '' #'noAdaptation' #'optimalfixed'
+
+for (do.costtype in c('inundation', 'stormCapital')) {
+    for (do.case.only in c('noAdaptation', 'optimalfixed')) {
+
+load("data/totalcosts.RData")
 
 if (do.case.only %in% unique(df$case)) {
     df <- subset(df, case == do.case.only)
     suffix <- paste0("-", do.case.only)
 } else
     suffix <- ""
-if (!do.market.only)
-    suffix <- paste0(suffix, "-all")
+if (do.costtype != 'market')
+    suffix <- paste0(suffix, "-", do.costtype)
 
-if (do.market.only) {
+if (do.costtype == 'market') {
     df2 = df %>% filter(year <= 2023 & costtype %in% c('inundation', 'stormCapital')) %>%
         group_by(adm0, quantile, ssp, year, case) %>%
         summarize(costs=sum(costs)) %>% # sum to case
         group_by(adm0, year, case) %>%
         summarize(q17=quantile(costs, .17), mu=mean(costs), q83=quantile(costs, .83))
-} else {
+} else if (do.costtype == 'all') {
     df2 = df %>% filter(year <= 2023) %>%
+        group_by(adm0, quantile, ssp, year, case) %>%
+        summarize(costs=sum(costs)) %>% # sum to case
+        group_by(adm0, year, case) %>%
+        summarize(q17=quantile(costs, .17), mu=mean(costs), q83=quantile(costs, .83))
+} else {
+    df2 = df %>% filter(year <= 2023 & costtype %in% do.costtype) %>%
         group_by(adm0, quantile, ssp, year, case) %>%
         summarize(costs=sum(costs)) %>% # sum to case
         group_by(adm0, year, case) %>%
@@ -87,6 +96,9 @@ ggplot(pdf, aes(year, mu - mu[year == 1960], group=source)) +
 
 pred2 <- pred %>% group_by(ISO) %>% mutate(q17=q17 - q17[year == 1960], mu=mu - mu[year == 1960], q83=q83 - q83[year == 1960])
 write.csv(pred2, paste0("data/slrbyadm0-final", suffix, ".csv"), row.names=F)
+
+    }
+}
 
 ## Compare to GDP
 source("src/lib/loadutils.R")
