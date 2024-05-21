@@ -10,12 +10,13 @@ library(PBSmapping)
 library(countrycode)
 
 persist = 0.08
+trade.method <- 'fd'
 source("src/lib/utils2.R")
 
 load("data/allyr-ww.RData")
 
 sumbymc2 <- allyr.ww %>% filter(Year > 2013) %>% group_by(ISO, mc) %>%
-    dplyr::summarize(totimpact=mean(totimpact), slrloss=mean(slrloss), tradeloss=mean(tradeloss), product.chg=mean(product.chg),
+    dplyr::summarize(totimpact=mean(totimpact), slrimpact=-mean(slrloss), tradeimpact=-mean(tradeloss), product.chg=mean(product.chg),
                      rencap.chg.ccpc=mean(rencap.chg.ccpc), rencap.chg=mean(1 - rencap.nocc / rencap.true),
                      allcap.chg=mean(1 - allcap.nocc / allcap.true), procap.chg=mean(allcap.chg - rencap.chg),
                      weight=mean(weight.norm))
@@ -33,16 +34,7 @@ my.wtd.quantile <- function(xx, qq, weights=NULL, normwt=T) {
 }
 
 sumbyiso <- sumbymc2 %>% filter(is.na(weight) | weight > 1e-10) %>% group_by(ISO) %>%
-    dplyr::summarize(solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact - -tradeloss - -slrloss, weights=weight, normwt=T)), slrloss=wtd.median(slrloss, weights=weight, normwt=T), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact + -tradeloss - slrloss, weights=weight, normwt=T), wtd.median(product.chg, weights=weight, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + -tradeloss - slrloss, .25, weights=weight, normwt=T), wtd.quantile(product.chg, .25, weights=weight, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + -tradeloss - slrloss, .75, weights=weight, normwt=T), wtd.quantile(product.chg, .75, weights=weight, normwt=T)), rencap.chg.direct=wtd.median(rencap.chg.ccpc, weights=weight, normwt=T), rencap.chg=wtd.median(rencap.chg, weights=weight, normwt=T), procap.chg=wtd.median(procap.chg, weights=weight, normwt=T), totimpact=wtd.median(totimpact, weights=weight, normwt=T), tradeloss=wtd.median(tradeloss, weights=weight, normwt=T), allcap.chg=wtd.median(allcap.chg, weights=weight, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight, normwt=T))
-
-## ## Add missing ISOs
-## toadd <- presolow[!(presolow$ISO %in% sumbyiso$ISO),] %>% group_by(ISO) %>%
-##     dplyr::summarize(totimpact=median(totimpact), tradeloss=median(tradeloss), slrloss=median(slrloss),
-##                      prod25=quantile(totimpact - tradeloss - slrloss, .25), prod75=quantile(totimpact - tradeloss - slrloss, .75)) %>%
-##     mutate(total=totimpact + -tradeloss + -slrloss)
-
-## sumbyiso2 <- rbind(sumbyiso,
-##                    cbind(toadd, solow=NA, rencap.chg.direct=NA, rencap.chg=NA, procap.chg=NA, allcap.chg=NA, cap25=NA, cap75=NA))
+    dplyr::summarize(totimpact.median=wtd.median(totimpact, weights=weight, normwt=T), tradeimpact.median=wtd.median(tradeimpact, weights=weight, normwt=T), slrimpact.median=wtd.median(slrimpact, weights=weight, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact.median - tradeimpact.median - slrimpact.median, weights=weight, normwt=T)), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact.median + tradeimpact.median + slrimpact.median, weights=weight, normwt=T), wtd.median(product.chg, weights=weight, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight, normwt=T), wtd.quantile(product.chg, .25, weights=weight, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight, normwt=T), wtd.quantile(product.chg, .75, weights=weight, normwt=T)), rencap.chg.direct=wtd.median(rencap.chg.ccpc, weights=weight, normwt=T), rencap.chg=wtd.median(rencap.chg, weights=weight, normwt=T), procap.chg=wtd.median(procap.chg, weights=weight, normwt=T), allcap.chg=wtd.median(allcap.chg, weights=weight, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight, normwt=T))
 
 shp <- importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp")
 polydata <- attr(shp, 'PolyData')
@@ -70,7 +62,7 @@ log2lev <- function(xx) {
     exp(xx) - 1
 }
 
-allyr.ww$total <- ifelse(is.na(allyr.ww$product.chg), allyr.ww$totimpact + allyr.ww$itlimpact - allyr.ww$slrloss, allyr.ww$product.chg)
+allyr.ww$total <- ifelse(is.na(allyr.ww$product.chg), allyr.ww$totimpact + allyr.ww$tradeimpact - allyr.ww$slrloss, allyr.ww$product.chg)
 isotot <- allyr.ww %>% left_join(df.gdp3, by=c('ISO'='Country Code', 'Year')) %>%
     ## want f * NoCC, But (1+f) * NoCC = Obs, So (f / (1+f)) Obs
     mutate(total.usd=(log2lev(total) / (1 + log2lev(total))) * GDP.2015.est) %>%
@@ -95,8 +87,8 @@ range(tbldf$gdppc[tbldf$ECONOMY == "7. Least developed region"], na.rm=T)
 
 tbl <- data.frame(country=tbldf$ADMIN,
                   totimpact=format.percent(log2lev(tbldf$totimpact)),
-                  tradeloss=format.percent(log2lev(tbldf$tradeloss)),
-                  slrloss=format.percent(log2lev(tbldf$slrloss)),
+                  tradeimpact=format.percent(log2lev(tbldf$tradeimpact)),
+                  slrimpact=format.percent(log2lev(tbldf$slrimpact)),
                   solow=format.percent(log2lev(tbldf$solow)),
                   total=format.percent(log2lev(tbldf$total)),
                   prodiqr=format.range(log2lev(tbldf$prod25), log2lev(tbldf$prod75)),
@@ -171,18 +163,19 @@ print(xtable(tbl[incl, -grep("DROP", names(tbl))]), tabular.environment='longtab
 
 ## Bars by ISO
 
-sumprod <- melt(sumbyiso[, c('ISO', 'totimpact', 'tradeloss', 'slrloss', 'solow')], 'ISO')
+sumprod <- melt(sumbyiso[, c('ISO', 'totimpact.median', 'tradeimpact.median', 'slrimpact.median', 'solow')], 'ISO')
 sumcap <- melt(sumbyiso[, c('ISO', 'rencap.chg', 'procap.chg')], 'ISO')
 
-sumprod$label <- ifelse(sumprod$variable == 'totimpact', "Direct Impact",
-                 ifelse(sumprod$variable == 'tradeloss', "International Impact",
-                 ifelse(sumprod$variable == 'slrloss', "Coastal Impact", "Capital Impact")))
-sumprod$label <- factor(sumprod$label, levels=rev(c("Direct Impact", "International Impact", "Capital Impact", "Coastal Impact")))
+sumprod$label <- ifelse(sumprod$variable == 'totimpact.median', "Direct Impact",
+                 ifelse(sumprod$variable == 'tradeimpact.median', "International Impact",
+                 ifelse(sumprod$variable == 'slrimpact.median', "Coastal Impact", "Capital Impact")))
+sumprod$label <- factor(sumprod$label, levels=rev(c("Direct Impact", "Coastal Impact", "International Impact", "Capital Impact")))
 
 ggplot(sumbyiso, aes(ISO)) +
-    coord_flip(ylim=c(-.25, 0.6)) +
-    geom_col(data=sumprod, aes(y=log2lev(value), fill=label)) +
-    geom_errorbar(aes(ymin=log2lev(prod25), ymax=log2lev(prod75))) +
+    coord_flip(ylim=c(-1, 0.3)) +
+    geom_col(data=sumprod, aes(y=value, fill=label)) +
+    geom_errorbar(aes(ymin=prod25, ymax=prod75)) +
+    geom_point(aes(y=total)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Change in GDP from Climate Change (%)") + xlab(NULL) + theme_bw()
 ggsave("figures/finalprod-byiso.pdf", width=6.5, height=26)
@@ -191,7 +184,7 @@ sumcap$label <- ifelse(sumcap$variable == 'rencap.chg', "Renewable Capital", "Pr
 
 ggplot(subset(sumbyiso, !is.na(allcap.chg)), aes(ISO)) +
     coord_flip() + #ylim=c(-.25, 0.6)) +
-    geom_col(data=subset(sumcap, !is.na(value)), aes(y=log2lev(value), fill=label)) +
+    geom_col(data=subset(sumcap, !is.na(value)), aes(y=value, fill=label)) +
     geom_errorbar(aes(ymin=cap25, ymax=cap75)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Cumulative change in Capital (%)") + xlab(NULL) + theme_bw()
@@ -209,18 +202,7 @@ newweight <- sumbymc2 %>% left_join(polydata, by=c('ISO'='ADM0_A3')) %>%
     group_by(ISO) %>% reframe(weight2=weight / sum(weight))
 sumbymc2$weight.norm <- newweight$weight2
 
-toaddmc <- !(presolow$ISO %in% sumbyiso$ISO)
-
-sumbymc3 <- rbind(sumbymc2[, c('ISO', 'mc', 'totimpact', 'tradeloss', 'slrloss', 'rencap.end.true', 'rencap.end.nocc',
-                               'procap.end.true', 'procap.end.nocc',
-                               'product.chg', 'rencap.chg', 'procap.chg', 'weight.norm', 'product.chg')],
-                  data.frame(ISO=presolow$ISO[toaddmc], mc=presolow$mc[toaddmc], totimpact=presolow$totimpact[toaddmc],
-                             tradeloss=presolow$tradeloss[toaddmc], slrloss=-presolow$slrloss[toaddmc], rencap.end.true=NA, rencap.end.nocc=NA,
-                             procap.end.true=NA, procap.end.nocc=NA,
-                             product.chg=presolow$totimpact[toaddmc] - presolow$tradeloss[toaddmc], rencap.chg=NA,
-                             procap.chg=NA, weight.norm=1/30, product.chg=presolow$totimpact[toaddmc] - presolow$tradeloss[toaddmc] - presolow$slrloss[toaddmc]))
-
-sumbymc4 <- sumbymc3 %>% left_join(polydata, by=c('ISO'='ADM0_A3')) %>%
+sumbymc4 <- sumbymc2 %>% left_join(polydata, by=c('ISO'='ADM0_A3')) %>%
     mutate(weight.pop = weight.norm * POP_EST)
 
 sumbymc4$MY_INCOME_GRP <- as.character(sumbymc4$INCOME_GRP)
@@ -245,10 +227,10 @@ tbldf$POP_EST[tbldf$INCOME_GRP == "4. Lower middle income"] / sum(tbldf$POP_EST[
 tbldf$ADMIN[tbldf$INCOME_GRP == "5. Low income"]
 tbldf$POP_EST[tbldf$INCOME_GRP == "5. Low income"] / sum(tbldf$POP_EST[tbldf$INCOME_GRP == "5. Low income"])
 
-sumbyeconomy <- sumbymc4 %>% filter(is.na(weight.pop) | weight.pop > 1e-9) %>% group_by(ECONOMY) %>% dplyr::summarize(solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact - -tradeloss - -slrloss, weights=weight.pop, normwt=T)), slrloss=wtd.median(slrloss, weights=weight.pop, normwt=T), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact + -tradeloss - slrloss, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + -tradeloss - slrloss, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + -tradeloss - slrloss, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), totimpact=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeloss=wtd.median(tradeloss, weights=weight.pop, normwt=T), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T))
-sumbyincgrp <- sumbymc4 %>% filter(is.na(weight.pop) | weight.pop > 1e-9) %>% group_by(MY_INCOME_GRP) %>% dplyr::summarize(solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact - -tradeloss - -slrloss, weights=weight.pop, normwt=T)), slrloss=wtd.median(slrloss, weights=weight.pop, normwt=T), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact + -tradeloss - slrloss, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + -tradeloss - slrloss, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + -tradeloss - slrloss, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), totimpact=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeloss=wtd.median(tradeloss, weights=weight.pop, normwt=T), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T))
-sumbycontinent <- sumbymc4 %>% filter(is.na(weight.pop) | weight.pop > 1e-9) %>% group_by(CONTINENT) %>% dplyr::summarize(solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact - -tradeloss - -slrloss, weights=weight.pop, normwt=T)), slrloss=wtd.median(slrloss, weights=weight.pop, normwt=T), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact + -tradeloss - slrloss, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + -tradeloss - slrloss, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + -tradeloss - slrloss, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), totimpact=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeloss=wtd.median(tradeloss, weights=weight.pop, normwt=T), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T))
-sumbysubreg <- sumbymc4 %>% filter(is.na(weight.pop) | weight.pop > 1e-9) %>% group_by(SUBREGION) %>% dplyr::summarize(solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact - -tradeloss - -slrloss, weights=weight.pop, normwt=T)), slrloss=wtd.median(slrloss, weights=weight.pop, normwt=T), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact + -tradeloss - slrloss, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + -tradeloss - slrloss, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + -tradeloss - slrloss, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), totimpact=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeloss=wtd.median(tradeloss, weights=weight.pop, normwt=T), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T))
+sumbyeconomy <- sumbymc4 %>% filter(is.na(weight.pop) | weight.pop > 1e-9) %>% group_by(ECONOMY) %>% dplyr::summarize(totimpact.median=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeimpact.median=wtd.median(tradeimpact, weights=weight.pop, normwt=T), slrimpact.median=wtd.median(slrimpact, weights=weight.pop, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact.median - tradeimpact.median - slrimpact.median, weights=weight.pop, normwt=T)), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact.median + tradeimpact.median + slrimpact.median, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T))
+sumbyincgrp <- sumbymc4 %>% filter(is.na(weight.pop) | weight.pop > 1e-9) %>% group_by(MY_INCOME_GRP) %>% dplyr::summarize(totimpact.median=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeimpact.median=wtd.median(tradeimpact, weights=weight.pop, normwt=T), slrimpact.median=wtd.median(slrimpact, weights=weight.pop, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact.median - tradeimpact.median - slrimpact.median, weights=weight.pop, normwt=T)), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact.median + tradeimpact.median + slrimpact.median, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T))
+sumbycontinent <- sumbymc4 %>% filter(is.na(weight.pop) | weight.pop > 1e-9) %>% group_by(CONTINENT) %>% dplyr::summarize(totimpact.median=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeimpact.median=wtd.median(tradeimpact, weights=weight.pop, normwt=T), slrimpact.median=wtd.median(slrimpact, weights=weight.pop, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact.median - tradeimpact.median - slrimpact.median, weights=weight.pop, normwt=T)), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact.median + tradeimpact.median + slrimpact.median, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T))
+sumbysubreg <- sumbymc4 %>% filter(is.na(weight.pop) | weight.pop > 1e-9) %>% group_by(SUBREGION) %>% dplyr::summarize(totimpact.median=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeimpact.median=wtd.median(tradeimpact, weights=weight.pop, normwt=T), slrimpact.median=wtd.median(slrimpact, weights=weight.pop, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact.median - tradeimpact.median - slrimpact.median, weights=weight.pop, normwt=T)), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact.median + tradeimpact.median + slrimpact.median, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T))
 names(sumbyeconomy)[1] <- "Group"
 names(sumbyincgrp)[1] <- "Group"
 names(sumbycontinent)[1] <- "Group"
@@ -264,6 +246,7 @@ allsums$Group[allsums$panel == 'Economy'] <- sapply(allsums$Group[allsums$panel 
 allsums$Group[allsums$Group == 'Developed region: nonG7'] <- "Developed region: non-G7"
 allsums$Group[allsums$panel == 'Income Group'] <- sapply(allsums$Group[allsums$panel == 'Income Group'], function(ss) substring(ss, 4, nchar(ss)))
 allsums$Group[allsums$Group == 'High income: nonOECD'] <- "High income: Remaining"
+allsums$Group[allsums$Group == 'Seven seas (open ocean)'] <- "Open Ocean"
 
 ## NUMBERS FOR REPORT
 subset(allsums, Group == "Least developed region") # -0.08310059
@@ -282,49 +265,58 @@ log2lev(allsums$total[allsums$Group == "South America"]) # -0.1024196
 allsums <- subset(allsums, panel != "Sub-region" | !(Group %in% unique(sumbycontinent$Group)))
 allsums$Group <- factor(allsums$Group, levels=rev(unique(allsums$Group)))
 
-allsumprod <- melt(allsums[, c('panel', 'Group', 'totimpact', 'tradeloss', 'slrloss', 'solow')], c('panel', 'Group'))
+allsumprod <- melt(allsums[, c('panel', 'Group', 'totimpact.median', 'tradeimpact.median', 'slrimpact.median', 'solow')], c('panel', 'Group'))
 allsumcap <- melt(allsums[, c('panel', 'Group', 'rencap.chg', 'procap.chg')], c('panel', 'Group'))
 
 ## Bars by group
 
-allsumprod$label <- ifelse(allsumprod$variable == 'totimpact', "Direct",
-                    ifelse(allsumprod$variable == 'tradeloss', "International",
-                    ifelse(allsumprod$variable == 'slrloss', "Coastal", "Capital")))
-allsumprod$label <- factor(allsumprod$label, levels=rev(c("Direct", "International", "Capital", "Coastal")))
+allsumprod$label <- ifelse(allsumprod$variable == 'totimpact.median', "Direct",
+                    ifelse(allsumprod$variable == 'tradeimpact.median', "International",
+                    ifelse(allsumprod$variable == 'slrimpact.median', "Coastal", "Capital")))
+allsumprod$label <- factor(allsumprod$label, levels=rev(c("Direct", "Coastal", "International", "Capital")))
 
-ggplot(subset(allsums2, panel == 'Economy'), aes(Group)) +
+ggplot(subset(allsums, panel == 'Economy'), aes(Group)) +
     coord_flip() +
-    geom_col(data=subset(allsumprod, panel == 'Economy'), aes(y=log2lev(value), fill=label)) +
-    geom_errorbar(aes(ymin=log2lev(prod25), ymax=log2lev(prod75)), width=.5) +
-    geom_point(aes(y=log2lev(total))) +
+    geom_col(data=subset(allsumprod, panel == 'Economy'), aes(y=value, fill=label)) +
+    geom_errorbar(aes(ymin=prod25, ymax=prod75), width=.5) +
+    geom_point(aes(y=total)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Change in GDP from Climate Change (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
 ggsave("figures/finalprod-byeco.pdf", width=5, height=2.7)
 
-ggplot(subset(allsums2, panel == 'Income Group'), aes(Group)) +
+ggplot(subset(allsums, panel == 'Income Group'), aes(Group)) +
     coord_flip() +
-    geom_col(data=subset(allsumprod, panel == 'Income Group'), aes(y=log2lev(value), fill=label)) +
-    geom_errorbar(aes(ymin=log2lev(prod25), ymax=log2lev(prod75)), width=.5) +
-    geom_point(aes(y=log2lev(total))) +
+    geom_col(data=subset(allsumprod, panel == 'Income Group'), aes(y=value, fill=label)) +
+    geom_errorbar(aes(ymin=prod25, ymax=prod75), width=.5) +
+    geom_point(aes(y=total)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Change in GDP from Climate Change (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
 ggsave("figures/finalprod-byeco2.pdf", width=6.2, height=2.7)
 
-ggplot(subset(allsums2, panel %in% c('Continent', 'Sub-region')), aes(Group)) +
+ggplot(subset(allsums, panel %in% c('Continent', 'Sub-region')), aes(Group)) +
     coord_flip() +
     facet_grid(panel ~ ., scales='free', space='free') +
-    geom_col(data=subset(allsumprod, panel %in% c('Continent', 'Sub-region')), aes(y=log2lev(value), fill=label)) +
-    geom_errorbar(aes(ymin=log2lev(prod25), ymax=log2lev(prod75)), width=.5) +
-    geom_point(aes(y=log2lev(total))) +
+    geom_col(data=subset(allsumprod, panel %in% c('Continent', 'Sub-region')), aes(y=value, fill=label)) +
+    geom_errorbar(aes(ymin=prod25, ymax=prod75), width=.5) +
+    geom_point(aes(y=total)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Change in GDP from Climate Change (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
 ggsave("figures/finalprod-byreg.pdf", width=5, height=6)
+
+ggplot(subset(allsums, panel == 'Continent' & Group != 'Antarctica'), aes(Group)) +
+    coord_flip() +
+    geom_col(data=subset(allsumprod, panel == 'Continent' & Group != 'Antarctica'), aes(y=value, fill=label)) +
+    geom_errorbar(aes(ymin=prod25, ymax=prod75), width=.5) +
+    geom_point(aes(y=total)) +
+    scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
+    ylab("Change in GDP from Climate Change (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
+ggsave("figures/finalprod-bycon.pdf", width=4, height=2.7)
 
 allsumcap$label <- ifelse(allsumcap$variable == 'rencap.chg', "Renewable Capital", "Produced Capital")
 
 ggplot(subset(allsums, !is.na(allcap.chg) & panel == 'Economy'), aes(Group)) +
     coord_flip() +
-    geom_col(data=subset(allsumcap, !is.na(value) & panel == 'Economy'), aes(y=log2lev(value), fill=label)) +
+    geom_col(data=subset(allsumcap, !is.na(value) & panel == 'Economy'), aes(y=value, fill=label)) +
     geom_errorbar(aes(ymin=cap25, ymax=cap75)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Cumulative change in Capital (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
@@ -333,7 +325,7 @@ ggsave("figures/finalcap-byeco.pdf", width=5, height=2.7)
 ggplot(subset(allsums, !is.na(allcap.chg) & panel %in% c('Continent', 'Sub-region')), aes(Group)) +
     coord_flip() +
     facet_grid(panel ~ ., scales='free', space='free') +
-    geom_col(data=subset(allsumcap, !is.na(value) & panel %in% c('Continent', 'Sub-region')), aes(y=log2lev(value), fill=label)) +
+    geom_col(data=subset(allsumcap, !is.na(value) & panel %in% c('Continent', 'Sub-region')), aes(y=value, fill=label)) +
     geom_errorbar(aes(ymin=cap25, ymax=cap75)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Cumulative change in Capital (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
@@ -344,24 +336,24 @@ ggsave("figures/finalcap-byreg.pdf", width=5, height=6)
 sumbygroup <- data.frame()
 for (grouping in names(groupings)) {
     isos <- countryname(groupings[[grouping]], 'iso3c')
-    sumbysubgroup <- sumbymc4 %>% filter(ISO %in% isos & !is.na(weight.pop) & weight.pop > 1e-9) %>% group_by(Group=grouping) %>% dplyr::summarize(solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact - -tradeloss - -slrloss, weights=weight.pop, normwt=T)), slrloss=wtd.median(slrloss, weights=weight.pop, normwt=T), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact + -tradeloss - slrloss, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + -tradeloss - slrloss, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + -tradeloss - slrloss, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), totimpact=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeloss=wtd.median(tradeloss, weights=weight.pop, normwt=T), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T))
+    sumbysubgroup <- sumbymc4 %>% filter(ISO %in% isos & !is.na(weight.pop) & weight.pop > 1e-9) %>% group_by(Group=grouping) %>% dplyr::summarize(totimpact.median=wtd.median(totimpact.median, weights=weight.pop, normwt=T), tradeimpact.median=wtd.median(tradeimpact, weights=weight.pop, normwt=T), slrimpact.median=wtd.median(slrimpact, weights=weight.pop, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact.median - tradeimpact.median - slrimpact.median, weights=weight.pop, normwt=T)), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact.median + tradeimpact.median + slrimpact.median, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T))
     sumbygroup <- rbind(sumbygroup, sumbysubgroup)
 }
 sumbygroup$Group <- factor(sumbygroup$Group, levels=rev(sort(sumbygroup$Group)))
 
-sumbygroupprod <- melt(sumbygroup[, c('Group', 'totimpact', 'tradeloss', 'slrloss', 'solow')], 'Group')
+sumbygroupprod <- melt(sumbygroup[, c('Group', 'totimpact.median', 'tradeimpact.median', 'slrimpact.median', 'solow')], 'Group')
 sumbygroupcap <- melt(sumbygroup[, c('Group', 'rencap.chg', 'procap.chg')], 'Group')
 
-sumbygroupprod$label <- ifelse(sumbygroupprod$variable == 'totimpact', "Direct",
-                        ifelse(sumbygroupprod$variable == 'tradeloss', "International",
-                        ifelse(sumbygroupprod$variable == 'slrloss', "Coastal", "Capital")))
-sumbygroupprod$label <- factor(sumbygroupprod$label, levels=rev(c("Direct", "International", "Capital", "Coastal")))
+sumbygroupprod$label <- ifelse(sumbygroupprod$variable == 'totimpact.median', "Direct",
+                        ifelse(sumbygroupprod$variable == 'tradeimpact.median', "International",
+                        ifelse(sumbygroupprod$variable == 'slrimpact.median', "Coastal", "Capital")))
+sumbygroupprod$label <- factor(sumbygroupprod$label, levels=rev(c("Direct", "Coastal", "International", "Capital")))
 
 ggplot(sumbygroup, aes(Group)) +
     coord_flip() +
-    geom_col(data=sumbygroupprod, aes(y=log2lev(value), fill=label)) +
-    geom_errorbar(aes(ymin=log2lev(prod25), ymax=log2lev(prod75)), width=.5) +
-    geom_point(aes(y=log2lev(total))) +
+    geom_col(data=sumbygroupprod, aes(y=value, fill=label)) +
+    geom_errorbar(aes(ymin=prod25, ymax=prod75), width=.5) +
+    geom_point(aes(y=total)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Change in GDP from Climate Change (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
 ggsave("figures/finalprod-bygrp.pdf", width=5, height=4)
@@ -370,7 +362,7 @@ sumbygroupcap$label <- ifelse(sumbygroupcap$variable == 'rencap.chg', "Renewable
 
 ggplot(subset(sumbygroup, !is.na(allcap.chg)), aes(Group)) +
     coord_flip() +
-    geom_col(data=subset(sumbygroupcap, !is.na(value)), aes(y=log2lev(value), fill=label)) +
+    geom_col(data=subset(sumbygroupcap, !is.na(value)), aes(y=value, fill=label)) +
     geom_errorbar(aes(ymin=cap25, ymax=cap75)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Cumulative change in Capital (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
@@ -412,10 +404,9 @@ shpl <- importShapefile("data/regions/ne_10m_land/ne_10m_land.shp")
 
 gg <- ggplot(shp2, aes(X, Y)) +
     geom_polygon(data=shpl, aes(group=paste(PID, SID)), fill='#808080', colour=NA) +
-                                        #geom_polygon(aes(fill=pmin(.2, pmax(-.25, exp(total) - 1)), group=paste(PID, SID))) +
-    geom_polygon(aes(fill=exp(total) - 1, group=paste(PID, SID))) +
+    geom_polygon(aes(fill=pmin(.2, pmax(-.5, log2lev(total))), group=paste(PID, SID))) +
     geom_polygon(data=shpl, aes(group=paste(PID, SID)), fill=NA, colour='black', linewidth=.01) +
-    geom_label(data=subset(centroids2, show), aes(label=round((exp(total) - 1) * 100)), size=3, label.padding=unit(0.1, "lines")) +
+    geom_label(data=subset(centroids2, show), aes(label=round(log2lev(total) * 100)), size=3, label.padding=unit(0.1, "lines")) +
     xlab(NULL) + ylab(NULL) + coord_map(ylim=c(-50, 65)) +
     scale_fill_gradient2("Change in GDP (%):", low = scales::muted("red"), high = scales::muted("blue"), labels=scales::percent, guide=guide_colorbar(barwidth=10, barheight=1)) +
     theme_bw() + theme(legend.position="bottom", legend.key.width=unit(10,"in"),
@@ -424,9 +415,9 @@ ggsave("figures/finalprod-map.pdf", width=10, height=5.5)
 
 gg <- ggplot(shp2, aes(X, Y)) +
     geom_polygon(data=shpl, aes(group=paste(PID, SID)), fill='#808080', colour=NA) +
-    geom_polygon(aes(fill=exp(allcap.chg) - 1, group=paste(PID, SID))) +
+    geom_polygon(aes(fill=log2lev(allcap.chg), group=paste(PID, SID))) +
     geom_polygon(data=shpl, aes(group=paste(PID, SID)), fill=NA, colour='black', linewidth=.01) +
-    geom_label(data=centroids2, aes(label=round((exp(allcap.chg) - 1) * 100)), size=2, label.padding=unit(0.1, "lines")) +
+    geom_label(data=centroids2, aes(label=round(log2lev(allcap.chg) * 100)), size=2, label.padding=unit(0.1, "lines")) +
     xlab(NULL) + ylab(NULL) + coord_map(ylim=c(-50, 65)) +
     scale_fill_gradient2("Change in capital (%):", low = scales::muted("red"), high = scales::muted("blue"), labels=scales::percent, guide=guide_colorbar(barwidth=10, barheight=1)) +
     theme_bw() + theme(legend.position="bottom", legend.key.width=unit(10,"in"),
