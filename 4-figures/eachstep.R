@@ -114,8 +114,8 @@ wtd.median <- function(xx, weights=NULL, normwt=F) {
 }
 
 pdf <- data.frame()
-for (solow.conf <- c('', '-additive')) { #, '-prodonly')) {
-    load("data/allyr-ww-0.08-fd.RData")
+for (solow.conf in c('', '-additive', '-prodonly')) {
+    load(paste0("data/allyr-ww-0.08-fd", solow.conf, ".RData"))
 
     allyr2 <- allyr.ww %>%
         mutate(solow=ifelse(is.na(product.chg), NA, product.chg - totimpact - -tradeloss - -slrloss)) %>%
