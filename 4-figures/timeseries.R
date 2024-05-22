@@ -228,7 +228,7 @@ set1 <- pdf %>% filter(Year > 2013) %>% group_by(ISO, mc) %>%
                                           persist.usd=sum(persist.usd, na.rm=T),
                                           weight2=sum(weight2)) %>%
         group_by(CONTINENT) %>%
-        dplyr::reframe(variable=c('Immediate', 'Persisting'),
+        dplyr::reframe(variable=c('Immediate Impact', 'Remaining Persisting'),
                        mu=c(wtd.median(dimpact.usd, weights=weight2, normwt=T),
                             wtd.median(persist.usd, weights=weight2, normwt=T)),
                        ci.25=c(wtd.quantile(dimpact.usd, .25, weights=weight2, normwt=T),
@@ -296,7 +296,7 @@ set4 <- pdf %>%
                                                  procap.usd=sum(procap.usd, na.rm=T),
                                                  weight2=sum(weight2)) %>%
     group_by(CONTINENT) %>%
-    dplyr::reframe(variable=c('Capital Effect', 'Direct Renewable', 'Feedback Renewable', 'Produced'),
+    dplyr::reframe(variable=c('Capital Growth Effect', 'Direct Renewable Capital', 'Feedback Renewable Capital', 'Produced Capital'),
                    mu=c(wtd.median(allcap.usd, weights=weight2, normwt=T),
                         wtd.median(rencap.ccpc.usd, weights=weight2, normwt=T),
                         wtd.median(rencap.rest.usd, weights=weight2, normwt=T),

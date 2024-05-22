@@ -3,7 +3,7 @@
 library(dplyr)
 
 do.costtype <- 'market' # 'all'
-do.case.only <- '' #'noAdaptation' #'optimalfixed'
+do.case.only <- 'noAdaptation' #'' #'optimalfixed'
 
 for (do.costtype in c('inundation', 'stormCapital')) {
     for (do.case.only in c('noAdaptation', 'optimalfixed')) {
@@ -41,7 +41,12 @@ if (do.costtype == 'market') {
 library(ggplot2)
 
 df3 <- df2 %>% group_by(year, case) %>% summarize(q17=sum(q17), mu=sum(mu), q83=sum(q83))
-df4 <- df3 %>% filter(year >= 2010) %>% group_by(year) %>% summarize(q17=min(mu), q83=max(mu), mu=mean(mu))
+if (do.case.only == '') {
+    df4 <- df3 %>% filter(year >= 2010) %>% group_by(year) %>% summarize(q17=min(mu), q83=max(mu), mu=mean(mu))
+} else {
+    df4 <- df3 %>% filter(year >= 2010)
+    df4 <- df4[, -which(names(df4) == 'case')]
+}
 
 ggplot(df3, aes(year, mu, group=case)) +
     geom_line(aes(colour=case)) + geom_ribbon(aes(ymin=q17, ymax=q83), alpha=.5) +
@@ -55,7 +60,10 @@ ggplot(rbind(df3, cbind(df4, case='mean')), aes(year, mu, group=case)) +
     scale_colour_discrete("Adaptation\nScenario:", breaks=c('min', 'max', 'mean'), labels=c('Min Cost', 'Max Cost', 'Average')) +
     ylab("Global Sea Level Damages (USD)")
 
-df3.iso <- df2 %>% filter(year >= 2010) %>% group_by(adm0, year) %>% summarize(q17=min(mu), q83=max(mu), mu=mean(mu))
+if (do.case.only == '') {
+    df3.iso <- df2 %>% filter(year >= 2010) %>% group_by(adm0, year) %>% summarize(q17=min(mu), q83=max(mu), mu=mean(mu))
+} else
+    df3.iso <- df2 %>% filter(year >= 2010)
 
 pred <- data.frame()
 for (ISO in unique(df3.iso$adm0)) {
@@ -71,7 +79,10 @@ for (ISO in unique(df3.iso$adm0)) {
         q17 <- 0
     else
         q17 <- exp(predict(lm(log(q17) ~ y1960, data=mdf), data.frame(y1960=0:(2023 - 1960))))
-    q83 <- exp(predict(lm(log(q83) ~ y1960, data=mdf), data.frame(y1960=0:(2023 - 1960))))
+    if (all(mdf$q83 == 0))
+        q83 <- mu
+    else
+        q83 <- exp(predict(lm(log(q83) ~ y1960, data=mdf), data.frame(y1960=0:(2023 - 1960))))
     pred <- rbind(pred, data.frame(ISO, year=1960:2023, q17, mu, q83))
 }
 
