@@ -117,7 +117,7 @@ ggplot(allres2.smooth, aes(Year, mu)) +
     coord_cartesian(ylim=c(-.035, .005)) +
     geom_line(aes(colour=paper, group=paste(paper, name), alpha=paper), linewidth=.3) +
     theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
-    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1940, 2023)) +
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
     scale_colour_discrete("Reference:") +
     scale_alpha_manual("Reference:", breaks=legend.papers, values=legend.alphas) +
     theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.8, 'lines')) +
@@ -130,7 +130,7 @@ load.metaanal <- function(filename) {
 
     results2 <- results %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
         group_by(Year, mc) %>% filter(!is.na(dimpact)) %>% summarize(gloimpact=sum(dimpact * POP_EST) / sum(POP_EST)) %>%
-        group_by(Year) %>% summarize(mu=mean(gloimpact, na.rm=T))
+        group_by(Year) %>% summarize(mu=mean(gloimpact, na.rm=T), ci25=quantile(gloimpact, .25, na.rm=T), ci75=quantile(gloimpact, .75, na.rm=T))
     results2
 }
 
@@ -156,13 +156,16 @@ for (rf.approach in c("all", "controls", "nonlinear", "dataset")) {
 
 allmeta$name <- factor(allmeta$name, levels=as.character(c(paperweight.names, rf.names)))
 
-allmeta.smooth <- rbind(allmeta %>% group_by(name) %>% mutate(mu=stats::filter(c(rep(0, 9), mu), rep(1/10, 10), method='conv')[5:(length(mu)+4)]))
+allmeta.smooth <- rbind(allmeta %>% group_by(name) %>% mutate(mu=stats::filter(c(rep(0, 9), mu), rep(1/10, 10), method='conv')[5:(length(mu)+4)],
+                                                              ci25=stats::filter(c(rep(0, 9), ci25), rep(1/10, 10), method='conv')[5:(length(ci25)+4)],
+                                                              ci75=stats::filter(c(rep(0, 9), ci75), rep(1/10, 10), method='conv')[5:(length(ci75)+4)]))
 
 ggplot(allmeta.smooth, aes(Year, mu)) +
-    coord_cartesian(ylim=c(-.016, .001)) +
+    coord_cartesian(ylim=c(-.023, .001)) +
     geom_line(aes(colour=name)) +
+    geom_ribbon(data=subset(allmeta.smooth, name == "RF with all quality criteria"), aes(ymin=ci25, ymax=ci75), alpha=.25) +
     theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
-    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1940, 2023)) +
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
     scale_colour_discrete("Meta-analysis:") +
     theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.8, 'lines')) +
     ggtitle("(b) Population-weighted mean of meta-analyses")
@@ -174,7 +177,7 @@ gdplims <- quantile(polydata$gdppc, c(.25, .75), na.rm=T)
 polydata$gdppc[polydata$ADM0_A3 == "KAS"] <- NA # Disallow
 gdpisos <- c(polydata$ADM0_A3[which.min(abs(polydata$gdppc - gdplims[1]))], polydata$ADM0_A3[which.min(abs(polydata$gdppc - gdplims[2]))])
 
-temps <- read.csv("data/era5-t2m-combo-adm0.csv") %>% group_by(ISO) %>% summarize(t2m=mean(t2m))
+temps <- read.csv("data/era5-t2m-combo-adm0.csv") %>% group_by(ISO) %>% dplyr::summarize(t2m=mean(t2m))
 t2mlims <- quantile(temps$t2m, c(.25, .75))
 t2misos <- c(temps$ISO[which.min(abs(temps$t2m - t2mlims[1]))], temps$ISO[which.min(abs(temps$t2m - t2mlims[2]))])
 

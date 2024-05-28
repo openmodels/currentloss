@@ -1,28 +1,37 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
-load("data/totalcosts.RData")
-
 library(dplyr)
 
-do.market.only <- T
-do.case.only <- '' #'noAdaptation' #'optimalfixed'
+do.costtype <- 'market' # 'all'
+do.case.only <- 'noAdaptation' #'' #'optimalfixed'
+
+for (do.costtype in c('inundation', 'stormCapital')) {
+    for (do.case.only in c('noAdaptation', 'optimalfixed')) {
+
+load("data/totalcosts.RData")
 
 if (do.case.only %in% unique(df$case)) {
     df <- subset(df, case == do.case.only)
     suffix <- paste0("-", do.case.only)
 } else
     suffix <- ""
-if (!do.market.only)
-    suffix <- paste0(suffix, "-all")
+if (do.costtype != 'market')
+    suffix <- paste0(suffix, "-", do.costtype)
 
-if (do.market.only) {
+if (do.costtype == 'market') {
     df2 = df %>% filter(year <= 2023 & costtype %in% c('inundation', 'stormCapital')) %>%
         group_by(adm0, quantile, ssp, year, case) %>%
         summarize(costs=sum(costs)) %>% # sum to case
         group_by(adm0, year, case) %>%
         summarize(q17=quantile(costs, .17), mu=mean(costs), q83=quantile(costs, .83))
-} else {
+} else if (do.costtype == 'all') {
     df2 = df %>% filter(year <= 2023) %>%
+        group_by(adm0, quantile, ssp, year, case) %>%
+        summarize(costs=sum(costs)) %>% # sum to case
+        group_by(adm0, year, case) %>%
+        summarize(q17=quantile(costs, .17), mu=mean(costs), q83=quantile(costs, .83))
+} else {
+    df2 = df %>% filter(year <= 2023 & costtype %in% do.costtype) %>%
         group_by(adm0, quantile, ssp, year, case) %>%
         summarize(costs=sum(costs)) %>% # sum to case
         group_by(adm0, year, case) %>%
@@ -32,7 +41,12 @@ if (do.market.only) {
 library(ggplot2)
 
 df3 <- df2 %>% group_by(year, case) %>% summarize(q17=sum(q17), mu=sum(mu), q83=sum(q83))
-df4 <- df3 %>% filter(year >= 2010) %>% group_by(year) %>% summarize(q17=min(mu), q83=max(mu), mu=mean(mu))
+if (do.case.only == '') {
+    df4 <- df3 %>% filter(year >= 2010) %>% group_by(year) %>% summarize(q17=min(mu), q83=max(mu), mu=mean(mu))
+} else {
+    df4 <- df3 %>% filter(year >= 2010)
+    df4 <- df4[, -which(names(df4) == 'case')]
+}
 
 ggplot(df3, aes(year, mu, group=case)) +
     geom_line(aes(colour=case)) + geom_ribbon(aes(ymin=q17, ymax=q83), alpha=.5) +
@@ -46,7 +60,10 @@ ggplot(rbind(df3, cbind(df4, case='mean')), aes(year, mu, group=case)) +
     scale_colour_discrete("Adaptation\nScenario:", breaks=c('min', 'max', 'mean'), labels=c('Min Cost', 'Max Cost', 'Average')) +
     ylab("Global Sea Level Damages (USD)")
 
-df3.iso <- df2 %>% filter(year >= 2010) %>% group_by(adm0, year) %>% summarize(q17=min(mu), q83=max(mu), mu=mean(mu))
+if (do.case.only == '') {
+    df3.iso <- df2 %>% filter(year >= 2010) %>% group_by(adm0, year) %>% summarize(q17=min(mu), q83=max(mu), mu=mean(mu))
+} else
+    df3.iso <- df2 %>% filter(year >= 2010)
 
 pred <- data.frame()
 for (ISO in unique(df3.iso$adm0)) {
@@ -62,7 +79,10 @@ for (ISO in unique(df3.iso$adm0)) {
         q17 <- 0
     else
         q17 <- exp(predict(lm(log(q17) ~ y1960, data=mdf), data.frame(y1960=0:(2023 - 1960))))
-    q83 <- exp(predict(lm(log(q83) ~ y1960, data=mdf), data.frame(y1960=0:(2023 - 1960))))
+    if (all(mdf$q83 == 0))
+        q83 <- mu
+    else
+        q83 <- exp(predict(lm(log(q83) ~ y1960, data=mdf), data.frame(y1960=0:(2023 - 1960))))
     pred <- rbind(pred, data.frame(ISO, year=1960:2023, q17, mu, q83))
 }
 
@@ -87,6 +107,9 @@ ggplot(pdf, aes(year, mu - mu[year == 1960], group=source)) +
 
 pred2 <- pred %>% group_by(ISO) %>% mutate(q17=q17 - q17[year == 1960], mu=mu - mu[year == 1960], q83=q83 - q83[year == 1960])
 write.csv(pred2, paste0("data/slrbyadm0-final", suffix, ".csv"), row.names=F)
+
+    }
+}
 
 ## Compare to GDP
 source("src/lib/loadutils.R")

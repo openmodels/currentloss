@@ -9,6 +9,21 @@ source("src/3-othereffects/trade-io.R")
 method <- 'fd'
 method.function <- calc.final.demand.method
 
+for (do.keep.incgrp in c('1-2', '3-5')) {
+
+if (!is.null(do.keep.incgrp)) {
+    library(PBSmapping)
+    polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
+    if (do.keep.incgrp == '3-5')
+        dropiso <- polydata$ADM0_A3[polydata$INCOME_GRP %in% c("2. High income: nonOECD", "1. High income: OECD")]
+    else
+        dropiso <- polydata$ADM0_A3[polydata$INCOME_GRP %in% c("5. Low income", "4. Lower middle income", "3. Upper middle income")]
+    suffix <- paste0('-', do.keep.incgrp)
+} else {
+    dropiso <- c()
+    suffix <- ''
+}
+
 dir.create(paste0("data/tradeloss-", method))
 
 comtrade <- rbind(read.csv("data/trade/uncomtrade-1992.csv"), read.csv("data/trade/uncomtrade-2002.csv"),
@@ -18,7 +33,7 @@ comtrade <- rbind(read.csv("data/trade/uncomtrade-1992.csv"), read.csv("data/tra
 df.gdp3 <- load.gdp3()
 slr2 <- load.slr2(df.gdp3)
 
-for (persist in c("0.08", "0.21")) {
+for (persist in '0.08') { #c("0.08", "0.21")) {
     load(paste0("data/mcrfres-", persist, ".RData"))
 
     results2 <- results %>% group_by(ISO, mc) %>%
@@ -33,11 +48,14 @@ for (persist in c("0.08", "0.21")) {
                 print(c(persist, year, mcii))
 
                 results2.year <- subset(results2, Year == year & mc == mcii)
-                losses <- method.function(year, results2.year$ISO, results2.year$totimpact - results2.year$slrloss)
+                dimpact <- results2.year$totimpact - results2.year$slrloss
+                dimpact[results2.year$ISO %in% dropiso] <- 0
+
+                losses <- method.function(year, results2.year$ISO, dimpact)
 
                 tradeloss <- rbind(tradeloss, data.frame(ISO=results2.year$ISO, mc=mcii, year, tradeloss=losses))
             }
-            save(tradeloss, file=paste0("data/tradeloss-", method, "/tradeloss-", year, "-", persist, ".RData"))
+            save(tradeloss, file=paste0("data/tradeloss-", method, "/tradeloss-", year, "-", persist, suffix, ".RData"))
         }
     } else {
         for (mcii in unique(results2$mc)) {
@@ -47,7 +65,10 @@ for (persist in c("0.08", "0.21")) {
                 print(c(persist, year, mcii))
 
                 results2.year <- subset(results2, Year == year & mc == mcii)
-                output <- calc.domar.distribute.method1(year, results2.year$ISO, results2.year$totimpact - results2.year$slrloss)
+                dimpact <- results2.year$totimpact - results2.year$slrloss
+                dimpact[results2.year$ISO %in% dropiso] <- 0
+
+                output <- calc.domar.distribute.method1(year, results2.year$ISO, dimpact)
                 allglobals <- rbind(allglobals, output$global)
                 allthisyear[[year - min(results2$Year) + 1]] <- output$thisyear2
             }
@@ -69,8 +90,9 @@ for (persist in c("0.08", "0.21")) {
                 losses <- calc.domar.distribute.method2(smoothscalebys[ii], results2.year$ISO, allthisyear[[ii]])
                 tradeloss <- rbind(tradeloss, data.frame(ISO=results2.year$ISO, mc=mcii, year=min(results2$Year) + ii - 1, tradeloss=losses))
             }
-            save(tradeloss, file=paste0("data/tradeloss-", method, "/tradeloss-", mcii, "-", persist, ".RData"))
+            save(tradeloss, file=paste0("data/tradeloss-", method, "/tradeloss-", mcii, "-", persist, suffix, ".RData"))
         }
     }
 }
 
+}
