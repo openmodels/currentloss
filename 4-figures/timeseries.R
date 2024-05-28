@@ -12,6 +12,7 @@ source("src/lib/utils2.R")
 
 load.solowdata()
 
+df.gdp2 <- read.wb("data/capital/API_NY.GDP.MKTP.KD_DS2_en_excel_v2_5871893.xls", 'GDP.2015')
 df.gdp2.last <- df.gdp2 %>% group_by(`Country Code`) %>%
     dplyr::summarize(GDP.Year=ifelse(any(!is.na(GDP.2015)), Year[tail(which(!is.na(GDP.2015)), 1)], NA),
                      GDP.2015=ifelse(any(!is.na(GDP.2015)), GDP.2015[tail(which(!is.na(GDP.2015)), 1)], NA))
@@ -80,7 +81,7 @@ ggplot(allyr3.pop, aes(Year)) +
     geom_line(data=allyr3.gdp, aes(y=total, colour="Output-weighted Total")) +
     geom_ribbon(data=subset(allyr4, weights == "Population"), aes(ymin=prod25, ymax=prod75, group=weights), alpha=.5) +
     theme_bw() + scale_y_continuous("Global weighted changing in GDP (%)", labels=scales::percent) +
-    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1950, 2023)) +
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
     scale_colour_manual(NULL, breaks=c("Direct Impact", "Direct + SLR", "Direct + SLR + Trade", "Total Impact", "Output-weighted Total"), values=c("#1b9e77", "#7570b3", "#d95f02", "#000000", "#808080")) + theme(legend.position=c(.5, .25))
 ggsave("figures/globaltime-noloess.pdf", width=6.5, height=4)
 
