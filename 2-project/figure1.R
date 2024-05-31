@@ -124,6 +124,9 @@ ggplot(allres2.smooth, aes(Year, mu)) +
     ggtitle("(a) Population-weighted mean of model projections")
 ggsave("figures/figure1a.pdf", width=5, height=3.5)
 
+## Number for paper:
+range((allres2.smooth %>% group_by(paper, name) %>% summarize(mu=tail(mu, 1)))$mu)
+
 ## (b) All meta-analysis options
 load.metaanal <- function(filename) {
     load(file.path("data/", filename))
@@ -230,6 +233,9 @@ ggplot(allres.end.sum, aes(paper, yy)) +
                         values=c('black', '#a6cee3', '#1f78b4', '#b2df8a', '#33a02c')) +
     theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.8, 'lines'))
 ggsave("figures/figure1c.pdf", width=5, height=3.5)
+
+## Number for paper: Range of expected losses
+(exp(range(allres.end.sum$yy)) - 1) * 100
 
 load.metaanal2 <- function(filename) {
     load(file.path("data/", filename))

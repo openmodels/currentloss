@@ -6,6 +6,8 @@ library(ggplot2)
 
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
+alttable <- data.frame(Persistence=c(), SLR=c(), Trade=c(), Growth=c(), mu=c(), ci25=c(), ci75=c())
+
 pdf <- data.frame()
 for (persist in c(0, 0.08, 0.21, 1)) {
     if (persist == 0) {
@@ -28,11 +30,15 @@ for (persist in c(0, 0.08, 0.21, 1)) {
         summarize(mu=mean(gloimpact), ci25=quantile(gloimpact, .25), ci75=quantile(gloimpact, .75))
 
     pdf <- rbind(pdf, cbind(persist=persist, results4))
+
+    alttable <- rbind(alttable, cbind(Persistence=persist, SLR=NA, Trade=NA, Growth=NA,
+                                      results3 %>% filter(Year >= 2014) %>% group_by(mc) %>% summarize(gloimpact=mean(gloimpact)) %>%
+                                      summarize(mu=mean(gloimpact), ci25=quantile(gloimpact, .25), ci75=quantile(gloimpact, .75))))
 }
 
 ggplot(pdf, aes(Year, mu, group=factor(persist))) +
     geom_line(aes(colour=factor(persist))) +
-    geom_ribbon(data=subset(pdf, persist == 0.08), aes(ymin=ci25, ymax=ci75), alpha=.5) +
+    geom_ribbon(data=subset(pdf, persist == 0.21), aes(ymin=ci25, ymax=ci75), alpha=.5) +
     theme_bw() + theme(legend.justification=c(0,0), legend.position=c(0.01,0.01)) +
     scale_colour_discrete(expression(omega~':')) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
@@ -40,6 +46,8 @@ ggplot(pdf, aes(Year, mu, group=factor(persist))) +
 ggsave("figures/eachstep-cumul.pdf", width=2.5, height=2.5)
 
 source("src/lib/loadutils.R")
+
+df.gdp3 <- load.gdp3()
 
 pdf <- data.frame()
 for (slrconf in c('Market-only', 'All Damages', 'Optimal Adapt.', 'No Adaptation')) {
@@ -77,6 +85,14 @@ for (slrconf in c('Market-only', 'All Damages', 'Optimal Adapt.', 'No Adaptation
         slr4 <- slr3 %>% group_by(year) %>%
             summarize(mu=mean(gloslrloss), ci25=quantile(gloslrloss, .25), ci75=quantile(gloslrloss, .75))
         pdf <- rbind(pdf, cbind(slrconf=slrconf, slr4))
+
+        alttable <- rbind(alttable, cbind(Persistence=NA, SLR=slrconf, Trade=NA, Growth=NA,
+                                          df.gdp3 %>% filter(Year >= 2014) %>% left_join(slr2, by=c('Year'='year', 'Country Code'='ISO')) %>%
+                                          mutate(slrfrac=ifelse(is.na(slrloss), 0, slrloss) / GDP.2019.est) %>%
+                                          left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('Country Code'='ADM0_A3')) %>%
+                                          group_by(Year, mc) %>% summarize(gloimpact=sum(slrfrac * POP_EST, na.rm=T) / sum(POP_EST, na.rm=T)) %>%
+                                          group_by(mc) %>% summarize(gloimpact=-mean(gloimpact)) %>%
+                                          summarize(mu=mean(gloimpact), ci25=quantile(gloimpact, .25), ci75=quantile(gloimpact, .75))))
     }
 }
 
@@ -88,54 +104,113 @@ ggplot(pdf, aes(year, mu / 1e9, group=factor(slrconf))) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023))
 ggsave("figures/eachstep-slr.pdf", width=2.5, height=2.5)
 
-trade.names <- list('fd'="Final demand", 'dd'="Domar dist.", 'li'="Leontief Inv. / 10")
+trade.names <- list('fd'="Final demand", 'dd'="Domar dist.", 'li'="Leontief Inv.")
 
-pdf <- data.frame()
-for (trade.method in c('fd', 'dd', 'li')) {
-    tradeloss <- load.tradeloss(trade.method, 0.08)
-    tradeloss2 <- tradeloss %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
-        group_by(year, mc) %>% filter(!is.na(tradeloss)) %>% summarize(gloloss=sum(tradeloss * POP_EST) / sum(POP_EST))
-    tradeloss3 <- tradeloss2 %>% group_by(year) %>%
-        summarize(mu=mean(gloloss), ci25=quantile(gloloss, .25), ci75=quantile(gloloss, .75))
+df.gdp3 <- load.gdp3()
+slr2 <- load.slr2(df.gdp3)
 
-    pdf <- rbind(pdf, cbind(trade.method=trade.names[[trade.method]], tradeloss3))
+for (persist in c(0.08, 0.21)) {
+    ## Load for alttable
+    load(paste0("data/mcrfres-", persist, ".RData"))
+
+    results2 <- results %>% group_by(ISO, mc) %>%
+        mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - as.numeric(persist))^(0:30), sides=1)[-1:-30]) %>%
+        left_join(slr2, by=c('ISO', 'Year'='year', 'mc'))
+    results2$slrloss[is.na(results2$slrloss)] <- 0
+
+    pdf <- data.frame()
+    for (trade.method in c('fd', 'dd', 'li')) {
+        tradeloss <- load.tradeloss(trade.method, persist)
+        tradeloss2 <- tradeloss %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
+            group_by(year, mc) %>% filter(!is.na(tradeloss)) %>% summarize(gloloss=sum(tradeloss * POP_EST) / sum(POP_EST))
+        tradeloss3 <- tradeloss2 %>% group_by(year) %>%
+            summarize(mu=mean(gloloss), ci25=quantile(gloloss, .25), ci75=quantile(gloloss, .75))
+
+        pdf <- rbind(pdf, cbind(trade.method=trade.names[[trade.method]], tradeloss3))
+
+        tradeloss.global <- tradeloss %>% group_by(year) %>% dplyr::summarize(tradeloss=mean(tradeloss, na.rm=T))
+
+        alttable <- rbind(alttable, cbind(Persistence=persist, SLR='Market-only',
+                                          Trade=trade.names[[trade.method]],
+                                          Growth='None',
+                                          results2 %>% filter(Year >= 2014) %>%
+                                          left_join(tradeloss, by=c('ISO', 'Year'='year', 'mc')) %>%
+                                          left_join(tradeloss.global, by=c('Year'='year'), suffix=c('.local', '.global')) %>%
+                                          mutate(tradeloss=ifelse(is.na(tradeloss.local), tradeloss.global, tradeloss.local),
+                                                 total=totimpact - slrloss - tradeloss) %>%
+                                          left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
+                                          group_by(Year, mc) %>% summarize(glototal=sum(total * POP_EST) / sum(POP_EST)) %>%
+                                          group_by(mc) %>% summarize(glototal=mean(glototal)) %>%
+                                          summarize(mu=mean(glototal), ci25=quantile(glototal, .25), ci75=quantile(glototal, .75))))
+
+    }
+
+    ggplot(pdf, aes(year, mu, group=trade.method)) +
+        geom_line(aes(colour=trade.method)) +
+        geom_ribbon(data=subset(pdf, trade.method == ifelse(persist == 0.08, 'Final demand', 'Domar dist.')), aes(ymin=ci25, ymax=ci75), alpha=.5) +
+        theme_bw() + theme(legend.justification=c(0,1), legend.position=c(0.01,0.99)) +
+        scale_colour_discrete("Method") +
+        scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
+        scale_y_continuous("Spill-over Losses (% GDP)", labels=scales::percent)
+    ggsave(paste0("figures/eachstep-trade-", persist, ".pdf"), width=2.5, height=2.5)
 }
-
-pdf$mu[pdf$trade.method == 'Leontief Inv. / 10'] <- pdf$mu[pdf$trade.method == 'Leontief Inv. / 10'] / 10
-
-ggplot(pdf, aes(year, mu, group=trade.method)) +
-    geom_line(aes(colour=trade.method)) +
-    geom_ribbon(data=subset(pdf, trade.method == 'Final demand'), aes(ymin=ci25, ymax=ci75), alpha=.5) +
-    theme_bw() + theme(legend.justification=c(0,1), legend.position=c(0.01,0.99)) +
-    scale_colour_discrete("Method") +
-    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
-    scale_y_continuous("Spill-over Losses (% GDP)", labels=scales::percent)
-ggsave("figures/eachstep-trade.pdf", width=2.5, height=2.5)
 
 wtd.median <- function(xx, weights=NULL, normwt=F) {
     wtd.quantile(xx, 0.5, weights=weights, normwt=normwt)
 }
 
-pdf <- data.frame(solow.conf='None', Year=1961:2023, mu=0, ci25=0, ci75=0)
-for (solow.conf in c('', '-prodonly')) { #, '-additive')) {
-    load(paste0("data/allyr-ww-0.08-fd", solow.conf, ".RData"))
+library(Hmisc)
 
-    allyr2 <- allyr.ww %>%
-        mutate(solow=ifelse(is.na(product.chg), NA, product.chg - totimpact - -tradeloss - -slrloss)) %>%
-        filter(weight.norm > 1e-9 & !is.na(solow)) %>%
-        group_by(Year, ISO) %>% reframe(mc=1:30, solow=sample(solow, 30, replace=T, prob=weight.norm)) %>%
-        left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
-        group_by(Year, mc) %>% dplyr::summarize(glosolow=sum(solow * POP_EST) / sum(POP_EST)) %>%
-        group_by(Year) %>% dplyr::summarize(mu=mean(glosolow), ci25=quantile(glosolow, .25), ci75=quantile(glosolow, .75))
+for (persist in c(0.08, 0.21)) {
+    trade.method <- list('0.08'='fd', '0.21'='dd')[[as.character(persist)]]
 
-    pdf <- rbind(pdf, cbind(solow.conf=list('X'="Preferred", 'X-additive'="Additive", 'X-prodonly'="Production-only")[[paste0('X', solow.conf)]], allyr2))
+    pdf <- data.frame() #solow.conf='None', Year=1961:2023, mu=0, ci25=0, ci75=0)
+    for (solow.conf in c('', '-prodonly', '-additive')) {
+        if (!file.exists(paste0("data/allyr-ww-", persist, "-", trade.method, solow.conf, ".RData")))
+            next
+        load(paste0("data/allyr-ww-", persist, "-", trade.method, solow.conf, ".RData"))
+
+        allyr2 <- allyr.ww %>%
+            mutate(solow=ifelse(is.na(product.chg), NA, product.chg - totimpact - -tradeloss - -slrloss),
+                   total=ifelse(is.na(product.chg), totimpact + -tradeloss + -slrloss, product.chg))
+
+        allyr3 <- allyr2 %>%
+            filter(weight.norm > 1e-9 & !is.na(solow)) %>%
+            group_by(Year, ISO) %>% reframe(mc=1:30, solow=sample(solow, 30, replace=T, prob=weight.norm)) %>%
+            left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
+            group_by(Year, mc) %>% dplyr::summarize(glosolow=sum(solow * POP_EST) / sum(POP_EST))
+
+        allyr4 <- allyr3 %>%
+            group_by(Year) %>% dplyr::summarize(mu=mean(glosolow), ci25=quantile(glosolow, .25), ci75=quantile(glosolow, .75))
+
+        pdf <- rbind(pdf, cbind(solow.conf=list('X'="All capital", 'X-additive'="Additive", 'X-prodonly'="Produced-only")[[paste0('X', solow.conf)]], allyr4))
+
+        alttable <- rbind(alttable, cbind(Persistence=persist, SLR='Market-only',
+                                          Trade=ifelse(trade.method == 'li', 'Leontief Inv.', trade.names[[trade.method]]),
+                                          Growth=list('X'="All capital", 'X-additive'="Additive", 'X-prodonly'="Produced-only")[[paste0('X', solow.conf)]],
+                                          allyr2 %>% filter(Year >= 2014, weight.norm > 1e-9) %>%
+                                          left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
+                                          group_by(Year, mc) %>% dplyr::summarize(glototal=sum(total * POP_EST) / sum(POP_EST),
+                                                                                  weight2 = wtd.mean(weight.norm, weights = POP_EST)) %>%
+                                          group_by(mc) %>% dplyr::summarize(glototal=mean(glototal), weight2=mean(weight2)) %>%
+                                          dplyr::summarize(mu=wtd.mean(glototal, weights=weight2), ci25=wtd.quantile(glototal, .25, weights=weight2), ci75=wtd.quantile(glototal, .75, weights=weight2))))
+
+    }
+
+    pdf$solow.conf <- factor(pdf$solow.conf, levels=c("None", "Produced-only", "All capital", "Additive"))
+
+    ggplot(pdf, aes(Year, mu, group=solow.conf)) +
+        geom_line(aes(colour=solow.conf)) +
+        geom_ribbon(data=subset(pdf, solow.conf == 'All capital'), aes(ymin=ci25, ymax=ci75), alpha=.5) +
+        theme_bw() + theme(legend.justification=c(0,0), legend.position=c(0.01,0.01)) +
+        scale_colour_discrete("Capital:") +
+        scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
+        scale_y_continuous("Capital-based losses (% GDP)", labels=scales::percent)
+    ggsave(paste0("figures/eachstep-solow-", persist, "-", trade.method, ".pdf"), width=2.5, height=2.5)
 }
 
-ggplot(pdf, aes(Year, mu, group=solow.conf)) +
-    geom_line(aes(colour=solow.conf)) +
-    geom_ribbon(data=subset(pdf, solow.conf == 'Preferred'), aes(ymin=ci25, ymax=ci75), alpha=.5) +
-    theme_bw() + theme(legend.justification=c(0,0), legend.position=c(0.01,0.01)) +
-    scale_colour_discrete("Capital:") +
-    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
-    scale_y_continuous("Capital-based losses (% GDP)", labels=scales::percent)
-ggsave("figures/eachstep-solow.pdf", width=2.5, height=2.5)
+alttable$Impact <- paste0(round((exp(alttable$mu) - 1) * 100, 1), '%')
+alttable$Range <- paste0(round((exp(alttable$ci25) - 1) * 100, 1), ' - ', round((exp(alttable$ci75) - 1) * 100, 1), '%')
+
+library(xtable)
+print(xtable(alttable[, c(1:4, 8:9)]), include.rownames=F)

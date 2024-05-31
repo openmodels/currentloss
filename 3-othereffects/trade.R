@@ -6,7 +6,7 @@ library(dplyr)
 source("src/lib/loadutils.R")
 source("src/3-othereffects/trade-io.R")
 
-method <- 'fd'
+method <- 'dd'
 method.function <- calc.final.demand.method
 
 for (do.keep.incgrp in c('1-2', '3-5')) {
@@ -33,7 +33,7 @@ comtrade <- rbind(read.csv("data/trade/uncomtrade-1992.csv"), read.csv("data/tra
 df.gdp3 <- load.gdp3()
 slr2 <- load.slr2(df.gdp3)
 
-for (persist in '0.08') { #c("0.08", "0.21")) {
+for (persist in '0.21') { #c("0.08", "0.21")) {
     load(paste0("data/mcrfres-", persist, ".RData"))
 
     results2 <- results %>% group_by(ISO, mc) %>%

@@ -9,11 +9,12 @@ library(Hmisc)
 library(PBSmapping)
 library(countrycode)
 
-persist = 0.08
-trade.method <- 'fd'
+persist = 0.21
+trade.method <- 'dd'
 source("src/lib/utils2.R")
 
-load("data/allyr-ww.RData")
+load(paste0("data/allyr-ww-", persist, "-", trade.method, ".RData"))
+allyr.ww[allyr.ww$ISO == 'SDN', which(is.na(allyr.ww[allyr.ww$ISO == 'ABW', ][1, ]))] <- NA # country change affects
 
 sumbymc2 <- allyr.ww %>% filter(Year > 2013) %>% group_by(ISO, mc) %>%
     dplyr::summarize(totimpact=mean(totimpact), slrimpact=-mean(slrloss), tradeimpact=-mean(tradeloss), product.chg=mean(product.chg),
@@ -86,9 +87,9 @@ range(tbldf$gdppc[tbldf$ECONOMY == "6. Developing region"], na.rm=T)
 range(tbldf$gdppc[tbldf$ECONOMY == "7. Least developed region"], na.rm=T)
 
 tbl <- data.frame(country=tbldf$ADMIN,
-                  totimpact=format.percent(log2lev(tbldf$totimpact)),
-                  tradeimpact=format.percent(log2lev(tbldf$tradeimpact)),
-                  slrimpact=format.percent(log2lev(tbldf$slrimpact)),
+                  totimpact=format.percent(log2lev(tbldf$totimpact.median)),
+                  tradeimpact=format.percent(log2lev(tbldf$tradeimpact.median)),
+                  slrimpact=format.percent(log2lev(tbldf$slrimpact.median)),
                   solow=format.percent(log2lev(tbldf$solow)),
                   total=format.percent(log2lev(tbldf$total)),
                   prodiqr=format.range(log2lev(tbldf$prod25), log2lev(tbldf$prod75)),
@@ -113,6 +114,7 @@ tbl2 <- tbl %>% group_by(INCOME_GRP) %>% dplyr::summarize(prodchg.2015=round(sum
                                                           rencapchg.direct.2015=round(sum(rencapchg.direct.2015, na.rm=T), -1),
                                                           rencapchg.feedback.2015=round(sum(rencapchg.feedback.2015, na.rm=T), -1),
                                                           landd.sum=-(prod.sum + procapchg.2015 + rencapchg.direct.2015 + rencapchg.feedback.2015))
+tbl2 <- subset(tbl2, INCOME_GRP != "-99")
 
 tbl2 <- rbind(tbl2, data.frame(INCOME_GRP=c("High income (total)", "Low and middle income"),
                                prodchg.2015=round(c(sum(tbl2$prodchg.2015[1:2]), sum(tbl2$prodchg.2015[3:5])), -1),
@@ -125,6 +127,8 @@ tbl2 <- rbind(tbl2, data.frame(INCOME_GRP=c("High income (total)", "Low and midd
 names(tbl2) <- c("Income Group", "2022 GDP Change ($billion)", "30-year GDP Change ($billion)", "Produced Capital Change ($billion)", "Renewable Capital Direct Change ($billion)", "Renewable Capital Feedback Change ($billion)", "Total Loss ($billion)")
 
 print(flextable(tbl2))
+library(xtable)
+print(xtable(tbl2, digits=0), include.rownames=F)
 
 ## Construct a voting bloc table
 
@@ -144,22 +148,24 @@ for (grouping in names(groupings)) {
 names(tbl2grp) <- c("Party", "2022 GDP Change ($billion)", "30-year GDP Change ($billion)", "Produced Capital Change ($billion)", "Renewable Capital Direct Change ($billion)", "Renewable Capital Feedback Change ($billion)", "Total Loss ($billion)")
 
 print(flextable(tbl2grp[order(tbl2grp$Party),]))
+print(xtable(tbl2grp[order(tbl2grp$Party),], digits=0), include.rownames=F)
 
-incl <- T #(!is.na(tbl$prodchg.2015) & abs(tbl$prodchg.2015) > 0) | !is.na(tbl$rencap.chg.feedback)
-tbl$prodchg.2015 <- as.character(tbl$prodchg.2015)
-tbl$rencapchg.direct.2015 <- as.character(tbl$rencapchg.direct.2015)
-tbl$rencapchg.feedback.2015 <- as.character(tbl$rencapchg.feedback.2015)
-tbl$procapchg.2015 <- as.character(tbl$procapchg.2015)
-tbl$total.sum <- as.character(tbl$total.sum)
+bigtbl <- tbl
 
-names(tbl) <- c("Country", "Direct", "International", "Capital", "Total", "IQR", "Produced", "Direct", "Feedback", "Total", "IQR", "GDP ($) - DROP", "Prod. Cap. ($)", "Direct ($)", "Feedback ($)", "Loss ($)", "IQR", "DROP", "DROP")
-tbl$Country <- as.character(tbl$Country)
-tbl$Country[tbl$Country == "Democratic Republic of the Congo"] <- "DR Congo"
-tbl$Country[tbl$Country == "Central African Republic"] <- "Central African Rep."
-tbl$Country[tbl$Country == "United Republic of Tanzania"] <- "United Rep. of Tanzania"
-tbl$Country[tbl$Country == "United States of America"] <- "USA"
+incl <- T #(!is.na(bigtbl$prodchg.2015) & abs(bigtbl$prodchg.2015) > 0) | !is.na(bigtbl$rencap.chg.feedback)
+bigtbl$prodchg.2015 <- as.character(bigtbl$prodchg.2015)
+bigtbl$rencapchg.direct.2015 <- as.character(bigtbl$rencapchg.direct.2015 + bigtbl$rencapchg.feedback.2015) # This is not all rencap
+bigtbl$procapchg.2015 <- as.character(bigtbl$procapchg.2015)
+bigtbl$total.sum <- as.character(bigtbl$total.sum)
+
+names(bigtbl) <- c("Country", "Direct", "Trade", "SLR", "Capital", "Total", "IQR", "Produced", "Direct", "Feedback", "Total", "IQR", "GDP ($) - DROP", "Prod. Cap. ($)", "Ren. Cap. ($)", "DROP", "Loss ($)", "IQR", "DROP", "DROP")
+bigtbl$Country <- as.character(bigtbl$Country)
+bigtbl$Country[bigtbl$Country == "Democratic Republic of the Congo"] <- "DR Congo"
+bigtbl$Country[bigtbl$Country == "Central African Republic"] <- "Central African Rep."
+bigtbl$Country[bigtbl$Country == "United Republic of Tanzania"] <- "United Rep. of Tanzania"
+bigtbl$Country[bigtbl$Country == "United States of America"] <- "USA"
 library(xtable)
-print(xtable(tbl[incl, -grep("DROP", names(tbl))]), tabular.environment='longtable', floating=F, include.rownames=F)
+print(xtable(bigtbl[incl, -grep("DROP", names(bigtbl))]), tabular.environment='longtable', floating=F, include.rownames=F)
 
 ## Bars by ISO
 
@@ -336,7 +342,7 @@ ggsave("figures/finalcap-byreg.pdf", width=5, height=6)
 sumbygroup <- data.frame()
 for (grouping in names(groupings)) {
     isos <- countryname(groupings[[grouping]], 'iso3c')
-    sumbysubgroup <- sumbymc4 %>% filter(ISO %in% isos & !is.na(weight.pop) & weight.pop > 1e-9) %>% group_by(Group=grouping) %>% dplyr::summarize(totimpact.median=wtd.median(totimpact.median, weights=weight.pop, normwt=T), tradeimpact.median=wtd.median(tradeimpact, weights=weight.pop, normwt=T), slrimpact.median=wtd.median(slrimpact, weights=weight.pop, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact.median - tradeimpact.median - slrimpact.median, weights=weight.pop, normwt=T)), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact.median + tradeimpact.median + slrimpact.median, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T))
+    sumbysubgroup <- sumbymc4 %>% filter(ISO %in% isos & !is.na(weight.pop) & weight.pop > 1e-9) %>% group_by(Group=grouping) %>% dplyr::summarize(totimpact.median=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeimpact.median=wtd.median(tradeimpact, weights=weight.pop, normwt=T), slrimpact.median=wtd.median(slrimpact, weights=weight.pop, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact - tradeimpact - slrimpact, weights=weight.pop, normwt=T)), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact + tradeimpact + slrimpact, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T))
     sumbygroup <- rbind(sumbygroup, sumbysubgroup)
 }
 sumbygroup$Group <- factor(sumbygroup$Group, levels=rev(sort(sumbygroup$Group)))
@@ -404,7 +410,7 @@ shpl <- importShapefile("data/regions/ne_10m_land/ne_10m_land.shp")
 
 gg <- ggplot(shp2, aes(X, Y)) +
     geom_polygon(data=shpl, aes(group=paste(PID, SID)), fill='#808080', colour=NA) +
-    geom_polygon(aes(fill=pmin(.2, pmax(-.5, log2lev(total))), group=paste(PID, SID))) +
+    geom_polygon(aes(fill=pmin(.1, pmax(-.25, log2lev(total))), group=paste(PID, SID))) +
     geom_polygon(data=shpl, aes(group=paste(PID, SID)), fill=NA, colour='black', linewidth=.01) +
     geom_label(data=subset(centroids2, show), aes(label=round(log2lev(total) * 100)), size=3, label.padding=unit(0.1, "lines")) +
     xlab(NULL) + ylab(NULL) + coord_map(ylim=c(-50, 65)) +
