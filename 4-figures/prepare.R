@@ -4,9 +4,9 @@
 library(Hmisc)
 library(PBSmapping)
 
-persist <- "0.08"
-trade.method <- 'fd'
-solow.config <- '-additive'
+persist <- "0.21"
+trade.method <- 'dd'
+solow.config <- '-prodonly' #-additive'
 source("src/lib/utils2.R")
 
 load.solowdata()

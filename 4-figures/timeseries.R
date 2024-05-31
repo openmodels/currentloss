@@ -9,9 +9,10 @@ library(sf)
 
 do.for.subset <- "global" # "global" or "L+MIC"
 
-persist <- "0.08"
-trade.method <- "fd"
+persist <- "0.21"
+trade.method <- "dd"
 source("src/lib/utils2.R")
+source("src/lib/synth.R")
 
 load.solowdata()
 
@@ -20,7 +21,8 @@ df.gdp2.last <- df.gdp2 %>% group_by(`Country Code`) %>%
     dplyr::summarize(GDP.Year=ifelse(any(!is.na(GDP.2015)), Year[tail(which(!is.na(GDP.2015)), 1)], NA),
                      GDP.2015=ifelse(any(!is.na(GDP.2015)), GDP.2015[tail(which(!is.na(GDP.2015)), 1)], NA))
 
-load("data/allyr-ww-0.08-fd.RData")
+load(paste0("data/allyr-ww-", persist, "-", trade.method, ".RData"))
+allyr.ww[allyr.ww$ISO == 'SDN', which(is.na(allyr.ww[allyr.ww$ISO == 'ABW', ][1, ]))] <- NA # country change affects
 
 wtd.median <- function(xx, weights=NULL, normwt=F) {
     wtd.quantile(xx, 0.5, weights=weights, normwt=normwt)
@@ -49,7 +51,7 @@ tohighlight <- c('USA', 'CHN', 'IND', 'BEL', 'RUS', 'BRA', 'AUS', 'MDV', 'NGA', 
 allyr2$label <- ifelse(allyr2$ISO %in% tohighlight, allyr2$ISO, 'XXX')
 
 ggplot(allyr2, aes(Year, total, group=ISO, colour=label)) +
-    coord_cartesian(ylim=c(-.55, .1)) +
+    coord_cartesian(ylim=c(-.25, .1), xlim=c(1959, 2023)) +
     geom_hline(yintercept=0) +
     geom_line(data=subset(allyr2, label == 'XXX' & total != 0), linewidth=.1) +
     geom_line(data=subset(allyr2, label != 'XXX' & total != 0), linewidth=1) +
@@ -59,9 +61,7 @@ ggplot(allyr2, aes(Year, total, group=ISO, colour=label)) +
                         values=c('#a6cee3', '#1f78b4', '#b2df8a', '#33a02c', '#fb9a99', '#e31a1c', '#fdbf6f', '#ff7f00', '#b15928', '#6a3d9a', '#00000080'),
                         labels=c(countrycode(tohighlight, 'iso3c', 'country.name'), 'Others')) +
     theme_bw()
-
-ggsave(paste0("figures/timeseries_", do.for.subset, ".pdf"), width = 8, height = 4)
-
+ggsave(paste0("figures/timeseries_", do.for.subset, "-", persist, "-", trade.method, ".pdf"), width = 8, height = 4)
 
 ## Create population and GDP-weighted means
 
@@ -203,6 +203,7 @@ ggplot(allyr3.pop, aes(Year)) +
 
 
 ## Numbers for report
+allyr3.pop %>% filter(Year > 2013) %>% summarize(total=mean(total))
 subset(allyr3.pop, Year == 2023) # -0.0633
 subset(allyr3.gdp, Year == 2023) # -0.0176
 sum((subset(allyr2, Year == 2023) %>% group_by(ISO) %>% dplyr::summarize(GDP.2015=GDP.2015[1]))$GDP.2015, na.rm=T)
@@ -288,7 +289,6 @@ ggplot(subset(pdf3, Year >= 1960), aes(Year)) +
     theme_bw() + scale_y_continuous(y_axis_label) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1960, 2023.7)) +
     scale_fill_manual(NULL, breaks=rev(c('totimpact.usd', 'slrimpact.usd', 'tradeimpact.usd', 'solow.usd', 'allcap.usd')), labels=rev(c("Direct Impact", "Coastal Impact", "International Impact", "Capital Impact", "Capital Loss")), values=rev(c("#7570b3", "#1b9e77", "#66a61e", "#d95f02", "#e7298a"))) + theme(legend.position=c(.5, .25))
-ggsave("figures/totalbyyear.pdf", width=5, height=4)
 ggsave(paste0("figures/totalbyyear_", do.for.subset, ".pdf"), width = 8, height = 4)
 
 ## Construct table with lots of breakdowns by year
