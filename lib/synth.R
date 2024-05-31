@@ -1,4 +1,4 @@
-get.weighted.ts <- function(allyr.ww, iso.weight, do.for.subset) {
+get.weighted.mcts <- function(allyr.ww, iso.weight, do.for.subset) {
     df.gdp2 <- read.wb("data/capital/API_NY.GDP.MKTP.KD_DS2_en_excel_v2_5871893.xls", 'GDP.2015')
     df.gdp2.last <- df.gdp2 %>% group_by(`Country Code`) %>%
         dplyr::summarize(GDP.Year=ifelse(any(!is.na(GDP.2015)), Year[tail(which(!is.na(GDP.2015)), 1)], NA),
@@ -30,7 +30,13 @@ get.weighted.ts <- function(allyr.ww, iso.weight, do.for.subset) {
                          tradeloss = wtd.mean(tradeloss, weights = iso.weight, normwt = T),
                          solow = ifelse(all(is.na(product.chg)), NA, wtd.mean(product.chg - totimpact - tradeloss - slrloss, weights = iso.weight, normwt = T)),
                          total = ifelse(all(is.na(product.chg)), wtd.mean(totimpact - tradeloss - slrloss, weights = iso.weight, normwt = T), wtd.mean(product.chg, weights = iso.weight, normwt = T)),
-                         weight2 = wtd.mean(weight.norm, weights = iso.weight)) %>%
+                         weight2 = wtd.mean(weight.norm, weights = iso.weight))
+
+    allyr3
+}
+
+get.weighted.ts <- function(allyr.ww, iso.weight, do.for.subset) {
+    get.weighted.mcts(allyr.ww, iso.weight, do.for.subset) %>%
         group_by(Year) %>%
         dplyr::summarize(solow = ifelse(all(is.na(total)), NA, wtd.median(total - totimpact - tradeloss - slrloss, weights = weight2, normwt = T)),
                          prod25 = ifelse(all(is.na(total)), wtd.quantile(totimpact - tradeloss - slrloss, .25, weights = weight2, normwt = T), wtd.quantile(total, .25, weights = weight2, normwt = T)),

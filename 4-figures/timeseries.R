@@ -65,60 +65,8 @@ ggsave(paste0("figures/timeseries_", do.for.subset, "-", persist, "-", trade.met
 
 ## Create population and GDP-weighted means
 
-df.pop2 <- read.wb("data/capital/API_SP.POP.TOTL_DS2_en_excel_v2_5871620.xls", 'POP')
-df.pop3 <- df.pop2 %>% group_by(`Country Code`) %>%
-    dplyr::summarize(POP.Year=ifelse(any(!is.na(POP)), Year[tail(which(!is.na(POP)), 1)], NA),
-                     POP=ifelse(any(!is.na(POP)), POP[tail(which(!is.na(POP)), 1)], NA))
-
-allyr2 <- allyr.ww %>%
-    left_join(df.gdp2.last, by = c('ISO' = 'Country Code')) %>%
-    left_join(df.pop3, by = c('ISO' = 'Country Code')) %>%
-    left_join(polydata, by = c('ISO' = 'ADM0_A3'))
-
-if (do.for.subset == "L+MIC") {
-    allyr2 <- allyr2 %>%
-        filter(INCOME_GRP %in% c("5. Low income", "4. Lower middle income", "3. Upper middle income"))
-}
-
-allyr3.pop <- allyr2 %>% group_by(mc, Year) %>%
-    dplyr::summarize(totimpact = wtd.mean(totimpact, weights = POP, normwt = T),
-                     slrloss = wtd.mean(slrloss, weights = POP, normwt = T),
-                     tradeloss = wtd.mean(tradeloss, weights = POP, normwt = T),
-                     solow = ifelse(all(is.na(product.chg)), NA, wtd.mean(product.chg - totimpact - tradeloss - slrloss, weights = POP, normwt = T)),
-                     total = ifelse(all(is.na(product.chg)), wtd.mean(totimpact - tradeloss - slrloss, weights = POP, normwt = T), wtd.mean(product.chg, weights = POP, normwt = T)),
-                     weight2 = wtd.mean(weight.norm, weights = POP)) %>%
-    group_by(Year) %>%
-    dplyr::summarize(solow = ifelse(all(is.na(total)), NA, wtd.median(total - totimpact - tradeloss - slrloss, weights = weight2, normwt = T)),
-                     prod25 = ifelse(all(is.na(total)), wtd.quantile(totimpact - tradeloss - slrloss, .25, weights = weight2, normwt = T), wtd.quantile(total, .25, weights = weight2, normwt = T)),
-                     prod75 = ifelse(all(is.na(total)), wtd.quantile(totimpact - tradeloss - slrloss, .75, weights = weight2, normwt = T), wtd.quantile(total, .75, weights = weight2, normwt = T)),
-                     total = ifelse(all(is.na(total)), wtd.median(totimpact - tradeloss - slrloss, weights = weight2, normwt = T), wtd.median(total, weights = weight2, normwt = T)),
-                     totimpact = wtd.median(totimpact, weights = weight2, normwt = T),
-                     slrloss = wtd.median(slrloss, weights = weight2, normwt = T),
-                     tradeloss = wtd.median(tradeloss, weights = weight2, normwt = T))
-
-allyr3.pop$totalloess <- tail(predict(loess(total ~ Year, allyr3.pop, span = .25)), nrow(allyr3.pop))
-allyr3.pop$prod25loess <- tail(predict(loess(prod25 ~ Year, allyr3.pop, span = .25)), nrow(allyr3.pop))
-allyr3.pop$prod75loess <- tail(predict(loess(prod75 ~ Year, allyr3.pop, span = .25)), nrow(allyr3.pop))
-
-allyr3.gdp <- allyr2 %>% group_by(mc, Year) %>%
-    dplyr::summarize(totimpact = wtd.mean(totimpact, weights = GDP.2015, normwt = T),
-                     slrloss = wtd.mean(slrloss, weights = GDP.2015, normwt = T),
-                     tradeloss = wtd.mean(tradeloss, weights = GDP.2015, normwt = T),
-                     solow = ifelse(all(is.na(product.chg)), NA, wtd.mean(product.chg - totimpact - tradeloss - slrloss, weights = GDP.2015, normwt = T)),
-                     total = ifelse(all(is.na(product.chg)), wtd.mean(totimpact - tradeloss - slrloss, weights = GDP.2015, normwt = T), wtd.mean(product.chg, weights = GDP.2015, normwt = T)),
-                     weight2 = wtd.mean(weight.norm, weights = GDP.2015)) %>%
-    group_by(Year) %>%
-    dplyr::summarize(solow = ifelse(all(is.na(total)), NA, wtd.median(total - totimpact - tradeloss - slrloss, weights = weight2, normwt = T)),
-                     prod25 = ifelse(all(is.na(total)), wtd.quantile(totimpact - tradeloss - slrloss, .25, weights = weight2, normwt = T), wtd.quantile(total, .25, weights = weight2, normwt = T)),
-                     prod75 = ifelse(all(is.na(total)), wtd.quantile(totimpact - tradeloss - slrloss, .75, weights = weight2, normwt = T), wtd.quantile(total, .75, weights = weight2, normwt = T)),
-                     total = ifelse(all(is.na(total)), wtd.median(totimpact - tradeloss - slrloss, weights = weight2, normwt = T), wtd.median(total, weights = weight2, normwt = T)),
-                     totimpact = wtd.median(totimpact, weights = weight2, normwt = T),
-                     slrloss = wtd.median(slrloss, weights = weight2, normwt = T),
-                     tradeloss = wtd.median(tradeloss, weights = weight2, normwt = T))
-
-allyr3.gdp$totalloess <- tail(predict(loess(total ~ Year, allyr3.gdp, span = .25)), nrow(allyr3.gdp))
-allyr3.gdp$prod25loess <- tail(predict(loess(prod25 ~ Year, allyr3.gdp, span = .25)), nrow(allyr3.gdp))
-allyr3.gdp$prod75loess <- tail(predict(loess(prod75 ~ Year, allyr3.gdp, span = .25)), nrow(allyr3.gdp))
+allyr3.pop <- get.weighted.ts(allyr.ww, 'pop', do.for.subset)
+allyr3.gdp <- get.weighted.ts(allyr.ww, 'gdp', do.for.subset)
 
 allyr4 <- rbind(cbind(allyr3.pop, weights = "Population"), cbind(allyr3.gdp, weights = "Output"))
 
@@ -206,7 +154,6 @@ ggplot(allyr3.pop, aes(Year)) +
 allyr3.pop %>% filter(Year > 2013) %>% summarize(total=mean(total))
 subset(allyr3.pop, Year == 2023) # -0.0633
 subset(allyr3.gdp, Year == 2023) # -0.0176
-sum((subset(allyr2, Year == 2023) %>% group_by(ISO) %>% dplyr::summarize(GDP.2015=GDP.2015[1]))$GDP.2015, na.rm=T)
 
 ## Determine ranges
 

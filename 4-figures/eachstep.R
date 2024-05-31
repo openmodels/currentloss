@@ -4,6 +4,8 @@ library(dplyr)
 library(PBSmapping)
 library(ggplot2)
 
+source("lib/synth.R")
+
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
 alttable <- data.frame(Persistence=c(), SLR=c(), Trade=c(), Growth=c(), mu=c(), ci25=c(), ci75=c())
@@ -155,11 +157,10 @@ for (persist in c(0.08, 0.21)) {
     ggsave(paste0("figures/eachstep-trade-", persist, ".pdf"), width=2.5, height=2.5)
 }
 
+library(Hmisc)
 wtd.median <- function(xx, weights=NULL, normwt=F) {
     wtd.quantile(xx, 0.5, weights=weights, normwt=normwt)
 }
-
-library(Hmisc)
 
 for (persist in c(0.08, 0.21)) {
     trade.method <- list('0.08'='fd', '0.21'='dd')[[as.character(persist)]]
@@ -185,15 +186,14 @@ for (persist in c(0.08, 0.21)) {
 
         pdf <- rbind(pdf, cbind(solow.conf=list('X'="All capital", 'X-additive'="Additive", 'X-prodonly'="Produced-only")[[paste0('X', solow.conf)]], allyr4))
 
+        allyr3 <- get.weighted.mcts(allyr.ww, 'pop', 'global')
+
         alttable <- rbind(alttable, cbind(Persistence=persist, SLR='Market-only',
                                           Trade=ifelse(trade.method == 'li', 'Leontief Inv.', trade.names[[trade.method]]),
                                           Growth=list('X'="All capital", 'X-additive'="Additive", 'X-prodonly'="Produced-only")[[paste0('X', solow.conf)]],
-                                          allyr2 %>% filter(Year >= 2014, weight.norm > 1e-9) %>%
-                                          left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
-                                          group_by(Year, mc) %>% dplyr::summarize(glototal=sum(total * POP_EST) / sum(POP_EST),
-                                                                                  weight2 = wtd.mean(weight.norm, weights = POP_EST)) %>%
-                                          group_by(mc) %>% dplyr::summarize(glototal=mean(glototal), weight2=mean(weight2)) %>%
-                                          dplyr::summarize(mu=wtd.mean(glototal, weights=weight2), ci25=wtd.quantile(glototal, .25, weights=weight2), ci75=wtd.quantile(glototal, .75, weights=weight2))))
+                                          allyr3 %>% filter(Year >= 2014) %>%
+                                          group_by(mc) %>% dplyr::summarize(glototal=mean(total), weight2=mean(weight2)) %>%
+                                          dplyr::summarize(mu=wtd.median(glototal, weights=weight2, normwt=T), ci25=wtd.quantile(glototal, .25, weights=weight2, normwt=T), ci75=wtd.quantile(glototal, .75, weights=weight2, normwt=T))))
 
     }
 
