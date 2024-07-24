@@ -5,7 +5,7 @@ library(readxl)
 library(dplyr)
 library(ggplot2)
 
-persist <- 0.08
+persist <- 0.21
 load("data/mcres.RData")
 load("data/mcres-decumul.RData")
 
@@ -27,7 +27,7 @@ metadata$Dependent[is.na(metadata$Dependent)] <- "NA"
 metadata$`Weather weight`[is.na(metadata$`Weather weight`)] <- "NA"
 metadata$`Weather weight`[grep("Pop.", metadata$`Weather weight`)] <- "Pop. weight"
 metadata$`Rich/Poor`[is.na(metadata$`Rich/Poor`)] <- "NA"
-metadata$`Rich/Poor`[metadata$`Rich/Poor` == "Project poor only"] <- "Subsetted"
+metadata$`Rich/Poor`[metadata$`Rich/Poor` == "Project poor only"] <- "Interact"
 metadata$Temp[is.na(metadata$Temp)] <- "Quad" # This is Acevedo et al. 2020, always modeled as quad
 metadata$Prec....13[is.na(metadata$Prec....13)] <- "NA"
 metadata$Prec....13[metadata$Prec....13 == "NA" & metadata$Paper == "Acevedo et al. 2020"] <- "Quad"

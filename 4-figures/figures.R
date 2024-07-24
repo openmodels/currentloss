@@ -12,6 +12,7 @@ library(countrycode)
 persist = 0.21
 trade.method <- 'dd'
 source("src/lib/utils2.R")
+source("src/lib/synth.R")
 
 load(paste0("data/allyr-ww-", persist, "-", trade.method, ".RData"))
 allyr.ww[allyr.ww$ISO == 'SDN', which(is.na(allyr.ww[allyr.ww$ISO == 'ABW', ][1, ]))] <- NA # country change affects
@@ -56,28 +57,29 @@ format.range <- function(x0, x1, ispercent=T) {
 df.pop2 <- read.wb("data/capital/API_SP.POP.TOTL_DS2_en_excel_v2_5871620.xls", 'Population')
 df.pop3 <- subset(df.pop2, `Country Code` %in% unique(df.pop2$`Country Code`[!is.na(df.pop2$Population)]) & !(`Country Code` %in% c("LIE", 'NCL'))) %>% group_by(`Country Code`) %>%
     reframe(Year=Year, Population.est=approx(Year, Population, Year, rule=2)$y)
-df.pro2 <- read.iw("data/capital/tabula-C-produced.csv", 'Produced Capital')
-df.ren2 <- read.iw("data/capital/tabula-A2-renewable.csv", 'Renewable Capital')
 
-log2lev <- function(xx) {
-    exp(xx) - 1
-}
+levelprep <- prep.levels.allyr.ww(allyr.ww)
 
-allyr.ww$total <- ifelse(is.na(allyr.ww$product.chg), allyr.ww$totimpact + allyr.ww$tradeimpact - allyr.ww$slrloss, allyr.ww$product.chg)
-isotot <- allyr.ww %>% left_join(df.gdp3, by=c('ISO'='Country Code', 'Year')) %>%
-    ## want f * NoCC, But (1+f) * NoCC = Obs, So (f / (1+f)) Obs
-    mutate(total.usd=(log2lev(total) / (1 + log2lev(total))) * GDP.2015.est) %>%
+isotot <- levelprep %>%
     filter(Year > 1992) %>% # Only years after Rio
-    group_by(ISO, mc) %>% dplyr::summarize(total.usd=sum(total.usd, na.rm=T), weight.norm=mean(weight.norm))
+    group_by(ISO, mc) %>%
+    dplyr::summarize(total.usd=sum(total.usd * 1e9, na.rm=T), weight.norm=mean(weight.norm))
 isotot2 <- isotot %>% filter(!is.na(total.usd)) %>% group_by(ISO) %>%
     dplyr::summarize(prod25=wtd.quantile(total.usd, .25, weights=weight.norm, normwt=T), prod75=wtd.quantile(total.usd, .75, weights=weight.norm, normwt=T), total.sum=wtd.median(total.usd, weights=weight.norm, normwt=T))
+
+caplevel <- levelprep %>% filter(Year > 2013) %>% group_by(ISO, mc) %>%
+    dplyr::summarize(procapchg.usd=mean(procapchg.usd), rencapchg.direct.usd=mean(rencapchg.direct.usd),
+                     rencapchg.feedback.usd=mean(rencapchg.feedback.usd), weight=mean(weight.norm)) %>%
+        filter(is.na(weight) | weight > 1e-10) %>% group_by(ISO) %>%
+        dplyr::summarize(procapchg.usd=wtd.median(procapchg.usd, weights=weight, normwt=T),
+                         rencapchg.direct.usd=wtd.median(rencapchg.direct.usd, weights=weight, normwt=T),
+                         rencapchg.feedback.usd=wtd.median(rencapchg.feedback.usd, weights=weight, normwt=T))
 
 tbldf <- sumbyiso %>% left_join(polydata, by=c('ISO'='ADM0_A3')) %>%
     left_join(subset(df.gdp3, Year == 2022), by=c('ISO'='Country Code')) %>%
     left_join(subset(df.pop3, Year == 2022), by=c('ISO'='Country Code')) %>%
-    left_join(subset(df.pro2, Year == 2014), by='ISO', suffix=c('', '.pro')) %>%
-    left_join(subset(df.ren2, Year == 2014), by='ISO', suffix=c('', '.pro')) %>%
     left_join(isotot2, by='ISO', suffix=c('', '.sum')) %>%
+    left_join(caplevel, by='ISO') %>%
     dplyr::arrange(ADMIN)
 
 tbldf$gdppc <- tbldf$GDP.2015.est / tbldf$Population.est
@@ -100,9 +102,9 @@ tbl <- data.frame(country=tbldf$ADMIN,
                   capiqr=format.range(log2lev(tbldf$cap25), log2lev(tbldf$cap75)),
                   ## want f * NoCC, But (1+f) * NoCC = Obs, So (f / (1+f)) Obs
                   prodchg.2015=round((log2lev(tbldf$total) / (1 + log2lev(tbldf$total))) * tbldf$GDP.2015.est / 1e9),
-                  procapchg.2015=round((log2lev(tbldf$procap.chg) / (1 + log2lev(tbldf$procap.chg))) * tbldf$`Produced Capital` * 100 / 83.6),
-                  rencapchg.direct.2015=round((log2lev(tbldf$rencap.chg.direct) / (1 + log2lev(tbldf$rencap.chg.direct))) * tbldf$`Renewable Capital` * 100 / 83.6),
-                  rencapchg.feedback.2015=round((log2lev(tbldf$rencap.chg) / (1 + log2lev(tbldf$rencap.chg))) * tbldf$`Renewable Capital` * 100 / 83.6) - round((log2lev(tbldf$rencap.chg.direct) / (1 + log2lev(tbldf$rencap.chg.direct))) * tbldf$`Renewable Capital` * 100 / 83.6),
+                  procapchg.2015=round(tbldf$procapchg.usd),
+                  rencapchg.direct.2015=round(tbldf$rencapchg.direct.usd),
+                  rencapchg.feedback.2015=round(tbldf$rencapchg.feedback.usd),
                   total.sum=round(tbldf$total.sum / 1e9),
                   total.sum.iqr=format.range(floor(tbldf$prod25.sum / 1e10) * 10, ceil(tbldf$prod75.sum / 1e10) * 10, ispercent=F),
                   INCOME_GRP=tbldf$INCOME_GRP, ISO=tbldf$ISO)
@@ -233,10 +235,10 @@ tbldf$POP_EST[tbldf$INCOME_GRP == "4. Lower middle income"] / sum(tbldf$POP_EST[
 tbldf$ADMIN[tbldf$INCOME_GRP == "5. Low income"]
 tbldf$POP_EST[tbldf$INCOME_GRP == "5. Low income"] / sum(tbldf$POP_EST[tbldf$INCOME_GRP == "5. Low income"])
 
-sumbyeconomy <- sumbymc4 %>% filter(is.na(weight.pop) | weight.pop > 1e-9) %>% group_by(ECONOMY) %>% dplyr::summarize(totimpact.median=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeimpact.median=wtd.median(tradeimpact, weights=weight.pop, normwt=T), slrimpact.median=wtd.median(slrimpact, weights=weight.pop, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact.median - tradeimpact.median - slrimpact.median, weights=weight.pop, normwt=T)), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact.median + tradeimpact.median + slrimpact.median, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T))
-sumbyincgrp <- sumbymc4 %>% filter(is.na(weight.pop) | weight.pop > 1e-9) %>% group_by(MY_INCOME_GRP) %>% dplyr::summarize(totimpact.median=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeimpact.median=wtd.median(tradeimpact, weights=weight.pop, normwt=T), slrimpact.median=wtd.median(slrimpact, weights=weight.pop, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact.median - tradeimpact.median - slrimpact.median, weights=weight.pop, normwt=T)), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact.median + tradeimpact.median + slrimpact.median, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T))
-sumbycontinent <- sumbymc4 %>% filter(is.na(weight.pop) | weight.pop > 1e-9) %>% group_by(CONTINENT) %>% dplyr::summarize(totimpact.median=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeimpact.median=wtd.median(tradeimpact, weights=weight.pop, normwt=T), slrimpact.median=wtd.median(slrimpact, weights=weight.pop, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact.median - tradeimpact.median - slrimpact.median, weights=weight.pop, normwt=T)), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact.median + tradeimpact.median + slrimpact.median, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T))
-sumbysubreg <- sumbymc4 %>% filter(is.na(weight.pop) | weight.pop > 1e-9) %>% group_by(SUBREGION) %>% dplyr::summarize(totimpact.median=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeimpact.median=wtd.median(tradeimpact, weights=weight.pop, normwt=T), slrimpact.median=wtd.median(slrimpact, weights=weight.pop, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact.median - tradeimpact.median - slrimpact.median, weights=weight.pop, normwt=T)), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact.median + tradeimpact.median + slrimpact.median, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T))
+sumbyeconomy <- sumbymc4 %>% filter(is.na(weight.pop) | weight.pop > 1e-9) %>% group_by(ECONOMY) %>% dplyr::summarize(totimpact.median=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeimpact.median=wtd.median(tradeimpact, weights=weight.pop, normwt=T), slrimpact.median=wtd.median(slrimpact, weights=weight.pop, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact.median - tradeimpact.median - slrimpact.median, weights=weight.pop, normwt=T)), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact.median + tradeimpact.median + slrimpact.median, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T))
+sumbyincgrp <- sumbymc4 %>% filter(is.na(weight.pop) | weight.pop > 1e-9) %>% group_by(MY_INCOME_GRP) %>% dplyr::summarize(totimpact.median=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeimpact.median=wtd.median(tradeimpact, weights=weight.pop, normwt=T), slrimpact.median=wtd.median(slrimpact, weights=weight.pop, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact.median - tradeimpact.median - slrimpact.median, weights=weight.pop, normwt=T)), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact.median + tradeimpact.median + slrimpact.median, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T))
+sumbycontinent <- sumbymc4 %>% filter(is.na(weight.pop) | weight.pop > 1e-9) %>% group_by(CONTINENT) %>% dplyr::summarize(totimpact.median=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeimpact.median=wtd.median(tradeimpact, weights=weight.pop, normwt=T), slrimpact.median=wtd.median(slrimpact, weights=weight.pop, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact.median - tradeimpact.median - slrimpact.median, weights=weight.pop, normwt=T)), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact.median + tradeimpact.median + slrimpact.median, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T))
+sumbysubreg <- sumbymc4 %>% filter(is.na(weight.pop) | weight.pop > 1e-9) %>% group_by(SUBREGION) %>% dplyr::summarize(totimpact.median=wtd.median(totimpact, weights=weight.pop, normwt=T), tradeimpact.median=wtd.median(tradeimpact, weights=weight.pop, normwt=T), slrimpact.median=wtd.median(slrimpact, weights=weight.pop, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact.median - tradeimpact.median - slrimpact.median, weights=weight.pop, normwt=T)), total=ifelse(all(is.na(product.chg)), wtd.median(totimpact.median + tradeimpact.median + slrimpact.median, weights=weight.pop, normwt=T), wtd.median(product.chg, weights=weight.pop, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .25, weights=weight.pop, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight.pop, normwt=T), wtd.quantile(product.chg, .75, weights=weight.pop, normwt=T)), rencap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(rencap.chg, weights=weight.pop, normwt=T)), procap.chg=ifelse(all(is.na(rencap.chg)), NA, wtd.median(procap.chg, weights=weight.pop, normwt=T)), cap25=my.wtd.quantile(allcap.chg, .25, weights=weight.pop, normwt=T), cap75=my.wtd.quantile(allcap.chg, .75, weights=weight.pop, normwt=T), allcap.chg=wtd.median(allcap.chg, weights=weight.pop, normwt=T))
 names(sumbyeconomy)[1] <- "Group"
 names(sumbyincgrp)[1] <- "Group"
 names(sumbycontinent)[1] <- "Group"
@@ -257,14 +259,21 @@ allsums$Group[allsums$Group == 'Seven seas (open ocean)'] <- "Open Ocean"
 ## NUMBERS FOR REPORT
 subset(allsums, Group == "Least developed region") # -0.08310059
 subset(allsums, Group == "South-Eastern Asia")
-log2lev(allsums$total[allsums$Group == "South-Eastern Asia"]) # -0.3386061
+log2lev(allsums$total[allsums$Group == "South-Eastern Asia"])
+log2lev(allsums$prod25[allsums$Group == "South-Eastern Asia"])
+log2lev(allsums$prod75[allsums$Group == "South-Eastern Asia"])
 subset(allsums, Group == "Southern Africa") # -0.1121914
 log2lev(allsums$total[allsums$Group == "Southern Africa"]) # -0.0625672
 subset(allsums, Group == "Africa") # -0.08088869
+log2lev(allsums$total[allsums$Group == "Africa"]) # -0.0625672
+log2lev(allsums$prod25[allsums$Group == "Africa"]) # -0.0625672
+log2lev(allsums$prod75[allsums$Group == "Africa"]) # -0.0625672
 subset(allsums, Group == "Europe") # 0.04706247
 log2lev(allsums$total[allsums$Group == "Europe"]) # 0.009311007
+log2lev(allsums$prod25[allsums$Group == "Europe"]) # 0.009311007
+log2lev(allsums$prod75[allsums$Group == "Europe"]) # 0.009311007
 subset(allsums, Group == "Central Asia") # 0.0471803
-subset(allsums, Group == "1. High income: OECD") # 0.0471803
+subset(allsums, Group == "High income: OECD") # 0.0471803
 log2lev(allsums$total[allsums$Group == "South America"]) # -0.1024196
 
 ## Drop sub-regions thar are continents

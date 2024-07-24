@@ -4,7 +4,7 @@ library(dplyr)
 library(PBSmapping)
 library(ggplot2)
 
-source("lib/synth.R")
+source("src/lib/synth.R")
 
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
@@ -170,6 +170,7 @@ for (persist in c(0.08, 0.21)) {
         if (!file.exists(paste0("data/allyr-ww-", persist, "-", trade.method, solow.conf, ".RData")))
             next
         load(paste0("data/allyr-ww-", persist, "-", trade.method, solow.conf, ".RData"))
+        allyr.ww[allyr.ww$ISO == 'SDN', which(is.na(allyr.ww[allyr.ww$ISO == 'ABW', ][1, ]))] <- NA # country change affects
 
         allyr2 <- allyr.ww %>%
             mutate(solow=ifelse(is.na(product.chg), NA, product.chg - totimpact - -tradeloss - -slrloss),

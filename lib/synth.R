@@ -1,3 +1,5 @@
+library(sf)
+
 get.weighted.mcts <- function(allyr.ww, iso.weight, do.for.subset) {
     df.gdp2 <- read.wb("data/capital/API_NY.GDP.MKTP.KD_DS2_en_excel_v2_5871893.xls", 'GDP.2015')
     df.gdp2.last <- df.gdp2 %>% group_by(`Country Code`) %>%
@@ -36,7 +38,7 @@ get.weighted.mcts <- function(allyr.ww, iso.weight, do.for.subset) {
 }
 
 get.weighted.ts <- function(allyr.ww, iso.weight, do.for.subset) {
-    get.weighted.mcts(allyr.ww, iso.weight, do.for.subset) %>%
+    allyr3 <- get.weighted.mcts(allyr.ww, iso.weight, do.for.subset) %>%
         group_by(Year) %>%
         dplyr::summarize(solow = ifelse(all(is.na(total)), NA, wtd.median(total - totimpact - tradeloss - slrloss, weights = weight2, normwt = T)),
                          prod25 = ifelse(all(is.na(total)), wtd.quantile(totimpact - tradeloss - slrloss, .25, weights = weight2, normwt = T), wtd.quantile(total, .25, weights = weight2, normwt = T)),
@@ -51,4 +53,43 @@ get.weighted.ts <- function(allyr.ww, iso.weight, do.for.subset) {
     allyr3$prod75loess <- tail(predict(loess(prod75 ~ Year, allyr3, span = .25)), nrow(allyr3))
 
     allyr3
+}
+
+log2lev <- function(xx) {
+    exp(xx) - 1
+}
+
+prep.levels.allyr.ww <- function(allyr.ww) {
+    allyr.ww$total <- ifelse(is.na(allyr.ww$product.chg), allyr.ww$totimpact - allyr.ww$tradeloss - allyr.ww$slrloss, allyr.ww$product.chg)
+
+    polydata <- st_read("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp")
+    df.gdp3 <- load.gdp3()
+
+    df.pro2b <- read.iw("data/capital/tabula-C-produced.csv", 'Produced Capital') %>%
+        filter(!is.na(ISO)) %>% group_by(ISO) %>%
+        reframe(`Produced Capital Est` = approx(Year, `Produced Capital`, 1960:2023, rule=2)$y, Year=1960:2023)
+
+    df.ren2b <- read.iw("data/capital/tabula-A2-renewable.csv", 'Renewable Capital') %>%
+        filter(!is.na(ISO)) %>% group_by(ISO) %>%
+        reframe(`Renewable Capital Est` = approx(Year, `Renewable Capital`, 1960:2023, rule=2)$y, Year=1960:2023)
+
+    allyr.ww %>%
+        left_join(polydata, by = c('ISO' = 'ADM0_A3')) %>%
+        left_join(df.gdp3, by = c('Year', 'ISO' = 'Country Code')) %>%
+        left_join(df.pro2b, by = c('Year', 'ISO')) %>%
+        left_join(df.ren2b, by = c('Year', 'ISO')) %>%
+        ## want f * NoCC, But (1+f) * NoCC = Obs, So (f / (1+f)) Obs
+        mutate(total.usd=(log2lev(total) / (1 + log2lev(total))) * GDP.2015.est / 1e9,
+               totimpact.usd=(log2lev(totimpact) / (1 + log2lev(totimpact))) * GDP.2015.est / 1e9,
+               tradeimpact.usd=-(log2lev(tradeloss) / (1 + log2lev(tradeloss))) * GDP.2015.est / 1e9,
+               slrimpact.usd=-(log2lev(slrloss) / (1 + log2lev(slrloss))) * GDP.2015.est / 1e9,
+               solow=product.chg - totimpact - -tradeloss - -slrloss,
+               solow.usd=(log2lev(solow) / (1 + log2lev(solow))) * GDP.2015.est / 1e9,
+               procapchg.usd=((log2lev(procap.chg) / (1 + log2lev(procap.chg))) * `Produced Capital Est` * 100 / 83.6),
+               rencapchg.direct.usd=((log2lev(rencap.chg.ccpc) / (1 + log2lev(rencap.chg.ccpc))) * `Renewable Capital Est` * 100 / 83.6),
+               rencapchg.feedback.usd=((log2lev(rencap.chg) / (1 + log2lev(rencap.chg))) * `Renewable Capital Est` * 100 / 83.6) - rencapchg.direct.usd,
+               cumul.allcap.usd=pmax((allcap.true - allcap.nocc) / 1e9, -(`Produced Capital Est` + `Renewable Capital Est`)) * 100 / 83.6,
+               cumul.allcap.usd.nn=ifelse(!is.na(cumul.allcap.usd), cumul.allcap.usd, 0)) %>%
+        group_by(ISO, mc) %>%
+        mutate(allcap.usd=cumul.allcap.usd.nn - lag(cumul.allcap.usd.nn))
 }
