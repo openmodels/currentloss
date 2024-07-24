@@ -151,9 +151,18 @@ ggplot(allyr3.pop, aes(Year)) +
 
 
 ## Numbers for report
-allyr3.pop %>% filter(Year > 2013) %>% summarize(total=mean(total))
-subset(allyr3.pop, Year == 2023) # -0.0633
-subset(allyr3.gdp, Year == 2023) # -0.0176
+allyr3.pop.mc <- get.weighted.mcts(allyr.ww, 'pop', do.for.subset)
+allyr3.pop.mc %>% filter(Year > 2013) %>% group_by(mc) %>%
+    summarize(total=mean(total), weight2=mean(weight2)) %>%
+    summarize(mu=log2lev(wtd.median(total, weights=weight2, normwt=T)),
+              ci25=log2lev(wtd.quantile(total, .25, weights=weight2, normwt=T)),
+              ci75=log2lev(wtd.quantile(total, .75, weights=weight2, normwt=T)))
+allyr3.gdp.mc <- get.weighted.mcts(allyr.ww, 'gdp', do.for.subset)
+allyr3.gdp.mc %>% filter(Year > 2013) %>% group_by(mc) %>%
+    summarize(total=mean(total), weight2=mean(weight2)) %>%
+    summarize(mu=log2lev(wtd.median(total, weights=weight2, normwt=T)),
+              ci25=log2lev(wtd.quantile(total, .25, weights=weight2, normwt=T)),
+              ci75=log2lev(wtd.quantile(total, .75, weights=weight2, normwt=T)))
 
 ## Determine ranges
 
@@ -164,43 +173,13 @@ allyr2 <- allyr.ww %>% group_by(ISO, mc, Year) %>%
 allyr3 <- allyr2 %>% filter(Year >= 2000) %>% group_by(ISO, mc) %>% dplyr::summarize(stddev=sd(smooth - total)) %>% group_by(ISO) %>% dplyr::summarize(sd.mu=median(stddev, na.rm=T), sd.ci25=quantile(stddev, .25, na.rm=T), sd.ci75=quantile(stddev, .75, na.rm=T))
 
 
-## Total losses per year for  global or L+MIC. ##
-
-df.pro2b <- read.iw("data/capital/tabula-C-produced.csv", 'Produced Capital') %>%
-    filter(!is.na(ISO)) %>% group_by(ISO) %>%
-    reframe(`Produced Capital Est` = approx(Year, `Produced Capital`, 1960:2023, rule=2)$y, Year=1960:2023)
-
-df.ren2b <- read.iw("data/capital/tabula-A2-renewable.csv", 'Renewable Capital') %>%
-    filter(!is.na(ISO)) %>% group_by(ISO) %>%
-    reframe(`Renewable Capital Est` = approx(Year, `Renewable Capital`, 1960:2023, rule=2)$y, Year=1960:2023)
-
-log2lev <- function(xx) {
-    exp(xx) - 1
-}
-
-df.gdp3 <- load.gdp3()
-
-filtered_data <- allyr.ww %>%
-    left_join(polydata, by = c('ISO' = 'ADM0_A3')) %>%
-    left_join(df.gdp3, by = c('Year', 'ISO' = 'Country Code')) %>%
-    left_join(df.pro2b, by = c('Year', 'ISO')) %>%
-    left_join(df.ren2b, by = c('Year', 'ISO'))
+## Total losses per year for global or L+MIC.
+pdf <- prep.levels.allyr.ww(allyr.ww)
 
 if (do.for.subset == "L+MIC") {
-    filtered_data <- filtered_data %>%
+    pdf <- pdf %>%
         filter(INCOME_GRP %in% c("5. Low income", "4. Lower middle income", "3. Upper middle income"))
 }
-
-pdf <- filtered_data
-    mutate(totimpact.usd=(log2lev(totimpact) / (1 + log2lev(totimpact))) * GDP.2015.est / 1e9,
-           tradeimpact.usd=-(log2lev(tradeloss) / (1 + log2lev(tradeloss))) * GDP.2015.est / 1e9,
-           slrimpact.usd=-(log2lev(slrloss) / (1 + log2lev(slrloss))) * GDP.2015.est / 1e9,
-           solow=product.chg - totimpact - -tradeloss - -slrloss,
-           solow.usd=(log2lev(solow) / (1 + log2lev(solow))) * GDP.2015.est / 1e9,
-           cumul.allcap.usd=pmax((allcap.true - allcap.nocc) / 1e9, -(`Produced Capital Est` + `Renewable Capital Est`)) * 100 / 83.6,
-           cumul.allcap.usd.nn=ifelse(!is.na(cumul.allcap.usd), cumul.allcap.usd, 0)) %>%
-    group_by(ISO, mc) %>%
-    mutate(allcap.usd=cumul.allcap.usd.nn - lag(cumul.allcap.usd.nn))
 
 pdf2 <- pdf %>% group_by(Year, mc) %>%
     dplyr::summarize(totimpact.usd=sum(totimpact.usd, na.rm=T),
@@ -209,8 +188,9 @@ pdf2 <- pdf %>% group_by(Year, mc) %>%
                      solow.usd=sum(solow.usd, na.rm=T),
                      allcap.usd=sum(allcap.usd, na.rm=T),
                      total.usd=totimpact.usd + tradeimpact.usd + slrimpact.usd + solow.usd + allcap.usd,
-                     weight2=sum(weight.norm)) %>%
-    group_by(Year) %>%
+                     weight2=sum(weight.norm))
+
+pdf3 <- pdf2 %>% group_by(Year) %>%
     dplyr::summarize(totimpact.usd=wtd.median(totimpact.usd, weights=weight2, normwt=T),
                      tradeimpact.usd=wtd.median(tradeimpact.usd, weights=weight2, normwt=T),
                      slrimpact.usd=wtd.median(slrimpact.usd, weights=weight2, normwt=T),
@@ -220,8 +200,8 @@ pdf2 <- pdf %>% group_by(Year, mc) %>%
                      total.usd.75=wtd.quantile(total.usd, .75, weights=weight2, normwt=T),
                      total.usd=wtd.median(total.usd, weights=weight2, normwt=T))
 
-pdf3 <- melt(pdf2[, 1:6], 'Year')
-pdf3$variable <- factor(pdf3$variable, levels=c('totimpact.usd', 'slrimpact.usd', 'tradeimpact.usd', 'solow.usd', 'allcap.usd'))
+pdf4 <- melt(pdf3[, 1:6], 'Year')
+pdf4$variable <- factor(pdf4$variable, levels=c('totimpact.usd', 'slrimpact.usd', 'tradeimpact.usd', 'solow.usd', 'allcap.usd'))
 
 y_axis_label <- if (do.for.subset == "L+MIC") {
     "Total global loss in lower-income countries ($billion)"
@@ -229,14 +209,40 @@ y_axis_label <- if (do.for.subset == "L+MIC") {
     "Total global loss ($billion)"
 }
 
-ggplot(subset(pdf3, Year >= 1960), aes(Year)) +
-    coord_cartesian(ylim=c(-10000, 0)) +
+ggplot(subset(pdf4, Year >= 1960), aes(Year)) +
+    #coord_cartesian(ylim=c(-10000, 0)) +
     geom_col(aes(y=value, fill=variable)) +
-    geom_errorbar(data=subset(pdf2, Year >= 1960), aes(ymin=total.usd.25, ymax=total.usd.75)) +
+    geom_errorbar(data=subset(pdf3, Year >= 1960), aes(ymin=total.usd.25, ymax=total.usd.75), alpha=.5) +
     theme_bw() + scale_y_continuous(y_axis_label) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1960, 2023.7)) +
     scale_fill_manual(NULL, breaks=rev(c('totimpact.usd', 'slrimpact.usd', 'tradeimpact.usd', 'solow.usd', 'allcap.usd')), labels=rev(c("Direct Impact", "Coastal Impact", "International Impact", "Capital Impact", "Capital Loss")), values=rev(c("#7570b3", "#1b9e77", "#66a61e", "#d95f02", "#e7298a"))) + theme(legend.position=c(.5, .25))
-ggsave(paste0("figures/totalbyyear_", do.for.subset, ".pdf"), width = 8, height = 4)
+ggsave(paste0("figures/totalbyyear_", do.for.subset, ".pdf"), width = 5, height = 4)
+
+## Numbers for report
+pdf2 %>% filter(Year > 1992) %>% group_by(mc) %>%
+    dplyr::summarize(totimpact.usd=sum(totimpact.usd), tradeimpact.usd=sum(tradeimpact.usd),
+                     slrimpact.usd=sum(slrimpact.usd), solow.usd=sum(solow.usd),
+                     allcap.usd=sum(allcap.usd), total.usd=sum(total.usd), weight2=sum(weight2)) %>%
+        dplyr::summarize(totimpact.usd.mu=wtd.median(totimpact.usd, weights=weight2, normwt=T),
+                         totimpact.usd.ci25=wtd.quantile(totimpact.usd, .25, weights=weight2, normwt=T),
+                         totimpact.usd.ci75=wtd.quantile(totimpact.usd, .75, weights=weight2, normwt=T),
+                         total.usd.mu=wtd.median(total.usd, weights=weight2, normwt=T),
+                         total.usd.ci25=wtd.quantile(total.usd, .25, weights=weight2, normwt=T),
+                         total.usd.ci75=wtd.quantile(total.usd, .75, weights=weight2, normwt=T))
+
+## How much more by year
+pdf %>% group_by(Year, mc) %>%
+    dplyr::summarize(totimpact.usd=sum(totimpact.usd, na.rm=T),
+                     tradeimpact.usd=sum(tradeimpact.usd, na.rm=T),
+                     slrimpact.usd=sum(slrimpact.usd, na.rm=T),
+                     solow.usd=sum(solow.usd, na.rm=T),
+                     allcap.usd=sum(allcap.usd, na.rm=T),
+                     total.usd=totimpact.usd + tradeimpact.usd + slrimpact.usd + solow.usd + allcap.usd,
+                     weight2=sum(weight.norm)) %>%
+        filter(Year >= 2014) %>% group_by(mc) %>%
+        dplyr::summarize(total.usd=mean(total.usd, na.rm=T), weight2=mean(weight2)) %>%
+        dplyr::summarize(ci25=wtd.quantile(total.usd, .25, weights=weight2, normwt=T),
+                         ci75=wtd.quantile(total.usd, .75, weights=weight2, normwt=T), total.usd=wtd.mean(total.usd, weights=weight2, normwt=T))
 
 ## Construct table with lots of breakdowns by year
 set1 <- pdf %>% filter(Year > 2013) %>% group_by(ISO, mc) %>%
@@ -254,6 +260,8 @@ set1 <- pdf %>% filter(Year > 2013) %>% group_by(ISO, mc) %>%
                                wtd.quantile(persist.usd, .25, weights=weight2, normwt=T)),
                        ci.75=c(wtd.quantile(dimpact.usd, .75, weights=weight2, normwt=T),
                                wtd.quantile(persist.usd, .75, weights=weight2, normwt=T)))
+
+df.gdp3 <- load.gdp3()
 
 set2 <- data.frame()
 for (slr.config in c('optimalfixed', 'noAdaptation-inundation', 'noAdaptation-stormCapital')) {
@@ -347,5 +355,5 @@ ggplot(subset(allsets, !is.na(CONTINENT)), aes(variable, mu)) +
     ylab("Total global loss in lower-income countries ($billion)") +
     xlab(NULL) + scale_fill_discrete(NULL) +
     theme_bw() + theme(legend.position="bottom")
-ggsave("figures/totalbyothers.pdf", width=6, height=6)
->>>>>>> master
+ggsave(paste0("figures/totalbyothers_", do.for.subset, ".pdf"), width=6, height=6)
+

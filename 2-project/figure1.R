@@ -174,6 +174,9 @@ ggplot(allmeta.smooth, aes(Year, mu)) +
     ggtitle("(b) Population-weighted mean of meta-analyses")
 ggsave("figures/figure1b.pdf", width=5, height=3.5)
 
+## Range for paper
+subset(allmeta.smooth, Year == 2023)
+
 ## (c) Countries by reference
 polydata$gdppc <- 1e6 * polydata$GDP_MD / polydata$POP_EST
 gdplims <- quantile(polydata$gdppc, c(.25, .75), na.rm=T)
