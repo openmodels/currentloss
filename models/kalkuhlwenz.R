@@ -16,7 +16,7 @@ get.funcs <- function(name) {
         beta <- c(0.00947, -0.000709)
         ts <- c(1.34, 2.1)
     } else if (name == "Table 4, Spec. 3") {
-        coeffnames <- c('DT', 'LDT', 'DT:T', ' LDT:T', 'T')
+        coeffnames <- c('DT', 'LDT', 'DT:T', 'LDT:T', 'T')
         beta <- c(0.0155, 0.00612, -0.00130, -0.000960, -0.00679)
         ts <- c((1.85), (1.26), (-2.37), (-2.34), (-0.74))
     } else if (name == "Table 4, Spec. 4") {
@@ -91,7 +91,7 @@ get.funcs <- function(name) {
 }
 
 if (F) {
-    funcs <- get.funcs('Table 4, Spec. 1')
+    funcs <- get.funcs('Table 4, Spec. 3')
     oneres <- project.single(funcs$setup, funcs$simulate, adm.level=1)
     oneres.adm1 <- oneres %>% group_by(Year, ISO) %>% summarize(dimpact=mean(dimpact))
     oneres.adm0 <- project.single(funcs$setup, funcs$simulate, adm.level=0)
