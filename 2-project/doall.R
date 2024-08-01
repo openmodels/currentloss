@@ -11,17 +11,23 @@ source("src/lib/utils.R")
 metadata <- read_xlsx("data/Current Losses Estimate Metadata.xlsx")
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
-papers <- list("Dell et al. 2012" = "src/models/djo.R", "Callahan & Mankin 2022" = "src/models/callahanmankin.R",
-                "Burke et al. 2015" = "src/models/burkeetal.R","Pretis et al. 2018" = "src/models/pretis.R",
-                "Baarsch et al. 2020" = "src/models/baarsch.R", "Acevedo et al. 2020" = "src/models/acevedo.R",
-               "Kahn et al. 2021" = "src/models/kahnetal.R", "Kotz et al. 2022" = "src/models/kotzetal.R")
+papers <- list("Dell et al. 2012" = "src/models/djo.R",
+               "Callahan & Mankin 2022" = "src/models/callahanmankin.R",
+               "Burke et al. 2015" = "src/models/burkeetal.R",
+               "Pretis et al. 2018" = "src/models/pretis.R",
+               "Baarsch et al. 2020" = "src/models/baarsch.R",
+               "Acevedo et al. 2020" = "src/models/acevedo.R",
+               "Kahn et al. 2021" = "src/models/kahnetal.R",
+               "Kotz et al. 2022" = "src/models/kotzetal.R",
+               "Kalkuhl & Wenz 2020" = "src/models/kalkuhlwenz.R",
+               "Sequeira et al. 2018" = "src/models/sequeira.R")
 
 results <- data.frame()
 allres <- data.frame()
 for (paper in names(papers)) {
     source(papers[[paper]])
 
-    for (name in metadata$Name[metadata$Paper == paper]) {
+    for (name in metadata$Name[!is.na(metadata$Paper) & metadata$Paper == paper & metadata$Include == 'Included']) {
         print(name)
         oneres.not.contemp.only <- NULL
         for (contemp.only in c(F, T)) {
