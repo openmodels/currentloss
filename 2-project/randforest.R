@@ -15,7 +15,7 @@ load("data/mcres.RData")
 load("data/mcres-decumul.RData")
 
 for (persist in c("0.08", "0.21")) {
-for (rf.approach in rf.approaches[4]) { # XXX: Currently do not do all, since already have that
+for (rf.approach in rf.approaches) {
     allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[persist]])
 
     ## Find rows for valid models that are NA (before some point in that model)
@@ -42,7 +42,7 @@ metadata$Prec....13[is.na(metadata$Prec....13)] <- "NA"
 metadata$`Year FE`[is.na(metadata$`Year FE`)] <- "NA"
 metadata$`Trends`[is.na(metadata$`Trends`)] <- "NA"
 metadata$`Trends`[metadata$`Trends` %in% c("Implicit linear by region", "Linear by Unit", "By Country", "Linear, By Country")] <- "Linear, by Unit"
-metadata$`Trends`[metadata$`Trends` %in% c("Quad, By Country", "Quad by Unit")] <- "Quad, by Unit"
+fmetadata$`Trends`[metadata$`Trends` %in% c("Quad, By Country", "Quad by Unit")] <- "Quad, by Unit"
 metadata$`Trends`[metadata$`Trends` == "Implicit linear by region"] <- "Linear, by Unit"
 metadata$`Other FE`[is.na(metadata$`Other FE`)] <- "NA"
 metadata$`Other Controls`[is.na(metadata$`Other Controls`)] <- "NA"
