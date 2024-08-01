@@ -1,8 +1,8 @@
 0. collect-era5.py, combine-era5.R
 1. Project all: 2-project/doall.R -> mcres.RData
 2. De-cumulate Kotz et al.: 2-project/decumul.R -> mcres-decumul.RData
-3. Best estimate: randforest.R -> mcrfres.RData [robustness:
-paper-weighted.R -> mcpaperres-#.RData]
+3. Best estimate: 2-project/randforest.R -> mcrfres.RData [robustness:
+2-project/paper-weighted.R -> mcpaperres-#.RData]
 4. SLR effects: slr.R -> slrbyadm0-final.csv
 4. Foreign effects (from UK): trade.R -> tradeloss-MM
 5. Capital model: solow.R -> solow/

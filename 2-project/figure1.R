@@ -204,7 +204,8 @@ allres.end <- allres %>% filter(Year > 2013) %>% group_by(paper, name, ISO, mc) 
 allres.end$is.main <- F
 main.models <- list("Dell et al. 2012"="Main 2.3", "Burke et al. 2015"="Main", "Callahan & Mankin 2022"="Main",
                     "Pretis et al. 2018"="M2", "Baarsch et al. 2020"="Current", "Acevedo et al. 2020"="column_5",
-                    "Kahn et al. 2021"="Table 2, Spec. 1, m = 30, HPJ-FE", "Kotz et al. 2022"="Main")
+                    "Kahn et al. 2021"="Table 2, Spec. 1, m = 30, HPJ-FE", "Kotz et al. 2022"="Main",
+                    "Kalkuhl & Wenz 2020"="Table 4, Spec. 5")
 for (ii in 1:length(main.models))
     allres.end$is.main[allres.end$paper == names(main.models)[ii] & allres.end$name == main.models[[ii]]] <- T
 
