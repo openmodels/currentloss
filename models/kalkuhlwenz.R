@@ -35,7 +35,7 @@ get.funcs <- function(name) {
 
     coeffs <- matrix(NA, MCNUM, length(beta))
     for (cc in 1:length(beta))
-        coeffs[, cc] <- rnorm(MCNUM, beta[cc], beta[cc] / ts[cc]) # ts = coeff / se
+        coeffs[, cc] <- rnorm(MCNUM, beta[cc], abs(beta[cc] / ts[cc])) # ts = coeff / se
 
     subera5.lags <- list()
 
