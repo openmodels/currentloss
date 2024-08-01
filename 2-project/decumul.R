@@ -82,4 +82,4 @@ gp <- ggplot(results2, aes(Year, dimpact.pop)) +
     geom_line(aes(colour=paper, group=paste(paper, name)), linewidth=.3) +
     geom_line(data=results3, size=2, colour='black') +
     theme_bw() + ylab("Impact (change in growth rate)")
-ggsave(gp, "figures/allimpacts.pdf", width=8, height=4)
+ggsave("figures/allimpacts.pdf", width=8, height=4)

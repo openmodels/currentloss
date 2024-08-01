@@ -22,6 +22,11 @@ papers <- list("Dell et al. 2012" = "src/models/djo.R",
                "Kalkuhl & Wenz 2020" = "src/models/kalkuhlwenz.R",
                "Sequeira et al. 2018" = "src/models/sequeira.R")
 
+## allres <- read.csv("data/allres.csv")
+## allres <- subset(allres, paper != "Kalkuhl & Wenz 2020")
+## allres.preferred = allres$preferred
+## allres <- allres[, -ncol(allres)]
+
 results <- data.frame()
 allres <- data.frame()
 for (paper in names(papers)) {
@@ -50,6 +55,8 @@ for (paper in names(papers)) {
     }
 }
 
+## results <- allres
+
 results$preferred <- NA
 allres$preferred <- NA
 for (paper in names(papers)) {
@@ -65,6 +72,9 @@ for (paper in names(papers)) {
         }
     }
 }
+
+## table(allres$contemp.only[allres$preferred & allres$paper == "Kalkuhl & Wenz 2020"])
+## allres$preferred <- c(allres.preferred, allres$preferred[allres$paper == "Kalkuhl & Wenz 2020"])
 
 write.csv(allres, "data/allres.csv", row.names=F)
 
@@ -94,6 +104,10 @@ ggplot(results2, aes(Year, dimpact.pop.lags, colour=paper, group=paste(paper, na
     geom_line(data=results3, size=2, colour='black') +
     theme_bw()
 ggsave("figures/lagimpacts.pdf", width=8, height=4)
+
+## load("data/mcres.RData")
+## mcres <- subset(mcres, paper != "Kalkuhl & Wenz 2020")
+## results <- allres
 
 ## Now make the Monte Carlo
 MCNUM <- 30 # Have lots of models
