@@ -50,7 +50,6 @@ get.funcs <- function(name) {
     simulate <- function(coeffs, year, subera5, contemp.only=F) {
         if (contemp.only || length(subera5.lags) < 3) {
             dimpact <- subera5$t2m * NA
-            cumimpact <- subera5$t2m * 0
         } else {
             dimpact <- 0
             for (kk in 1:length(coeffnames)) {
@@ -77,14 +76,11 @@ get.funcs <- function(name) {
                 else
                     print(paste0("Unknown coefficient name: ", coeffnames[kk]))
             }
-
-            cumimpact <- subera5.lags[[as.character(year - 1)]]$cumimpact + dimpact
         }
 
-        subera5$cumimpact <- cumimpact
         subera5.lags[[as.character(year)]] <<- subera5
 
-        cumimpact
+        dimpact
     }
 
     return(list(setup=setup, simulate=simulate))

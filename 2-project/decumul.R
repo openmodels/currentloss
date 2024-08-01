@@ -64,7 +64,7 @@ if (F) {
     }
 }
 
-mcres.final <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.08"]])
+mcres.final <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.21"]])
 
 results <- mcres.final %>% group_by(Year, ISO, name, paper) %>% summarize(dimpact=mean(dimpact))
 
@@ -77,9 +77,9 @@ results2$paper[results2$paper == "Kotz et al. 2022"] <- "Kotz et al. 2022 (*)"
 results3 <- results2 %>% group_by(Year) %>% summarize(dimpact.pop=median(dimpact.pop, na.rm=T))
 
 library(ggplot2)
-ggplot(results2, aes(Year, dimpact.pop)) +
+gp <- ggplot(results2, aes(Year, dimpact.pop)) +
     coord_cartesian(ylim=c(-0.05, 0.02)) +
     geom_line(aes(colour=paper, group=paste(paper, name)), linewidth=.3) +
     geom_line(data=results3, size=2, colour='black') +
     theme_bw() + ylab("Impact (change in growth rate)")
-ggsave("figures/allimpacts.pdf", width=8, height=4)
+ggsave(gp, "figures/allimpacts.pdf", width=8, height=4)

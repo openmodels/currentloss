@@ -34,7 +34,7 @@ for (paper in names(papers)) {
             funcs <- get.funcs(name)
             if (is.null(funcs))
                 next
-            oneres <- project.single(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper == "Kotz et al. 2022", 1, 0))
+            oneres <- project.single(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper %in% c("Kotz et al. 2022", "Kalkuhl & Wenz 2020"), 1, 0))
             if (contemp.only == F)
                 oneres.not.contemp.only <- oneres
             else {
@@ -104,7 +104,7 @@ for (paper in names(papers)) {
         print(c(paper, name))
         funcs <- get.funcs(name)
         contemp.only <- results$contemp.only[results$paper == paper & results$name == name & results$preferred][1]
-        onemcres <- project.mc(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper == "Kotz et al. 2022", 1, 0))
+        onemcres <- project.mc(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper %in% c("Kotz et al. 2022", "Kalkuhl & Wenz 2020"), 1, 0))
         mcres <- rbind(mcres, cbind(onemcres, name=name, paper=paper, contemp.only=contemp.only))
     }
 }
