@@ -12,8 +12,11 @@ load("data/mcres.RData")
 load("data/mcres-decumul.RData")
 
 main.models <- list("Dell et al. 2012"="Main 2.3", "Burke et al. 2015"="Main", "Callahan & Mankin 2022"="Main",
-                    "Pretis et al. 2018"="M2", "Baarsch et al. 2020"="Current", "Acevedo et al. 2020"="column_5",
-                    "Kahn et al. 2021"="Table 2, Spec. 1, m = 30, HPJ-FE", "Kotz et al. 2022"="Main")
+                    "Pretis et al. 2018"="M2", #"Baarsch et al. 2020"="Current",
+                    "Acevedo et al. 2020"="column_5",
+                    "Kahn et al. 2021"="Table 2, Spec. 1, m = 30, HPJ-FE", "Kotz et al. 2022"="Main",
+                    "Kalkuhl & Wenz 2020"="Table 4, Spec. 5",
+                    "Sequeira et al. 2018"="Table 5, Spec. 1 & 2, 4 & 5")
 model.order <- rev(names(main.models))
 
 for (sample.approach in sample.approaches) {
@@ -48,6 +51,10 @@ for (sample.approach in sample.approaches) {
             results <- rbind(results, allres3[, c('mc', 'Year', 'ISO', 'dimpact')])
         }
 
-        save(results, file=paste0("data/mcpaperres-", persist, "-", sample.approach, ".RData"))
+        try({
+            save(results, file=paste0("data/mcpaperres-", persist, "-", sample.approach, ".RData"))
+        }, error=function(e) {
+            save(results, file=paste0("~/tmp/mcpaperres-", persist, "-", sample.approach, ".RData"))
+        })
     }
 }
