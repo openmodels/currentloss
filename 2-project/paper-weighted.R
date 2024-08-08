@@ -51,7 +51,7 @@ for (sample.approach in sample.approaches) {
             results <- rbind(results, allres3[, c('mc', 'Year', 'ISO', 'dimpact')])
         }
 
-        try({
+        tryCatch({
             save(results, file=paste0("data/mcpaperres-", persist, "-", sample.approach, ".RData"))
         }, error=function(e) {
             save(results, file=paste0("~/tmp/mcpaperres-", persist, "-", sample.approach, ".RData"))
