@@ -96,9 +96,9 @@ MCNUM <- max(allres$mc)
 isos <- unique(allres$ISO)
 years <- unique(allres$Year)
 
-results <- data.frame()
 for (mcii in 1:MCNUM) {
     allres3 <- subset(allres2, mc == mcii)
+    results <- data.frame()
 
     for (iso in isos) {
         for (year in years) {
@@ -134,12 +134,13 @@ for (mcii in 1:MCNUM) {
             results <- rbind(results, data.frame(mc=mcii, Year=year, ISO=iso, dimpact=mean(predictions$predictions)))
         }
     }
-}
 
     if (rf.approach == 'all') {
-        save(results, file=paste0("data/mcrfres-", persist, ".RData"))
+        save(results, file=paste0("data/randforest/mcrfres-", persist, "-", mcii, ".RData"))
     } else {
-        save(results, file=paste0("data/mcrfres-", persist, "-", rf.approach, ".RData"))
+        save(results, file=paste0("data/randforest/mcrfres-", persist, "-", rf.approach, "-", mcii, ".RData"))
     }
+}
+
 }
 }
