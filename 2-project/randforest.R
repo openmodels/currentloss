@@ -136,9 +136,9 @@ for (mcii in 1:MCNUM) {
     }
 
     if (rf.approach == 'all') {
-        save(results, file=paste0("data/randforest/mcrfres-", persist, "-", mcii, ".RData"))
+        save(results, file=paste0("data/metaanal/mcrfres-", persist, "-", mcii, ".RData"))
     } else {
-        save(results, file=paste0("data/randforest/mcrfres-", persist, "-", rf.approach, "-", mcii, ".RData"))
+        save(results, file=paste0("data/metaanal/mcrfres-", persist, "-", rf.approach, "-", mcii, ".RData"))
     }
 }
 
