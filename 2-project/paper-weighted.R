@@ -36,6 +36,10 @@ for (sample.approach in sample.approaches) {
         for (mcii in 1:max(allres$mc)) {
             print(c(persist, mcii))
 
+            outpath <- paste0("data/metaanal/mcpaperres-", persist, "-", sample.approach, "-", mcii, ".RData")
+            if (file.exists(outpath))
+                next
+
             results <- data.frame()
             if (sample.approach == 'mainmed') {
                 allres3 <- subset(allres2, papername %in% main.papernames & mc == mcii) %>% group_by(ISO, Year) %>% summarize(mc=mc[1], dimpact=median(dimpact, na.rm=T))
@@ -51,7 +55,7 @@ for (sample.approach in sample.approaches) {
 
             results <- rbind(results, allres3[, c('mc', 'Year', 'ISO', 'dimpact')])
 
-            save(results, file=paste0("data/mcpaperres-", persist, "-", sample.approach, "-", mcii, ".RData"))
+            save(results, file=outpath)
         }
 
     }
