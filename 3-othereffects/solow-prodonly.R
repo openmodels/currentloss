@@ -16,10 +16,10 @@ do.parallel <- F
 if (length(args) == 1) {
   do.mcs <- as.numeric(args)
 } else {
-  do.mcs <- 30:1
+  do.mcs <- 16:20 #1:30
 }
-persist <- "0.08"
-trade.method <- 'fd'
+persist <- "0.21"
+trade.method <- 'dd'
 
 source("src/lib/utils2.R")
 
