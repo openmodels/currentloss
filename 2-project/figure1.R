@@ -3,8 +3,11 @@
 library(PBSmapping)
 library(dplyr)
 
-persist <- 0.08
-load("data/mcrfres-0.08.RData")
+source("src/lib/loadutils.R")
+
+persist <- 0.21
+results <- read.metaanal("mcrfres-0.21")
+load("data/mcrfres-0.21.RData")
 
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
