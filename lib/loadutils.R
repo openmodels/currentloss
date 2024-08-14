@@ -4,7 +4,12 @@ library(reshape2)
 read.metaanal <- function(filebase) {
     allres <- data.frame()
     for (mc in 1:30) {
-        load(file.path("data/metaanal", paste0(filebase, "-", mc, ".RData")))
+        filepath <- file.path("data/metaanal", paste0(filebase, "-", mc, ".RData"))
+        if (!file.exists(filepath)) {
+            print(paste("Missing after", mc))
+            break
+        }
+        load(filepath)
         allres <- rbind(allres, results)
     }
     allres
