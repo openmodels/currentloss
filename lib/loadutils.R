@@ -1,6 +1,15 @@
 library(readxl)
 library(reshape2)
 
+read.metaanal <- function(filebase) {
+    allres <- data.frame()
+    for (mc in 1:30) {
+        load(file.path("data/metaanal", paste0(filebase, "-", mc, ".RData")))
+        allres <- rbind(allres, results)
+    }
+    allres
+}
+
 read.wb <- function(filepath, value.name) {
     df <- read_xls(filepath, skip=3)
     df2 <- melt(df[, c(-1, -3, -4)], 'Country Code', variable.name='Year', value.name=value.name)
