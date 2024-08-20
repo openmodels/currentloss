@@ -6,10 +6,16 @@ library(dplyr)
 source("src/lib/loadutils.R")
 source("src/3-othereffects/trade-io.R")
 
-method <- 'dd'
-method.function <- calc.final.demand.method
+## method <- 'dd'
+## method.function <- calc.final.demand.method
+do.keep.incgrp <- NULL
 
-for (do.keep.incgrp in c('1-2', '3-5')) {
+method.function.map <- list('dd'=NULL, 'fd'=calc.final.demand.method, 'li'=calc.leontief.method)
+
+for (method in c('dd', 'fd', 'li')) {
+    method.function <- method.function.map[[method]]
+
+## for (do.keep.incgrp in c('1-2', '3-5')) {
 
 if (!is.null(do.keep.incgrp)) {
     library(PBSmapping)
@@ -33,8 +39,8 @@ comtrade <- rbind(read.csv("data/trade/uncomtrade-1992.csv"), read.csv("data/tra
 df.gdp3 <- load.gdp3()
 slr2 <- load.slr2(df.gdp3)
 
-for (persist in '0.21') { #c("0.08", "0.21")) {
-    load(paste0("data/mcrfres-", persist, ".RData"))
+for (persist in c('0.21', '0.08')) {
+    results <- read.metaanal(paste0("mcrfres-", persist))
 
     results2 <- results %>% group_by(ISO, mc) %>%
         mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - as.numeric(persist))^(0:30), sides=1)[-1:-30]) %>%
@@ -82,6 +88,15 @@ for (persist in '0.21') { #c("0.08", "0.21")) {
             ## smoothscalebys[smoothscalebys > 1] <- 1
 
             scalebys <- scalebys[scalebys < 0]
+            if (length(scalebys[!is.na(scalebys)]) == 0) {
+                tradeloss <- data.frame()
+                for (ii in 1:length(allthisyear)) {
+                    tradeloss <- rbind(tradeloss, data.frame(ISO=results2.year$ISO, mc=mcii, year=min(results2$Year) + ii - 1, tradeloss=NA))
+                }
+                save(tradeloss, file=paste0("data/tradeloss-", method, "/tradeloss-", mcii, "-", persist, suffix, ".RData"))
+                next
+            }
+
             mod <- lm(scalebys ~ 1)
             smoothscalebys <- exp(predict(mod, data.frame(years=unique(results2$Year)))) * exp(var(mod$resid) / 2)
 
@@ -95,4 +110,5 @@ for (persist in '0.21') { #c("0.08", "0.21")) {
     }
 }
 
+## }
 }
