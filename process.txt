@@ -3,8 +3,8 @@
 2. De-cumulate Kotz et al.: 2-project/decumul.R -> mcres-decumul.RData
 3. Best estimate: 2-project/randforest.R -> mcrfres.RData [robustness:
 2-project/paper-weighted.R -> mcpaperres-#.RData]
-4. SLR effects: slr.R -> slrbyadm0-final.csv
-4. Foreign effects (from UK): trade.R -> tradeloss-MM
+4. SLR effects: 3-othereffects/slr.R -> slrbyadm0-final.csv
+4. Foreign effects: trade.R -> tradeloss-MM
 5. Capital model: solow.R -> solow/
 6. Synthesis prep: prepare.R
 6. Synthesis 1: timeseries.R

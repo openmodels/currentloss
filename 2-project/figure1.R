@@ -7,7 +7,6 @@ source("src/lib/loadutils.R")
 
 persist <- 0.21
 results <- read.metaanal("mcrfres-0.21")
-load("data/mcrfres-0.21.RData")
 
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
@@ -96,7 +95,7 @@ library(PBSmapping)
 library(dplyr)
 library(ggplot2)
 
-persist <- 0.08
+persist <- 0.21
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
 load("data/mcres.RData")
@@ -131,8 +130,8 @@ ggsave("figures/figure1a.pdf", width=5, height=3.5)
 range((allres2.smooth %>% group_by(paper, name) %>% summarize(mu=tail(mu, 1)))$mu)
 
 ## (b) All meta-analysis options
-load.metaanal <- function(filename) {
-    load(file.path("data/", filename))
+load.metaanal <- function(filebase) {
+    results <- read.metaanal(filebase)
 
     results2 <- results %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
         group_by(Year, mc) %>% filter(!is.na(dimpact)) %>% summarize(gloimpact=sum(dimpact * POP_EST) / sum(POP_EST)) %>%
@@ -144,7 +143,7 @@ allmeta <- data.frame()
 
 paperweight.names <- list("mainmed"="Median of main spec.", "main"="Monte Carlo over main spec.", "all"="Monte Carlo over all spec.")
 for (sample.approach in c("mainmed", "main", "all")) {
-    results2 <- load.metaanal(paste0("mcpaperres-", persist, "-", sample.approach, ".RData"))
+    results2 <- load.metaanal(paste0("mcpaperres-", persist, "-", sample.approach))
     results2$name <- paperweight.names[[sample.approach]]
     allmeta <- rbind(allmeta, results2)
 }
@@ -153,9 +152,9 @@ rf.names <- list("controls"="RF with controls criteria",
                  "nonlinear"="RF with nonlinearity criteria", "dataset"="RF with dataset criteria", "all"="RF with all quality criteria")
 for (rf.approach in c("all", "controls", "nonlinear", "dataset")) {
     if (rf.approach == 'all')
-        results2 <- load.metaanal(paste0("mcrfres-", persist, ".RData"))
+        results2 <- load.metaanal(paste0("mcrfres-", persist))
     else
-        results2 <- load.metaanal(paste0("mcrfres-", persist, "-", rf.approach, ".RData"))
+        results2 <- load.metaanal(paste0("mcrfres-", persist, "-", rf.approach))
     results2$name <- rf.names[[rf.approach]]
     allmeta <- rbind(allmeta, results2)
 }
@@ -167,14 +166,17 @@ allmeta.smooth <- rbind(allmeta %>% group_by(name) %>% mutate(mu=stats::filter(c
                                                               ci75=stats::filter(c(rep(0, 9), ci75), rep(1/10, 10), method='conv')[5:(length(ci75)+4)]))
 
 ggplot(allmeta.smooth, aes(Year, mu)) +
-    coord_cartesian(ylim=c(-.023, .001)) +
-    geom_line(aes(colour=name)) +
+    coord_cartesian(ylim=c(-.017, .001)) +
+    geom_line(aes(colour=name, linetype=grepl("RF", name))) +
     geom_ribbon(data=subset(allmeta.smooth, name == "RF with all quality criteria"), aes(ymin=ci25, ymax=ci75), alpha=.25) +
     theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
     scale_colour_discrete("Meta-analysis:") +
+    scale_linetype_manual(name="Method:", breaks=c(F, T), values=c('dashed', 'F1'), labels=c("Resampling", "Random forest")) +
     theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.8, 'lines')) +
-    ggtitle("(b) Population-weighted mean of meta-analyses")
+    ggtitle("(b) Population-weighted mean of meta-analyses") +
+    theme(legend.box="horizontal", legend.box.just="bottom") +
+    guides(colour=guide_legend(order=1),linetype=guide_legend(order=2))
 ggsave("figures/figure1b.pdf", width=5, height=3.5)
 
 ## Range for paper
@@ -206,9 +208,11 @@ allres.end <- allres %>% filter(Year > 2013) %>% group_by(paper, name, ISO, mc) 
 
 allres.end$is.main <- F
 main.models <- list("Dell et al. 2012"="Main 2.3", "Burke et al. 2015"="Main", "Callahan & Mankin 2022"="Main",
-                    "Pretis et al. 2018"="M2", "Baarsch et al. 2020"="Current", "Acevedo et al. 2020"="column_5",
+                    "Pretis et al. 2018"="M2", #"Baarsch et al. 2020"="Current",
+                    "Acevedo et al. 2020"="column_5",
                     "Kahn et al. 2021"="Table 2, Spec. 1, m = 30, HPJ-FE", "Kotz et al. 2022"="Main",
-                    "Kalkuhl & Wenz 2020"="Table 4, Spec. 5")
+                    "Kalkuhl & Wenz 2020"="Table 4, Spec. 5",
+                    "Sequeira et al. 2018"="Table 5, Spec. 1 & 2, 4 & 5")
 for (ii in 1:length(main.models))
     allres.end$is.main[allres.end$paper == names(main.models)[ii] & allres.end$name == main.models[[ii]]] <- T
 
@@ -235,7 +239,7 @@ ggplot(allres.end.sum, aes(paper, yy)) +
     geom_point(aes(y=t2m.hi, colour="Temperature Q3")) +
     theme_bw() +
     scale_x_discrete(NULL) +
-    scale_y_continuous("Direct Impact (change in growth rate)", limits=c(-.12, .065), labels=scales::percent) +
+    scale_y_continuous("Direct Impact (change in growth rate)", limits=c(-.075, .065), labels=scales::percent) +
     scale_colour_manual("Statistic:", breaks=c("Pop-weighted", "Income Q1", "Income Q3", "Temperature Q1", "Temperature Q3"),
                         values=c('black', '#a6cee3', '#1f78b4', '#b2df8a', '#33a02c')) +
     theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.8, 'lines'))
@@ -244,8 +248,8 @@ ggsave("figures/figure1c.pdf", width=5, height=3.5)
 ## Number for paper: Range of expected losses
 (exp(range(allres.end.sum$yy)) - 1) * 100
 
-load.metaanal2 <- function(filename) {
-    load(file.path("data/", filename))
+load.metaanal2 <- function(filebase) {
+    results <- read.metaanal(filebase)
 
     results2 <- results %>% filter(Year > 2013) %>% group_by(ISO, mc) %>%
         summarize(dimpact=mean(dimpact, na.rm=T)) %>% group_by(ISO) %>%
@@ -256,16 +260,16 @@ load.metaanal2 <- function(filename) {
 
 allmeta2 <- data.frame()
 for (sample.approach in c("mainmed", "main", "all")) {
-    results2 <- load.metaanal2(paste0("mcpaperres-", persist, "-", sample.approach, ".RData"))
+    results2 <- load.metaanal2(paste0("mcpaperres-", persist, "-", sample.approach))
     results2$name <- paperweight.names[[sample.approach]]
     allmeta2 <- rbind(allmeta2, results2)
 }
 
 for (rf.approach in c("all", "controls", "nonlinear", "dataset")) {
     if (rf.approach == 'all')
-        results2 <- load.metaanal2(paste0("mcrfres-", persist, ".RData"))
+        results2 <- load.metaanal2(paste0("mcrfres-", persist))
     else
-        results2 <- load.metaanal2(paste0("mcrfres-", persist, "-", rf.approach, ".RData"))
+        results2 <- load.metaanal2(paste0("mcrfres-", persist, "-", rf.approach))
     results2$name <- rf.names[[rf.approach]]
     allmeta2 <- rbind(allmeta2, results2)
 }
@@ -330,8 +334,8 @@ ggplot(bothspans, aes(name, yy)) +
     geom_point(aes(y=t2m.lo, colour="Temperature Q1")) +
     geom_point(aes(y=t2m.hi, colour="Temperature Q3")) +
     theme_bw() +
-    scale_x_discrete(NULL) +
-    scale_y_continuous("Direct Impact, 2014-2023 (change in growth rate)", limits=c(-.12, .065), labels=scales::percent) +
+    scale_x_discrete(NULL, limits=rev) +
+    scale_y_continuous("Direct Impact, 2014-2023 (change in growth rate)", limits=c(-.085, .065), labels=scales::percent) +
     scale_colour_manual("Statistic:", breaks=c("Pop-weighted", "Income Q1", "Income Q3", "Temperature Q1", "Temperature Q3"),
                         values=c('#fb9a99', '#a6cee3', '#1f78b4', '#b2df8a', '#33a02c')) +
     theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.8, 'lines')) +

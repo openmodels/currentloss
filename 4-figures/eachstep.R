@@ -5,6 +5,7 @@ library(PBSmapping)
 library(ggplot2)
 
 source("src/lib/synth.R")
+source("src/lib/loadutils.R")
 
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
@@ -12,16 +13,15 @@ alttable <- data.frame(Persistence=c(), SLR=c(), Trade=c(), Growth=c(), mu=c(), 
 
 pdf <- data.frame()
 for (persist in c(0, 0.08, 0.21, 1)) {
-    if (persist == 0) {
-        load(file.path("data/", paste0("mcrfres-0.08.RData")))
-        results2 <- results
-        results2$totimpact <- results$dimpact
-    } else if (persist == 1) {
-        load(file.path("data/", paste0("mcrfres-0.08.RData")))
+    if (persist == 1) {
+        results2 <- read.metaanal("mcrfres-0.21")
+        results2$totimpact <- results2$dimpact
+    } else if (persist == 0) {
+        results <- read.metaanal("mcrfres-0.21")
         results2 <- results %>% group_by(ISO, mc) %>%
             mutate(totimpact=cumsum(dimpact))
     } else {
-        load(file.path("data/", paste0("mcrfres-", persist, ".RData")))
+        results <- read.metaanal(paste0("mcrfres-", persist))
         results2 <- results %>% group_by(ISO, mc) %>%
             mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - persist)^(0:30), sides=1)[-1:-30])
     }
@@ -46,8 +46,6 @@ ggplot(pdf, aes(Year, mu, group=factor(persist))) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
     scale_y_continuous("Direct Impact (% GDP)", labels=scales::percent)
 ggsave("figures/eachstep-cumul.pdf", width=2.5, height=2.5)
-
-source("src/lib/loadutils.R")
 
 df.gdp3 <- load.gdp3()
 
