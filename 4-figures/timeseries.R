@@ -193,15 +193,15 @@ pdf2 <- pdf %>% group_by(Year, mc) %>%
                      total.usd=totimpact.usd + tradeimpact.usd + slrimpact.usd + solow.usd + allcap.usd,
                      weight2=sum(weight.norm))
 
-pdf3 <- pdf2 %>% group_by(Year) %>%
-    dplyr::summarize(totimpact.usd=wtd.median(totimpact.usd, weights=weight2, normwt=T),
-                     tradeimpact.usd=wtd.median(tradeimpact.usd, weights=weight2, normwt=T),
-                     slrimpact.usd=wtd.median(slrimpact.usd, weights=weight2, normwt=T),
-                     solow.usd=wtd.median(solow.usd, weights=weight2, normwt=T),
-                     allcap.usd=wtd.median(allcap.usd, weights=weight2, normwt=T),
-                     total.usd.25=wtd.quantile(total.usd, .25, weights=weight2, normwt=T),
-                     total.usd.75=wtd.quantile(total.usd, .75, weights=weight2, normwt=T),
-                     total.usd=wtd.median(total.usd, weights=weight2, normwt=T))
+pdf3 <- pdf2 %>% group_by(Year) %>% filter(!is.na(weight2)) %>%
+    dplyr::summarize(totimpact.usd=ifelse(all(is.na(totimpact.usd)), NA, wtd.median(totimpact.usd, weights=weight2, normwt=T)),
+                     tradeimpact.usd=ifelse(all(is.na(tradeimpact.usd)), NA, wtd.median(tradeimpact.usd, weights=weight2, normwt=T)),
+                     slrimpact.usd=ifelse(all(is.na(slrimpact.usd)), NA, wtd.median(slrimpact.usd, weights=weight2, normwt=T)),
+                     solow.usd=ifelse(all(is.na(solow.usd)), NA, wtd.median(solow.usd, weights=weight2, normwt=T)),
+                     allcap.usd=ifelse(all(is.na(allcap.usd)), NA, wtd.median(allcap.usd, weights=weight2, normwt=T)),
+                     total.usd.25=ifelse(all(is.na(total.usd)), NA, wtd.quantile(total.usd, .25, weights=weight2, normwt=T)),
+                     total.usd.75=ifelse(all(is.na(total.usd)), NA, wtd.quantile(total.usd, .75, weights=weight2, normwt=T)),
+                     total.usd=ifelse(all(is.na(total.usd)), NA, wtd.median(total.usd, weights=weight2, normwt=T)))
 
 pdf4 <- melt(pdf3[, 1:6], 'Year')
 pdf4$variable <- factor(pdf4$variable, levels=c('totimpact.usd', 'slrimpact.usd', 'tradeimpact.usd', 'solow.usd', 'allcap.usd'))
@@ -212,7 +212,7 @@ y_axis_label <- if (do.for.subset == "L+MIC") {
     "Total global loss ($billion)"
 }
 
-ggplot(subset(pdf4, Year >= 1960), aes(Year)) +
+gp <- ggplot(subset(pdf4, Year >= 1960), aes(Year)) +
     #coord_cartesian(ylim=c(-10000, 0)) +
     geom_col(aes(y=value, fill=variable)) +
     geom_errorbar(data=subset(pdf3, Year >= 1960), aes(ymin=total.usd.25, ymax=total.usd.75), alpha=.5) +
@@ -232,6 +232,10 @@ pdf2 %>% filter(Year > 1992) %>% group_by(mc) %>%
                          total.usd.mu=wtd.median(total.usd, weights=weight2, normwt=T),
                          total.usd.ci25=wtd.quantile(total.usd, .25, weights=weight2, normwt=T),
                          total.usd.ci75=wtd.quantile(total.usd, .75, weights=weight2, normwt=T))
+## Global:
+##   totimpact.usd.mu totimpact.usd.ci25 totimpact.usd.ci75 total.usd.mu total.usd.ci25 total.usd.ci75
+##              <dbl>              <dbl>              <dbl>        <dbl>          <dbl>          <dbl>
+## 1          -37756.            -54492.            -19318.      -55242.        -76571.        -34926.
 
 ## How much more by year
 pdf %>% group_by(Year, mc) %>%
@@ -246,6 +250,10 @@ pdf %>% group_by(Year, mc) %>%
         dplyr::summarize(total.usd=mean(total.usd, na.rm=T), weight2=mean(weight2)) %>%
         dplyr::summarize(ci25=wtd.quantile(total.usd, .25, weights=weight2, normwt=T),
                          ci75=wtd.quantile(total.usd, .75, weights=weight2, normwt=T), total.usd=wtd.mean(total.usd, weights=weight2, normwt=T))
+## Global:
+##     ci25   ci75 total.usd
+##    <dbl>  <dbl>     <dbl>
+## 1 -3990. -1562.    -3243.
 
 ## Construct table with lots of breakdowns by year
 set1 <- pdf %>% filter(Year == 2023) %>% group_by(ISO, mc) %>%
@@ -314,7 +322,7 @@ set4 <- pdf %>%
     mutate(rencap.ccpc.usd=cumul.rencap.ccpc.usd - lag(cumul.rencap.ccpc.usd),
            rencap.rest.usd=cumul.rencap.rest.usd - lag(cumul.rencap.rest.usd),
            procap.usd=cumul.procap.usd - lag(cumul.procap.usd)) %>%
-    filter(Year == 2023) %>% group_by(ISO, mc) %>%
+    filter(Year == 2022) %>% group_by(ISO, mc) %>%
     dplyr::summarize(allcap.usd=mean(allcap.usd, na.rm=T),
                      rencap.ccpc.usd=mean(rencap.ccpc.usd, na.rm=T),
                      rencap.rest.usd=mean(rencap.rest.usd, na.rm=T),
@@ -351,7 +359,7 @@ allsets.sum <- allsets %>% group_by(variable) %>% dplyr::summarize(panel=panel[1
 allsets$CONTINENT <- as.character(allsets$CONTINENT)
 allsets$CONTINENT[allsets$CONTINENT == "Seven seas (open ocean)"] <- "Open Ocean"
 
-ggplot(subset(allsets, !is.na(CONTINENT)), aes(variable, mu)) +
+gp <- ggplot(subset(allsets, !is.na(CONTINENT) & CONTINENT != "Antarctica"), aes(variable, mu)) +
     coord_flip() + facet_wrap(~ panel, ncol=1, scales='free') +
     geom_col(aes(fill=CONTINENT)) +
     geom_errorbar(data=allsets.sum, aes(ymin=ci.25, ymax=ci.75)) + geom_point(data=allsets.sum) +

@@ -41,16 +41,12 @@ get.weighted.ts <- function(allyr.ww, iso.weight, do.for.subset) {
     allyr3 <- get.weighted.mcts(allyr.ww, iso.weight, do.for.subset) %>%
         group_by(Year) %>%
         dplyr::summarize(solow = ifelse(all(is.na(total)), NA, wtd.median(total - totimpact - tradeloss - slrloss, weights = weight2, normwt = T)),
-                         prod25 = ifelse(all(is.na(total)), wtd.quantile(totimpact - tradeloss - slrloss, .25, weights = weight2, normwt = T), wtd.quantile(total, .25, weights = weight2, normwt = T)),
-                         prod75 = ifelse(all(is.na(total)), wtd.quantile(totimpact - tradeloss - slrloss, .75, weights = weight2, normwt = T), wtd.quantile(total, .75, weights = weight2, normwt = T)),
-                         total = ifelse(all(is.na(total)), wtd.median(totimpact - tradeloss - slrloss, weights = weight2, normwt = T), wtd.median(total, weights = weight2, normwt = T)),
-                         totimpact = wtd.median(totimpact, weights = weight2, normwt = T),
-                         slrloss = wtd.median(slrloss, weights = weight2, normwt = T),
-                         tradeloss = wtd.median(tradeloss, weights = weight2, normwt = T))
-
-    allyr3$totalloess <- tail(predict(loess(total ~ Year, allyr3, span = .25)), nrow(allyr3))
-    allyr3$prod25loess <- tail(predict(loess(prod25 ~ Year, allyr3, span = .25)), nrow(allyr3))
-    allyr3$prod75loess <- tail(predict(loess(prod75 ~ Year, allyr3, span = .25)), nrow(allyr3))
+                         prod25 = ifelse(all(is.na(total)), ifelse(all(is.na(totimpact)), NA, wtd.quantile(totimpact - tradeloss - slrloss, .25, weights = weight2, normwt = T)), wtd.quantile(total, .25, weights = weight2, normwt = T)),
+                         prod75 = ifelse(all(is.na(total)), ifelse(all(is.na(totimpact)), NA, wtd.quantile(totimpact - tradeloss - slrloss, .75, weights = weight2, normwt = T)), wtd.quantile(total, .75, weights = weight2, normwt = T)),
+                         total = ifelse(all(is.na(total)), ifelse(all(is.na(totimpact)), NA, wtd.median(totimpact - tradeloss - slrloss, weights = weight2, normwt = T)), wtd.median(total, weights = weight2, normwt = T)),
+                         totimpact = ifelse(all(is.na(totimpact)), NA, wtd.median(totimpact, weights = weight2, normwt = T)),
+                         slrloss = ifelse(all(is.na(slrloss)), NA, wtd.median(slrloss, weights = weight2, normwt = T)),
+                         tradeloss = ifelse(all(is.na(tradeloss)), NA, wtd.median(tradeloss, weights = weight2, normwt = T)))
 
     allyr3
 }
@@ -91,5 +87,6 @@ prep.levels.allyr.ww <- function(allyr.ww) {
                cumul.allcap.usd=pmax((allcap.true - allcap.nocc) / 1e9, -(`Produced Capital Est` + `Renewable Capital Est`)) * 100 / 83.6,
                cumul.allcap.usd.nn=ifelse(!is.na(cumul.allcap.usd), cumul.allcap.usd, 0)) %>%
         group_by(ISO, mc) %>%
-        mutate(allcap.usd=cumul.allcap.usd.nn - lag(cumul.allcap.usd.nn))
+        mutate(allcap.usd=cumul.allcap.usd - lag(cumul.allcap.usd))
+        ##mutate(allcap.usd=cumul.allcap.usd.nn - lag(cumul.allcap.usd.nn))
 }
