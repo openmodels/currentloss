@@ -21,6 +21,7 @@ allres2 <- allres %>% filter(!is.na(dimpact) & Year > 2013) %>%
 source("src/lib/loadmetadata.R")
 metadata$`Year FE`[metadata$`Year FE` == "NA"] <- "No"
 metadata$`Trends`[metadata$`Trends` == "NA"] <- "No"
+metadata$`Other Controls`[!(metadata$`Other Controls` %in% c("NA", "Lag Weather"))] <- "Other"
 metadata$year.length <- metadata$last.year - metadata$first.year + 1
 metadata$f.first.year <- factor(metadata$first.year)
 metadata$f.last.year <- factor(metadata$last.year)
@@ -28,7 +29,7 @@ metadata$f.year.length <- factor(metadata$year.length)
 
 allres3 <- allres2 %>% left_join(metadata, by=c('paper'='Paper', 'name'='Name'))
 
-summary(lm(gloimpact ~ 0 + Dependent + `Weather weight` + `Rich/Poor` + Temp + Prec....13 + `Year FE` + Trends + `Other FE` + `Other Controls` + `Growth Lags` + f.first.year + f.year.length, data=allres3)) # Don't believe it: mcs
+summary(lm(gloimpact ~ 0 + Dependent + `Weather weight` + `Rich/Poor` + Temp + Prec. + `Year FE` + Trends + `Other FE` + `Other Controls` + `Growth Lags` + f.first.year + f.year.length, data=allres3)) # Don't believe it: mcs
 
 get.coeffs <- function(pred, predname, renames=c()) {
     formpred <- ifelse(grepl(' |/', pred), paste0('`', pred, '`'), pred)
@@ -49,7 +50,7 @@ get.coeffs <- function(pred, predname, renames=c()) {
 pdf <- rbind(get.coeffs('Weather weight', "Predictor weighting"),
              get.coeffs("Rich/Poor", "Rich/Poor Distinction", c('NA'='Pooled')),
              get.coeffs("Temp", "Temperature", c("VarT, DT, LDT, DT:T, LDT:LT"="Interact with lags", 'Quad'='Quadratic')),
-             get.coeffs("Prec....13", "Precipitation", c('Quad'='Quadratic', 'NA'='None')), get.coeffs("Year FE", "Year FE", c('NA'='None')),
+             get.coeffs("Prec.", "Precipitation", c('Quad'='Quadratic', 'NA'='None')), get.coeffs("Year FE", "Year FE", c('NA'='None')),
              get.coeffs("Trends", "Trends", c('NA'='None')), get.coeffs("Other FE", "Other FE", c('NA'='None')),
              get.coeffs("Other Controls", "Other Controls", c('NA'='None')), get.coeffs("Growth Lags", "Growth Lags"),
              get.coeffs("f.first.year", "First Data Year"), get.coeffs("f.last.year", "Last Data Year"), get.coeffs("f.year.length", "Data Year Length"))
@@ -58,7 +59,7 @@ pdf$option <- factor(pdf$option, levels=pdf$option[!duplicated(pdf$option)])
 
 pdf2 <- pdf %>% left_join(pdf %>% filter(models > 1) %>% group_by(pred) %>% summarize(lhs=min(ci25), rhs=max(ci75)))
 
-ggplot(subset(pdf2, models > 1), aes(option, mu)) +
+gp <- ggplot(subset(pdf2, models > 1), aes(option, mu)) +
     facet_wrap(~ pred, scales='free', ncol=2) + coord_flip() +
     geom_errorbar(aes(ymin=ci25, ymax=ci75)) + geom_point() +
     geom_text(aes(y=rhs + (rhs - lhs) * .1, label=paste0(models, '/', papers)), size=2) +
@@ -70,13 +71,13 @@ library(lfe)
 lfedat <- allres2 %>% group_by(paper, name) %>% summarize(mu=mean(gloimpact), invvar=1 / var(gloimpact)) %>% left_join(metadata, by=c('paper'='Paper', 'name'='Name'))
 lfedat$`Rich/Poor` <- factor(lfedat$`Rich/Poor`, levels=c('NA', unique(lfedat$`Rich/Poor`)[unique(lfedat$`Rich/Poor`) != 'NA']))
 lfedat$Temp <- factor(lfedat$Temp, levels=c('Linear', unique(lfedat$Temp)[unique(lfedat$Temp) != 'Linear']))
-lfedat$Prec....13 <- factor(lfedat$Prec....13, levels=c('Linear', unique(lfedat$Prec....13)[unique(lfedat$Prec....13) != 'Linear']))
+lfedat$Prec. <- factor(lfedat$Prec., levels=c('Linear', unique(lfedat$Prec.)[unique(lfedat$Prec.) != 'Linear']))
 lfedat$`Year FE` <- factor(lfedat$`Year FE`, levels=c('No', unique(lfedat$`Year FE`)[unique(lfedat$`Year FE`) != 'No']))
 lfedat$Trends <- factor(lfedat$Trends, levels=c('No', unique(lfedat$Trends)[unique(lfedat$Trends) != 'No']))
 lfedat$`Other FE` <- factor(lfedat$`Other FE`, levels=c('NA', unique(lfedat$`Other FE`)[unique(lfedat$`Other FE`) != 'NA']))
 lfedat$`Other Controls` <- factor(lfedat$`Other Controls`, levels=c('NA', unique(lfedat$`Other Controls`)[unique(lfedat$`Other Controls`) != 'NA']))
 lfedat$`Growth Lags` <- factor(lfedat$`Growth Lags`, levels=c('0', unique(lfedat$`Growth Lags`)[unique(lfedat$`Growth Lags`) != '0']))
-mod <- felm(mu ~ `Weather weight` + `Rich/Poor` + Temp + Prec....13 + `Year FE` + Trends + `Other FE` + `Other Controls` + `Growth Lags` + first.year + last.year + year.length | paper, data=lfedat, weights=lfedat$invvar)
+mod <- felm(mu ~ `Weather weight` + `Rich/Poor` + Temp + `Prec.` + `Year FE` + Trends + `Other FE` + `Other Controls` + `Growth Lags` + first.year + last.year + year.length | paper, data=lfedat, weights=lfedat$invvar)
 summary(mod)
 
 library(stargazer)
