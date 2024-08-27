@@ -4,9 +4,9 @@
 library(Hmisc)
 library(PBSmapping)
 
-persist <- "0.21"
-trade.method <- 'dd'
-solow.config <- '-prodonly' #-additive'
+persist <- "0.08"
+trade.method <- 'fd'
+solow.config <- '' #'' #'-prodonly' #'-additive'
 source("src/lib/utils2.R")
 
 load.solowdata()
@@ -67,16 +67,16 @@ for (mcii in 1:30) {
             rencap.true <- colMeans(la$rencap_model) * denom
             rencap.nocc <- colMeans(solowout$rencap_model) * denom
 
-            allyr$product.true[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- product.true
-            allyr$product.nocc[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- product.nocc
-            allyr$allcap.true[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- allcap.true[2:length(allcap.true)]
-            allyr$allcap.nocc[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- allcap.nocc[2:length(allcap.true)]
-            allyr$rencap.true[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- rencap.true[2:length(rencap.true)]
-            allyr$rencap.nocc[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- rencap.nocc[2:length(rencap.true)]
+            allyr$product.true[allyr$mc == mcii & allyr$Year %in% 1960:2022 & allyr$ISO == iso] <- product.true
+            allyr$product.nocc[allyr$mc == mcii & allyr$Year %in% 1960:2022 & allyr$ISO == iso] <- product.nocc
+            allyr$allcap.true[allyr$mc == mcii & allyr$Year %in% 1960:2022 & allyr$ISO == iso] <- allcap.true[2:length(allcap.true)]
+            allyr$allcap.nocc[allyr$mc == mcii & allyr$Year %in% 1960:2022 & allyr$ISO == iso] <- allcap.nocc[2:length(allcap.true)]
+            allyr$rencap.true[allyr$mc == mcii & allyr$Year %in% 1960:2022 & allyr$ISO == iso] <- rencap.true[2:length(rencap.true)]
+            allyr$rencap.nocc[allyr$mc == mcii & allyr$Year %in% 1960:2022 & allyr$ISO == iso] <- rencap.nocc[2:length(rencap.true)]
 
             solowout2 <- model.solow(la, stan.data, "prodonly")
             rencap.ccpc <- colMeans(solowout2$rencap_model) * denom
-            allyr$rencap.ccpc[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- rencap.ccpc[2:length(rencap.true)]
+            allyr$rencap.ccpc[allyr$mc == mcii & allyr$Year %in% 1960:2022 & allyr$ISO == iso] <- rencap.ccpc[2:length(rencap.true)]
         } else {
             solowout <- model.solow.prodonly(la, stan.data, F)
 
@@ -86,10 +86,10 @@ for (mcii in 1:30) {
             allcap.true <- colMeans(la$procap_model) * denom
             allcap.nocc <- colMeans(solowout$procap_model) * denom
 
-            allyr$product.true[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- product.true
-            allyr$product.nocc[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- product.nocc
-            allyr$allcap.true[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- allcap.true[2:length(allcap.true)]
-            allyr$allcap.nocc[allyr$mc == mcii & allyr$Year %in% 1961:2023 & allyr$ISO == iso] <- allcap.nocc[2:length(allcap.true)]
+            allyr$product.true[allyr$mc == mcii & allyr$Year %in% 1960:2022 & allyr$ISO == iso] <- product.true
+            allyr$product.nocc[allyr$mc == mcii & allyr$Year %in% 1960:2022 & allyr$ISO == iso] <- product.nocc
+            allyr$allcap.true[allyr$mc == mcii & allyr$Year %in% 1960:2022 & allyr$ISO == iso] <- allcap.true[2:length(allcap.true)]
+            allyr$allcap.nocc[allyr$mc == mcii & allyr$Year %in% 1960:2022 & allyr$ISO == iso] <- allcap.nocc[2:length(allcap.true)]
         }
     }
 }

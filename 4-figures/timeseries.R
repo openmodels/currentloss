@@ -1,6 +1,6 @@
 ## setwd("~/research/currentloss")
-## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 ## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
+## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 library(Hmisc)
 library(PBSmapping)
@@ -23,6 +23,9 @@ df.gdp2.last <- df.gdp2 %>% group_by(`Country Code`) %>%
 
 load(paste0("data/allyr-ww-", persist, "-", trade.method, ".RData"))
 allyr.ww[allyr.ww$ISO == 'SDN', which(is.na(allyr.ww[allyr.ww$ISO == 'ABW', ][1, ]))] <- NA # country change affects
+allyr.ww <- allyr.ww %>% group_by(ISO, mc) %>% arrange(Year) %>%
+    mutate(across(dimpact:weight.norm, ~ stats::filter(., rep(1 / 10, 10), sides=1)))
+# (cumsum(.) - c(rep(0, 10), cumsum(.)[1:(length(.)-10)])) / 10)) <-- fails when contains NA
 
 wtd.median <- function(xx, weights=NULL, normwt=F) {
     wtd.quantile(xx, 0.5, weights=weights, normwt=normwt)
@@ -51,7 +54,7 @@ tohighlight <- c('USA', 'CHN', 'IND', 'BEL', 'RUS', 'BRA', 'AUS', 'MDV', 'NGA', 
 allyr2$label <- ifelse(allyr2$ISO %in% tohighlight, allyr2$ISO, 'XXX')
 
 ggplot(allyr2, aes(Year, total, group=ISO, colour=label)) +
-    coord_cartesian(ylim=c(-.25, .1), xlim=c(1959, 2023)) +
+    coord_cartesian(ylim=c(-.15, .1), xlim=c(1959, 2023)) +
     geom_hline(yintercept=0) +
     geom_line(data=subset(allyr2, label == 'XXX' & total != 0), linewidth=.1) +
     geom_line(data=subset(allyr2, label != 'XXX' & total != 0), linewidth=1) +
@@ -84,7 +87,7 @@ ggplot(allyr3.pop, aes(Year)) +
     geom_line(data = allyr3.gdp, aes(y = total, colour = "Output-weighted Total")) +
     geom_ribbon(data = subset(allyr4, weights == "Population"), aes(ymin = prod25, ymax = prod75, group = weights), alpha = .5) +
     theme_bw() + scale_y_continuous(y_label, labels = scales::percent) +
-    scale_x_continuous(NULL, expand = c(0, 0), limits = c(1950, 2023)) +
+    scale_x_continuous(NULL, expand = c(0, 0), limits = c(1959, 2023)) +
     scale_colour_manual(NULL, breaks = c("Direct Impact", "Direct + SLR", "Direct + SLR + Trade", "Total Impact", "Output-weighted Total"), values = c("#1b9e77", "#7570b3", "#d95f02", "#000000", "#808080")) +
     theme(legend.position = c(.5, .25))
 ggsave(paste0("figures/globaltime-noloess_", do.for.subset, ".pdf"), width = 6.5, height = 4)
@@ -152,13 +155,13 @@ ggplot(allyr3.pop, aes(Year)) +
 
 ## Numbers for report
 allyr3.pop.mc <- get.weighted.mcts(allyr.ww, 'pop', do.for.subset)
-allyr3.pop.mc %>% filter(Year > 2013) %>% group_by(mc) %>%
+allyr3.pop.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
     summarize(total=mean(total), weight2=mean(weight2)) %>%
     summarize(mu=log2lev(wtd.median(total, weights=weight2, normwt=T)),
               ci25=log2lev(wtd.quantile(total, .25, weights=weight2, normwt=T)),
               ci75=log2lev(wtd.quantile(total, .75, weights=weight2, normwt=T)))
 allyr3.gdp.mc <- get.weighted.mcts(allyr.ww, 'gdp', do.for.subset)
-allyr3.gdp.mc %>% filter(Year > 2013) %>% group_by(mc) %>%
+allyr3.gdp.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
     summarize(total=mean(total), weight2=mean(weight2)) %>%
     summarize(mu=log2lev(wtd.median(total, weights=weight2, normwt=T)),
               ci25=log2lev(wtd.quantile(total, .25, weights=weight2, normwt=T)),
@@ -245,7 +248,7 @@ pdf %>% group_by(Year, mc) %>%
                          ci75=wtd.quantile(total.usd, .75, weights=weight2, normwt=T), total.usd=wtd.mean(total.usd, weights=weight2, normwt=T))
 
 ## Construct table with lots of breakdowns by year
-set1 <- pdf %>% filter(Year > 2013) %>% group_by(ISO, mc) %>%
+set1 <- pdf %>% filter(Year == 2023) %>% group_by(ISO, mc) %>%
     dplyr::summarize(dimpact.usd=mean((log2lev(dimpact) / (1 + log2lev(dimpact))) * GDP.2015.est / 1e9, na.rm=T),
                      persist.usd=mean(totimpact.usd, na.rm=T) - dimpact.usd,
                      weight2=mean(weight.norm), CONTINENT=CONTINENT[1]) %>%
@@ -269,7 +272,7 @@ for (slr.config in c('optimalfixed', 'noAdaptation-inundation', 'noAdaptation-st
     slr2 <- slr %>% left_join(df.gdp3, by=c('ISO'='Country Code', 'year'='Year')) %>%
         group_by(ISO, year) %>% reframe(mc=1:30, slrloss=rnorm(30, mu / GDP.2019.est, ((q83 - q17) / diff(qnorm(c(.17, .83)))) / GDP.2019.est), GDP.2015.est=GDP.2015.est)
     slr3 <- slr2 %>% left_join(polydata, by=c('ISO'='ADM0_A3')) %>%
-        filter(year > 2013) %>% group_by(ISO, mc) %>%
+        filter(year == 2023) %>% group_by(ISO, mc) %>%
         dplyr::summarize(slrimpact.usd=mean(-(log2lev(slrloss) / (1 + log2lev(slrloss))) * GDP.2015.est / 1e9), CONTINENT=CONTINENT[1]) %>%
         group_by(CONTINENT, mc) %>% dplyr::summarize(slrimpact.usd=sum(slrimpact.usd, na.rm=T)) %>%
         group_by(CONTINENT) %>%
@@ -287,7 +290,7 @@ set2$ci.75[set2$mu == "Inundation Loss"] <- set2$ci.75[set2$mu == "Inundation Lo
 tradeloss.rich <- load.tradeloss(trade.method, paste0(persist, '-1-2'))
 
 set3 <- pdf %>% left_join(tradeloss.rich, by=c('ISO', 'mc', 'Year'='year'), suffix=c('', '.rich')) %>%
-    filter(Year > 2013) %>% group_by(ISO, mc) %>%
+    filter(Year == 2023) %>% group_by(ISO, mc) %>%
     dplyr::summarize(tradeimpact.rich.usd=mean(-(log2lev(tradeloss.rich) / (1 + log2lev(tradeloss.rich))) * GDP.2015.est / 1e9, na.rm=T),
                      tradeimpact.poor.usd=mean(tradeimpact.usd, na.rm=T) - tradeimpact.rich.usd,
                      weight2=mean(weight.norm), CONTINENT=CONTINENT[1]) %>%
@@ -311,7 +314,7 @@ set4 <- pdf %>%
     mutate(rencap.ccpc.usd=cumul.rencap.ccpc.usd - lag(cumul.rencap.ccpc.usd),
            rencap.rest.usd=cumul.rencap.rest.usd - lag(cumul.rencap.rest.usd),
            procap.usd=cumul.procap.usd - lag(cumul.procap.usd)) %>%
-    filter(Year > 2013) %>% group_by(ISO, mc) %>%
+    filter(Year == 2023) %>% group_by(ISO, mc) %>%
     dplyr::summarize(allcap.usd=mean(allcap.usd, na.rm=T),
                      rencap.ccpc.usd=mean(rencap.ccpc.usd, na.rm=T),
                      rencap.rest.usd=mean(rencap.rest.usd, na.rm=T),

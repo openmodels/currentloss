@@ -18,33 +18,9 @@ allres2 <- allres %>% filter(!is.na(dimpact) & Year > 2013) %>%
     left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
     group_by(paper, name, mc) %>% summarize(gloimpact=sum(dimpact * POP_EST) / sum(POP_EST))
 
-metadata <- read_xlsx("data/Current Losses Estimate Metadata.xlsx")
-metadata <- subset(metadata, !is.na(Paper) & Paper != "Rising & Tahmid")
-metadata <- metadata[!duplicated(metadata[, c('Paper', 'Name')]),]
-
-metadata$Name[is.na(metadata$Name)] <- "NA"
-metadata$Dependent[is.na(metadata$Dependent)] <- "NA"
-metadata$`Weather weight`[is.na(metadata$`Weather weight`)] <- "NA"
-metadata$`Weather weight`[grep("Pop.", metadata$`Weather weight`)] <- "Pop. weight"
-metadata$`Rich/Poor`[is.na(metadata$`Rich/Poor`)] <- "NA"
-metadata$`Rich/Poor`[metadata$`Rich/Poor` == "Project poor only"] <- "Interact"
-metadata$Temp[is.na(metadata$Temp)] <- "Quad" # This is Acevedo et al. 2020, always modeled as quad
-metadata$Prec....13[is.na(metadata$Prec....13)] <- "NA"
-metadata$Prec....13[metadata$Prec....13 == "NA" & metadata$Paper == "Acevedo et al. 2020"] <- "Quad"
-metadata$`Year FE`[is.na(metadata$`Year FE`)] <- "No"
-metadata$`Trends`[is.na(metadata$`Trends`)] <- "No"
-metadata$`Trends`[metadata$`Trends` %in% c("Implicit linear by region", "Linear by Unit", "By Country", "Linear, By Country")] <- "Linear, by Unit"
-metadata$`Trends`[metadata$`Trends` %in% c("Quad, By Country", "Quad by Unit")] <- "Quad, by Unit"
-metadata$`Trends`[metadata$`Trends` == "Implicit linear by region"] <- "Linear, by Unit"
-metadata$`Other FE`[is.na(metadata$`Other FE`)] <- "NA"
-metadata$`Other Controls`[is.na(metadata$`Other Controls`)] <- "NA"
-metadata$`Growth Lags`[is.na(metadata$`Growth Lags`)] <- "NA"
-metadata$`Dataset`[is.na(metadata$`Dataset`)] <- "NA"
-metadata$`Year Coverage`[is.na(metadata$`Year Coverage`)] <- "NA"
-metadata$last.year <- sapply(metadata$`Year Coverage`, function(yys) as.numeric(strsplit(yys, " - ")[[1]][2]))
-metadata$first.year <- sapply(metadata$`Year Coverage`, function(yys) as.numeric(strsplit(yys, " - ")[[1]][1]))
-metadata$first.year[is.na(metadata$first.year)] <- 1950 # Varying 1901
-metadata$`Climate`[is.na(metadata$`Climate`)] <- "NA"
+source("src/lib/loadmetadata.R")
+metadata$`Year FE`[metadata$`Year FE` == "NA"] <- "No"
+metadata$`Trends`[metadata$`Trends` == "NA"] <- "No"
 metadata$year.length <- metadata$last.year - metadata$first.year + 1
 metadata$f.first.year <- factor(metadata$first.year)
 metadata$f.last.year <- factor(metadata$last.year)
