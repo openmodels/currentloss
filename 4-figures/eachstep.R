@@ -51,7 +51,6 @@ df.gdp3 <- load.gdp3()
 
 pdf <- data.frame()
 for (slrconf in c('Market-only', 'All Damages', 'Optimal Adapt.', 'No Adaptation')) {
-    print(slrconf)
     if (slrconf == 'No SLR') {
         pdf <- rbind(pdf, data.frame(slrconf='No SLR', year=1960:2023, mu=0, ci25=0, ci75=0))
     } else {
@@ -150,7 +149,7 @@ for (persist in c(0.08, 0.21)) {
         coord_cartesian(ylim=c(0, .2)) +
         geom_line(aes(colour=trade.method)) +
         geom_ribbon(data=subset(pdf, trade.method == ifelse(persist == 0.08, 'Final demand', 'Domar dist.')), aes(ymin=ci25, ymax=ci75), alpha=.5) +
-        theme_bw() + theme(legend.justification=c(0,0), legend.position=c(0.01,0.01)) +
+        theme_bw() + theme(legend.justification=c(0,1), legend.position=c(0.01,0.99)) +
         scale_colour_discrete("Method") +
         scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
         scale_y_continuous("Spill-over Losses (% GDP)", labels=scales::percent)
