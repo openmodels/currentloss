@@ -127,7 +127,8 @@ ggplot(allres2.smooth, aes(Year, mu)) +
 ggsave("figures/figure1a.pdf", width=5, height=3.5)
 
 ## Number for paper:
-range((allres2.smooth %>% group_by(paper, name) %>% summarize(mu=tail(mu, 1)))$mu)
+(exp(range((allres2.smooth %>% group_by(paper, name) %>% summarize(mu=tail(mu, 1)))$mu)) - 1) * 100
+## -3.4732927  0.1684971
 
 ## (b) All meta-analysis options
 load.metaanal <- function(filebase) {
@@ -181,6 +182,14 @@ ggsave("figures/figure1b.pdf", width=5, height=3.5)
 
 ## Range for paper
 subset(allmeta.smooth, Year == 2023)
+##    Year       mu     ci25     ci75 name
+## 1  2023 -0.00573 -0.00737 -0.00375 Median of main spec.
+## 2  2023 -0.0100  -0.0148  -0.00175 Monte Carlo over main spec.
+## 3  2023 -0.00820 -0.0202   0.00142 Monte Carlo over all spec.
+## 4  2023 -0.0105  -0.0176  -0.00364 RF with all quality criteria
+## 5  2023 -0.00812 -0.0129  -0.00216 RF with controls criteria
+## 6  2023 -0.00878 -0.0139  -0.00383 RF with nonlinearity criteria
+## 7  2023 -0.00966 -0.0143  -0.00529 RF with dataset criteria
 
 ## (c) Countries by reference
 polydata$gdppc <- 1e6 * polydata$GDP_MD / polydata$POP_EST
@@ -247,6 +256,7 @@ ggsave("figures/figure1c.pdf", width=5, height=3.5)
 
 ## Number for paper: Range of expected losses
 (exp(range(allres.end.sum$yy)) - 1) * 100
+## -1.0902813  0.1684971
 
 load.metaanal2 <- function(filebase) {
     results <- read.metaanal(filebase)

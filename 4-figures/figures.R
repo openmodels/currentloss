@@ -1,6 +1,6 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
-## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 ## setwd("~/research/currentloss")
+## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 library(dplyr)
 library(reshape2)
@@ -16,12 +16,28 @@ source("src/lib/synth.R")
 
 load(paste0("data/allyr-ww-", persist, "-", trade.method, ".RData"))
 allyr.ww[allyr.ww$ISO == 'SDN', which(is.na(allyr.ww[allyr.ww$ISO == 'ABW', ][1, ]))] <- NA # country change affects
+for2023 <- subset(allyr.ww, Year == 2022)
+stopifnot(all(for2023$ISO == allyr.ww$ISO[allyr.ww$Year == 2023]))
+for2023[, 1:8] <- subset(allyr.ww, Year == 2023)[, 1:8]
+allyr.ww <- rbind(subset(allyr.ww, Year <= 2022), for2023)
+allyr.ww <- allyr.ww %>% group_by(ISO, mc) %>% arrange(Year) %>%
+    mutate(across(dimpact:weight.norm, ~ stats::filter(., rep(1 / 10, 10), sides=1)))
 
-sumbymc2 <- allyr.ww %>% filter(Year > 2013) %>% group_by(ISO, mc) %>%
-    dplyr::summarize(totimpact=mean(totimpact), slrimpact=-mean(slrloss), tradeimpact=-mean(tradeloss), product.chg=mean(product.chg),
-                     rencap.chg.ccpc=mean(rencap.chg.ccpc), rencap.chg=mean(1 - rencap.nocc / rencap.true),
-                     allcap.chg=mean(1 - allcap.nocc / allcap.true), procap.chg=mean(allcap.chg - rencap.chg),
-                     weight=mean(weight.norm))
+## FIGURES
+
+sumbymc2 <- allyr.ww %>% group_by(ISO, mc) %>%
+    dplyr::summarize(across(dimpact:weight.norm, ~ ifelse(all(is.na(.)), NA, tail(.[!is.na(.)], 1)))) %>%
+    group_by(ISO, mc) %>%
+    mutate(slrimpact=-slrloss, tradeimpact=-tradeloss,
+           rencap.chg=1 - rencap.nocc / rencap.true,
+           allcap.chg=1 - allcap.nocc / allcap.true, procap.chg=allcap.chg - rencap.chg,
+           weight=weight.norm)
+
+## sumbymc2 <- allyr.ww %>% filter(Year > 2013) %>% group_by(ISO, mc) %>%
+##     dplyr::summarize(totimpact=mean(totimpact), slrimpact=-mean(slrloss), tradeimpact=-mean(tradeloss), product.chg=mean(product.chg, na.rm=T),
+##                      rencap.chg.ccpc=mean(rencap.chg.ccpc, na.rm=T), rencap.chg=mean(1 - rencap.nocc / rencap.true, na.rm=T),
+##                      allcap.chg=mean(1 - allcap.nocc / allcap.true, na.rm=T), procap.chg=mean(allcap.chg - rencap.chg, na.rm=T),
+##                      weight=mean(weight.norm))
 
 wtd.median <- function(xx, weights=NULL, normwt=F) {
     if (all(is.na(xx)))
@@ -61,19 +77,28 @@ df.pop3 <- subset(df.pop2, `Country Code` %in% unique(df.pop2$`Country Code`[!is
 levelprep <- prep.levels.allyr.ww(allyr.ww)
 
 isotot <- levelprep %>%
-    filter(Year > 1992) %>% # Only years after Rio
+    filter(Year > 1993) %>% # Only years after Rio
     group_by(ISO, mc) %>%
     dplyr::summarize(total.usd=sum(total.usd * 1e9, na.rm=T), weight.norm=mean(weight.norm))
 isotot2 <- isotot %>% filter(!is.na(total.usd)) %>% group_by(ISO) %>%
     dplyr::summarize(prod25=wtd.quantile(total.usd, .25, weights=weight.norm, normwt=T), prod75=wtd.quantile(total.usd, .75, weights=weight.norm, normwt=T), total.sum=wtd.median(total.usd, weights=weight.norm, normwt=T))
 
-caplevel <- levelprep %>% filter(Year > 2013) %>% group_by(ISO, mc) %>%
-    dplyr::summarize(procapchg.usd=mean(procapchg.usd), rencapchg.direct.usd=mean(rencapchg.direct.usd),
-                     rencapchg.feedback.usd=mean(rencapchg.feedback.usd), weight=mean(weight.norm)) %>%
-        filter(is.na(weight) | weight > 1e-10) %>% group_by(ISO) %>%
-        dplyr::summarize(procapchg.usd=wtd.median(procapchg.usd, weights=weight, normwt=T),
-                         rencapchg.direct.usd=wtd.median(rencapchg.direct.usd, weights=weight, normwt=T),
-                         rencapchg.feedback.usd=wtd.median(rencapchg.feedback.usd, weights=weight, normwt=T))
+caplevel <- levelprep %>% group_by(ISO, mc) %>%
+    dplyr::summarize(across(c(procapchg.usd, rencapchg.direct.usd, rencapchg.feedback.usd,
+                              weight.norm), ~ ifelse(all(is.na(.)), NA, tail(.[!is.na(.)], 1)))) %>%
+    group_by(ISO, mc) %>%
+    filter(is.na(weight.norm) | weight.norm > 1e-10) %>% group_by(ISO) %>%
+    dplyr::summarize(procapchg.usd=wtd.median(procapchg.usd, weights=weight.norm, normwt=T),
+                     rencapchg.direct.usd=wtd.median(rencapchg.direct.usd, weights=weight.norm, normwt=T),
+                     rencapchg.feedback.usd=wtd.median(rencapchg.feedback.usd, weights=weight.norm, normwt=T))
+
+## caplevel <- levelprep %>% filter(Year > 2013) %>% group_by(ISO, mc) %>%
+##     dplyr::summarize(procapchg.usd=mean(procapchg.usd, na.rm=T), rencapchg.direct.usd=mean(rencapchg.direct.usd, na.rm=T),
+##                      rencapchg.feedback.usd=mean(rencapchg.feedback.usd, na.rm=T), weight=mean(weight.norm, na.rm=T)) %>%
+##         filter(is.na(weight) | weight > 1e-10) %>% group_by(ISO) %>%
+##         dplyr::summarize(procapchg.usd=wtd.median(procapchg.usd, weights=weight, normwt=T),
+##                          rencapchg.direct.usd=wtd.median(rencapchg.direct.usd, weights=weight, normwt=T),
+##                          rencapchg.feedback.usd=wtd.median(rencapchg.feedback.usd, weights=weight, normwt=T))
 
 tbldf <- sumbyiso %>% left_join(polydata, by=c('ISO'='ADM0_A3')) %>%
     left_join(subset(df.gdp3, Year == 2022), by=c('ISO'='Country Code')) %>%
@@ -85,8 +110,11 @@ tbldf <- sumbyiso %>% left_join(polydata, by=c('ISO'='ADM0_A3')) %>%
 tbldf$gdppc <- tbldf$GDP.2015.est / tbldf$Population.est
 
 range(tbldf$gdppc[tbldf$ECONOMY == "2. Developed region: nonG7"], na.rm=T)
+## 9502.411 205405.963
 range(tbldf$gdppc[tbldf$ECONOMY == "6. Developing region"], na.rm=T)
+## 682.3087 67359.7899
 range(tbldf$gdppc[tbldf$ECONOMY == "7. Least developed region"], na.rm=T)
+## 262.1848 5871.3249
 
 tbl <- data.frame(country=tbldf$ADMIN,
                   totimpact=format.percent(log2lev(tbldf$totimpact.median)),
@@ -126,7 +154,7 @@ tbl2 <- rbind(tbl2, data.frame(INCOME_GRP=c("High income (total)", "Low and midd
                                rencapchg.feedback.2015=round(c(sum(tbl2$rencapchg.feedback.2015[1:2]), sum(tbl2$rencapchg.feedback.2015[3:5])), -1),
                                landd.sum=round(c(sum(tbl2$landd.sum[1:2]), sum(tbl2$landd.sum[3:5])), -1)))
 
-names(tbl2) <- c("Income Group", "2022 GDP Change ($billion)", "30-year GDP Change ($billion)", "Produced Capital Change ($billion)", "Renewable Capital Direct Change ($billion)", "Renewable Capital Feedback Change ($billion)", "Total Loss ($billion)")
+names(tbl2) <- c("Income Group", "2023 GDP Change ($billion)", "30-year GDP Change ($billion)", "Produced Capital Change ($billion)", "Renewable Capital Direct Change ($billion)", "Renewable Capital Feedback Change ($billion)", "Total Loss ($billion)")
 
 print(flextable(tbl2))
 library(xtable)
@@ -147,7 +175,7 @@ for (grouping in names(groupings)) {
     tbl2grp <- rbind(tbl2grp, cbind(Group=grouping, tbl2grp.row))
 }
 
-names(tbl2grp) <- c("Party", "2022 GDP Change ($billion)", "30-year GDP Change ($billion)", "Produced Capital Change ($billion)", "Renewable Capital Direct Change ($billion)", "Renewable Capital Feedback Change ($billion)", "Total Loss ($billion)")
+names(tbl2grp) <- c("Party", "2023 GDP Change ($billion)", "30-year GDP Change ($billion)", "Produced Capital Change ($billion)", "Renewable Capital Direct Change ($billion)", "Renewable Capital Feedback Change ($billion)", "Total Loss ($billion)")
 
 print(flextable(tbl2grp[order(tbl2grp$Party),]))
 print(xtable(tbl2grp[order(tbl2grp$Party),], digits=0), include.rownames=F)
@@ -179,8 +207,8 @@ sumprod$label <- ifelse(sumprod$variable == 'totimpact.median', "Direct Impact",
                  ifelse(sumprod$variable == 'slrimpact.median', "Coastal Impact", "Capital Impact")))
 sumprod$label <- factor(sumprod$label, levels=rev(c("Direct Impact", "Coastal Impact", "International Impact", "Capital Impact")))
 
-ggplot(sumbyiso, aes(ISO)) +
-    coord_flip(ylim=c(-1, 0.3)) +
+gp <- ggplot(sumbyiso, aes(ISO)) +
+    coord_flip(ylim=c(-0.4, 0.2)) +
     geom_col(data=sumprod, aes(y=value, fill=label)) +
     geom_errorbar(aes(ymin=prod25, ymax=prod75)) +
     geom_point(aes(y=total)) +
@@ -190,7 +218,7 @@ ggsave("figures/finalprod-byiso.pdf", width=6.5, height=26)
 
 sumcap$label <- ifelse(sumcap$variable == 'rencap.chg', "Renewable Capital", "Produced Capital")
 
-ggplot(subset(sumbyiso, !is.na(allcap.chg)), aes(ISO)) +
+gp <- ggplot(subset(sumbyiso, !is.na(allcap.chg)), aes(ISO)) +
     coord_flip() + #ylim=c(-.25, 0.6)) +
     geom_col(data=subset(sumcap, !is.na(value)), aes(y=value, fill=label)) +
     geom_errorbar(aes(ymin=cap25, ymax=cap75)) +
@@ -257,24 +285,35 @@ allsums$Group[allsums$Group == 'High income: nonOECD'] <- "High income: Remainin
 allsums$Group[allsums$Group == 'Seven seas (open ocean)'] <- "Open Ocean"
 
 ## NUMBERS FOR REPORT
-subset(allsums, Group == "Least developed region") # -0.08310059
+subset(allsums, Group == "Least developed region")
 subset(allsums, Group == "South-Eastern Asia")
 log2lev(allsums$total[allsums$Group == "South-Eastern Asia"])
+## -0.1148802
 log2lev(allsums$prod25[allsums$Group == "South-Eastern Asia"])
+## -0.1795854
 log2lev(allsums$prod75[allsums$Group == "South-Eastern Asia"])
-subset(allsums, Group == "Southern Africa") # -0.1121914
-log2lev(allsums$total[allsums$Group == "Southern Africa"]) # -0.0625672
-subset(allsums, Group == "Africa") # -0.08088869
-log2lev(allsums$total[allsums$Group == "Africa"]) # -0.0625672
-log2lev(allsums$prod25[allsums$Group == "Africa"]) # -0.0625672
-log2lev(allsums$prod75[allsums$Group == "Africa"]) # -0.0625672
-subset(allsums, Group == "Europe") # 0.04706247
-log2lev(allsums$total[allsums$Group == "Europe"]) # 0.009311007
-log2lev(allsums$prod25[allsums$Group == "Europe"]) # 0.009311007
-log2lev(allsums$prod75[allsums$Group == "Europe"]) # 0.009311007
-subset(allsums, Group == "Central Asia") # 0.0471803
-subset(allsums, Group == "High income: OECD") # 0.0471803
-log2lev(allsums$total[allsums$Group == "South America"]) # -0.1024196
+## -0.08045667
+subset(allsums, Group == "Western Africa")
+log2lev(allsums$total[allsums$Group == "Western Africa"])
+log2lev(allsums$prod25[allsums$Group == "Western Africa"])
+log2lev(allsums$prod75[allsums$Group == "Western Africa"])
+subset(allsums, Group == "Africa")
+log2lev(allsums$total[allsums$Group == "Africa"])
+## -0.07354165
+log2lev(allsums$prod25[allsums$Group == "Africa"])
+## -0.1192797
+log2lev(allsums$prod75[allsums$Group == "Africa"])
+## -0.04323921
+subset(allsums, Group == "Europe")
+log2lev(allsums$total[allsums$Group == "Europe"])
+## 0.01752261
+log2lev(allsums$prod25[allsums$Group == "Europe"])
+## -0.004269379
+log2lev(allsums$prod75[allsums$Group == "Europe"])
+## 0.05075724
+subset(allsums, Group == "Central Asia")
+subset(allsums, Group == "High income: OECD")
+log2lev(allsums$total[allsums$Group == "South America"])
 
 ## Drop sub-regions thar are continents
 allsums <- subset(allsums, panel != "Sub-region" | !(Group %in% unique(sumbycontinent$Group)))
@@ -290,7 +329,7 @@ allsumprod$label <- ifelse(allsumprod$variable == 'totimpact.median', "Direct",
                     ifelse(allsumprod$variable == 'slrimpact.median', "Coastal", "Capital")))
 allsumprod$label <- factor(allsumprod$label, levels=rev(c("Direct", "Coastal", "International", "Capital")))
 
-ggplot(subset(allsums, panel == 'Economy'), aes(Group)) +
+gp <- ggplot(subset(allsums, panel == 'Economy'), aes(Group)) +
     coord_flip() +
     geom_col(data=subset(allsumprod, panel == 'Economy'), aes(y=value, fill=label)) +
     geom_errorbar(aes(ymin=prod25, ymax=prod75), width=.5) +
@@ -299,7 +338,7 @@ ggplot(subset(allsums, panel == 'Economy'), aes(Group)) +
     ylab("Change in GDP from Climate Change (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
 ggsave("figures/finalprod-byeco.pdf", width=5, height=2.7)
 
-ggplot(subset(allsums, panel == 'Income Group'), aes(Group)) +
+gp <- ggplot(subset(allsums, panel == 'Income Group'), aes(Group)) +
     coord_flip() +
     geom_col(data=subset(allsumprod, panel == 'Income Group'), aes(y=value, fill=label)) +
     geom_errorbar(aes(ymin=prod25, ymax=prod75), width=.5) +
@@ -308,7 +347,7 @@ ggplot(subset(allsums, panel == 'Income Group'), aes(Group)) +
     ylab("Change in GDP from Climate Change (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
 ggsave("figures/finalprod-byeco2.pdf", width=6.2, height=2.7)
 
-ggplot(subset(allsums, panel %in% c('Continent', 'Sub-region')), aes(Group)) +
+gp <- ggplot(subset(allsums, panel %in% c('Continent', 'Sub-region')), aes(Group)) +
     coord_flip() +
     facet_grid(panel ~ ., scales='free', space='free') +
     geom_col(data=subset(allsumprod, panel %in% c('Continent', 'Sub-region')), aes(y=value, fill=label)) +
@@ -318,7 +357,7 @@ ggplot(subset(allsums, panel %in% c('Continent', 'Sub-region')), aes(Group)) +
     ylab("Change in GDP from Climate Change (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
 ggsave("figures/finalprod-byreg.pdf", width=5, height=6)
 
-ggplot(subset(allsums, panel == 'Continent' & Group != 'Antarctica'), aes(Group)) +
+gp <- ggplot(subset(allsums, panel == 'Continent' & Group != 'Antarctica'), aes(Group)) +
     coord_flip() +
     geom_col(data=subset(allsumprod, panel == 'Continent' & Group != 'Antarctica'), aes(y=value, fill=label)) +
     geom_errorbar(aes(ymin=prod25, ymax=prod75), width=.5) +
@@ -329,7 +368,7 @@ ggsave("figures/finalprod-bycon.pdf", width=4, height=2.7)
 
 allsumcap$label <- ifelse(allsumcap$variable == 'rencap.chg', "Renewable Capital", "Produced Capital")
 
-ggplot(subset(allsums, !is.na(allcap.chg) & panel == 'Economy'), aes(Group)) +
+gp <- ggplot(subset(allsums, !is.na(allcap.chg) & panel == 'Economy'), aes(Group)) +
     coord_flip() +
     geom_col(data=subset(allsumcap, !is.na(value) & panel == 'Economy'), aes(y=value, fill=label)) +
     geom_errorbar(aes(ymin=cap25, ymax=cap75)) +
@@ -337,7 +376,7 @@ ggplot(subset(allsums, !is.na(allcap.chg) & panel == 'Economy'), aes(Group)) +
     ylab("Cumulative change in Capital (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
 ggsave("figures/finalcap-byeco.pdf", width=5, height=2.7)
 
-ggplot(subset(allsums, !is.na(allcap.chg) & panel %in% c('Continent', 'Sub-region')), aes(Group)) +
+gp <- ggplot(subset(allsums, !is.na(allcap.chg) & panel %in% c('Continent', 'Sub-region')), aes(Group)) +
     coord_flip() +
     facet_grid(panel ~ ., scales='free', space='free') +
     geom_col(data=subset(allsumcap, !is.na(value) & panel %in% c('Continent', 'Sub-region')), aes(y=value, fill=label)) +
@@ -364,7 +403,7 @@ sumbygroupprod$label <- ifelse(sumbygroupprod$variable == 'totimpact.median', "D
                         ifelse(sumbygroupprod$variable == 'slrimpact.median', "Coastal", "Capital")))
 sumbygroupprod$label <- factor(sumbygroupprod$label, levels=rev(c("Direct", "Coastal", "International", "Capital")))
 
-ggplot(sumbygroup, aes(Group)) +
+gp <- ggplot(sumbygroup, aes(Group)) +
     coord_flip() +
     geom_col(data=sumbygroupprod, aes(y=value, fill=label)) +
     geom_errorbar(aes(ymin=prod25, ymax=prod75), width=.5) +
@@ -375,7 +414,7 @@ ggsave("figures/finalprod-bygrp.pdf", width=5, height=4)
 
 sumbygroupcap$label <- ifelse(sumbygroupcap$variable == 'rencap.chg', "Renewable Capital", "Produced Capital")
 
-ggplot(subset(sumbygroup, !is.na(allcap.chg)), aes(Group)) +
+gp <- ggplot(subset(sumbygroup, !is.na(allcap.chg)), aes(Group)) +
     coord_flip() +
     geom_col(data=subset(sumbygroupcap, !is.na(value)), aes(y=value, fill=label)) +
     geom_errorbar(aes(ymin=cap25, ymax=cap75)) +
@@ -384,11 +423,11 @@ ggplot(subset(sumbygroup, !is.na(allcap.chg)), aes(Group)) +
 ggsave("figures/finalcap-bygrp.pdf", width=5, height=4)
 
 ## NUMBERS FOR REPORT
-subset(sumbygroup, Group == "G77") # -0.0548
-subset(sumbygroup, Group == "CVF") # -0.0987
-subset(sumbygroup, Group == "AOSIS") # -0.0430
-subset(sumbygroup, Group == "EU") # -0.0430
-subset(sumbygroup, Group == "Africa") # -0.0804
+subset(sumbygroup, Group == "G77")
+subset(sumbygroup, Group == "CVF")
+subset(sumbygroup, Group == "AOSIS")
+subset(sumbygroup, Group == "EU")
+subset(sumbygroup, Group == "Africa")
 subset(sumbygroup, Group == "LDCs")
 
 ## Maps
@@ -438,3 +477,5 @@ gg <- ggplot(shp2, aes(X, Y)) +
     theme_bw() + theme(legend.position="bottom", legend.key.width=unit(10,"in"),
                        legend.key.height=unit(1,"in"))
 ggsave("figures/finalcap-map.pdf", width=10, height=4)
+
+
