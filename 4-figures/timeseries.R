@@ -7,7 +7,7 @@ library(PBSmapping)
 library(ggplot2)
 library(sf)
 
-do.for.subset <- "global" # "global" or "L+MIC"
+do.for.subset <- "L+MIC" # "global" or "L+MIC"
 
 persist <- "0.21"
 trade.method <- "dd"
@@ -23,9 +23,15 @@ df.gdp2.last <- df.gdp2 %>% group_by(`Country Code`) %>%
 
 load(paste0("data/allyr-ww-", persist, "-", trade.method, ".RData"))
 allyr.ww[allyr.ww$ISO == 'SDN', which(is.na(allyr.ww[allyr.ww$ISO == 'ABW', ][1, ]))] <- NA # country change affects
+for2023 <- subset(allyr.ww, Year == 2022)
+stopifnot(all(for2023$ISO == allyr.ww$ISO[allyr.ww$Year == 2023]))
+for2023[, 1:8] <- subset(allyr.ww, Year == 2023)[, 1:8]
+allyr.ww <- rbind(subset(allyr.ww, Year <= 2022), for2023)
 allyr.ww <- allyr.ww %>% group_by(ISO, mc) %>% arrange(Year) %>%
     mutate(across(dimpact:weight.norm, ~ stats::filter(., rep(1 / 10, 10), sides=1)))
 # (cumsum(.) - c(rep(0, 10), cumsum(.)[1:(length(.)-10)])) / 10)) <-- fails when contains NA
+
+## TIMESERIES
 
 wtd.median <- function(xx, weights=NULL, normwt=F) {
     wtd.quantile(xx, 0.5, weights=weights, normwt=normwt)
@@ -53,7 +59,7 @@ if (do.for.subset == "L+MIC") {
 tohighlight <- c('USA', 'CHN', 'IND', 'BEL', 'RUS', 'BRA', 'AUS', 'MDV', 'NGA', 'THA')
 allyr2$label <- ifelse(allyr2$ISO %in% tohighlight, allyr2$ISO, 'XXX')
 
-ggplot(allyr2, aes(Year, total, group=ISO, colour=label)) +
+gp <- ggplot(allyr2, aes(Year, total, group=ISO, colour=label)) +
     coord_cartesian(ylim=c(-.15, .1), xlim=c(1959, 2023)) +
     geom_hline(yintercept=0) +
     geom_line(data=subset(allyr2, label == 'XXX' & total != 0), linewidth=.1) +
@@ -79,7 +85,7 @@ y_label <- if (do.for.subset == "L+MIC") {
     "Global weighted changing in GDP (%)"
 }
 
-ggplot(allyr3.pop, aes(Year)) +
+gp <- ggplot(allyr3.pop, aes(Year)) +
     geom_line(aes(y = totimpact, colour = "Direct Impact")) +
     geom_line(aes(y = totimpact - slrloss, colour = "Direct + SLR")) +
     geom_line(aes(y = totimpact - tradeloss - slrloss, colour = "Direct + SLR + Trade")) +
@@ -156,16 +162,28 @@ ggplot(allyr3.pop, aes(Year)) +
 ## Numbers for report
 allyr3.pop.mc <- get.weighted.mcts(allyr.ww, 'pop', do.for.subset)
 allyr3.pop.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
-    summarize(total=mean(total), weight2=mean(weight2)) %>%
-    summarize(mu=log2lev(wtd.median(total, weights=weight2, normwt=T)),
+    dplyr::summarize(total=mean(total), weight2=mean(weight2)) %>%
+    dplyr::summarize(mu=log2lev(wtd.median(total, weights=weight2, normwt=T)),
               ci25=log2lev(wtd.quantile(total, .25, weights=weight2, normwt=T)),
               ci75=log2lev(wtd.quantile(total, .75, weights=weight2, normwt=T)))
+## Global:
+##        mu    ci25    ci75
+## 1 -0.0569 -0.0917 -0.0301
+## L+MIC:
+##        mu    ci25    ci75
+## 1 -0.0627  -0.100 -0.0331
 allyr3.gdp.mc <- get.weighted.mcts(allyr.ww, 'gdp', do.for.subset)
 allyr3.gdp.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
-    summarize(total=mean(total), weight2=mean(weight2)) %>%
-    summarize(mu=log2lev(wtd.median(total, weights=weight2, normwt=T)),
+    dplyr::summarize(total=mean(total), weight2=mean(weight2)) %>%
+    dplyr::summarize(mu=log2lev(wtd.median(total, weights=weight2, normwt=T)),
               ci25=log2lev(wtd.quantile(total, .25, weights=weight2, normwt=T)),
               ci75=log2lev(wtd.quantile(total, .75, weights=weight2, normwt=T)))
+## Global:
+##        mu    ci25    ci75
+## 1 -0.0412 -0.0568 -0.0182
+## L+MIC:
+##        mu    ci25    ci75
+## 1 -0.0524 -0.0837 -0.0273
 
 ## Determine ranges
 
@@ -175,22 +193,22 @@ allyr2 <- allyr.ww %>% group_by(ISO, mc, Year) %>%
 
 allyr3 <- allyr2 %>% filter(Year >= 2000) %>% group_by(ISO, mc) %>% dplyr::summarize(stddev=sd(smooth - total)) %>% group_by(ISO) %>% dplyr::summarize(sd.mu=median(stddev, na.rm=T), sd.ci25=quantile(stddev, .25, na.rm=T), sd.ci75=quantile(stddev, .75, na.rm=T))
 
-
 ## Total losses per year for global or L+MIC.
-pdf <- prep.levels.allyr.ww(allyr.ww)
+levelprep <- prep.levels.allyr.ww(allyr.ww)
 
 if (do.for.subset == "L+MIC") {
-    pdf <- pdf %>%
+    levelprep <- levelprep %>%
         filter(INCOME_GRP %in% c("5. Low income", "4. Lower middle income", "3. Upper middle income"))
 }
 
-pdf2 <- pdf %>% group_by(Year, mc) %>%
+pdf2 <- levelprep %>% group_by(Year, mc) %>%
     dplyr::summarize(totimpact.usd=sum(totimpact.usd, na.rm=T),
                      tradeimpact.usd=sum(tradeimpact.usd, na.rm=T),
                      slrimpact.usd=sum(slrimpact.usd, na.rm=T),
                      solow.usd=sum(solow.usd, na.rm=T),
+                     total.usd=sum(total.usd, na.rm=T),
                      allcap.usd=sum(allcap.usd, na.rm=T),
-                     total.usd=totimpact.usd + tradeimpact.usd + slrimpact.usd + solow.usd + allcap.usd,
+                     totalandcap.usd=sum(total.usd, na.rm=T) + allcap.usd,
                      weight2=sum(weight.norm))
 
 pdf3 <- pdf2 %>% group_by(Year) %>% filter(!is.na(weight2)) %>%
@@ -199,9 +217,9 @@ pdf3 <- pdf2 %>% group_by(Year) %>% filter(!is.na(weight2)) %>%
                      slrimpact.usd=ifelse(all(is.na(slrimpact.usd)), NA, wtd.median(slrimpact.usd, weights=weight2, normwt=T)),
                      solow.usd=ifelse(all(is.na(solow.usd)), NA, wtd.median(solow.usd, weights=weight2, normwt=T)),
                      allcap.usd=ifelse(all(is.na(allcap.usd)), NA, wtd.median(allcap.usd, weights=weight2, normwt=T)),
-                     total.usd.25=ifelse(all(is.na(total.usd)), NA, wtd.quantile(total.usd, .25, weights=weight2, normwt=T)),
-                     total.usd.75=ifelse(all(is.na(total.usd)), NA, wtd.quantile(total.usd, .75, weights=weight2, normwt=T)),
-                     total.usd=ifelse(all(is.na(total.usd)), NA, wtd.median(total.usd, weights=weight2, normwt=T)))
+                     totalandcap.usd.25=ifelse(all(is.na(totalandcap.usd)), NA, wtd.quantile(totalandcap.usd, .25, weights=weight2, normwt=T)),
+                     totalandcap.usd.75=ifelse(all(is.na(totalandcap.usd)), NA, wtd.quantile(totalandcap.usd, .75, weights=weight2, normwt=T)),
+                     totalandcap.usd=ifelse(all(is.na(totalandcap.usd)), NA, wtd.median(totalandcap.usd, weights=weight2, normwt=T)))
 
 pdf4 <- melt(pdf3[, 1:6], 'Year')
 pdf4$variable <- factor(pdf4$variable, levels=c('totimpact.usd', 'slrimpact.usd', 'tradeimpact.usd', 'solow.usd', 'allcap.usd'))
@@ -212,51 +230,20 @@ y_axis_label <- if (do.for.subset == "L+MIC") {
     "Total global loss ($billion)"
 }
 
+## Number for report
+sum(subset(pdf4, Year == 2023)$value)
+
 gp <- ggplot(subset(pdf4, Year >= 1960), aes(Year)) +
     #coord_cartesian(ylim=c(-10000, 0)) +
     geom_col(aes(y=value, fill=variable)) +
-    geom_errorbar(data=subset(pdf3, Year >= 1960), aes(ymin=total.usd.25, ymax=total.usd.75), alpha=.5) +
+    geom_errorbar(data=subset(pdf3, Year >= 1960), aes(ymin=totalandcap.usd.25, ymax=totalandcap.usd.75), alpha=.5) +
     theme_bw() + scale_y_continuous(y_axis_label) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1960, 2023.7)) +
     scale_fill_manual(NULL, breaks=rev(c('totimpact.usd', 'slrimpact.usd', 'tradeimpact.usd', 'solow.usd', 'allcap.usd')), labels=rev(c("Direct Impact", "Coastal Impact", "International Impact", "Capital Impact", "Capital Loss")), values=rev(c("#7570b3", "#1b9e77", "#66a61e", "#d95f02", "#e7298a"))) + theme(legend.position=c(.5, .25))
 ggsave(paste0("figures/totalbyyear_", do.for.subset, ".pdf"), width = 5, height = 4)
 
-## Numbers for report
-pdf2 %>% filter(Year > 1992) %>% group_by(mc) %>%
-    dplyr::summarize(totimpact.usd=sum(totimpact.usd), tradeimpact.usd=sum(tradeimpact.usd),
-                     slrimpact.usd=sum(slrimpact.usd), solow.usd=sum(solow.usd),
-                     allcap.usd=sum(allcap.usd), total.usd=sum(total.usd), weight2=sum(weight2)) %>%
-        dplyr::summarize(totimpact.usd.mu=wtd.median(totimpact.usd, weights=weight2, normwt=T),
-                         totimpact.usd.ci25=wtd.quantile(totimpact.usd, .25, weights=weight2, normwt=T),
-                         totimpact.usd.ci75=wtd.quantile(totimpact.usd, .75, weights=weight2, normwt=T),
-                         total.usd.mu=wtd.median(total.usd, weights=weight2, normwt=T),
-                         total.usd.ci25=wtd.quantile(total.usd, .25, weights=weight2, normwt=T),
-                         total.usd.ci75=wtd.quantile(total.usd, .75, weights=weight2, normwt=T))
-## Global:
-##   totimpact.usd.mu totimpact.usd.ci25 totimpact.usd.ci75 total.usd.mu total.usd.ci25 total.usd.ci75
-##              <dbl>              <dbl>              <dbl>        <dbl>          <dbl>          <dbl>
-## 1          -37756.            -54492.            -19318.      -55242.        -76571.        -34926.
-
-## How much more by year
-pdf %>% group_by(Year, mc) %>%
-    dplyr::summarize(totimpact.usd=sum(totimpact.usd, na.rm=T),
-                     tradeimpact.usd=sum(tradeimpact.usd, na.rm=T),
-                     slrimpact.usd=sum(slrimpact.usd, na.rm=T),
-                     solow.usd=sum(solow.usd, na.rm=T),
-                     allcap.usd=sum(allcap.usd, na.rm=T),
-                     total.usd=totimpact.usd + tradeimpact.usd + slrimpact.usd + solow.usd + allcap.usd,
-                     weight2=sum(weight.norm)) %>%
-        filter(Year >= 2014) %>% group_by(mc) %>%
-        dplyr::summarize(total.usd=mean(total.usd, na.rm=T), weight2=mean(weight2)) %>%
-        dplyr::summarize(ci25=wtd.quantile(total.usd, .25, weights=weight2, normwt=T),
-                         ci75=wtd.quantile(total.usd, .75, weights=weight2, normwt=T), total.usd=wtd.mean(total.usd, weights=weight2, normwt=T))
-## Global:
-##     ci25   ci75 total.usd
-##    <dbl>  <dbl>     <dbl>
-## 1 -3990. -1562.    -3243.
-
 ## Construct table with lots of breakdowns by year
-set1 <- pdf %>% filter(Year == 2023) %>% group_by(ISO, mc) %>%
+set1 <- levelprep %>% filter(Year == 2023) %>% group_by(ISO, mc) %>%
     dplyr::summarize(dimpact.usd=mean((log2lev(dimpact) / (1 + log2lev(dimpact))) * GDP.2015.est / 1e9, na.rm=T),
                      persist.usd=mean(totimpact.usd, na.rm=T) - dimpact.usd,
                      weight2=mean(weight.norm), CONTINENT=CONTINENT[1]) %>%
@@ -297,7 +284,7 @@ set2$ci.75[set2$mu == "Inundation Loss"] <- set2$ci.75[set2$mu == "Inundation Lo
 
 tradeloss.rich <- load.tradeloss(trade.method, paste0(persist, '-1-2'))
 
-set3 <- pdf %>% left_join(tradeloss.rich, by=c('ISO', 'mc', 'Year'='year'), suffix=c('', '.rich')) %>%
+set3 <- levelprep %>% left_join(tradeloss.rich, by=c('ISO', 'mc', 'Year'='year'), suffix=c('', '.rich')) %>%
     filter(Year == 2023) %>% group_by(ISO, mc) %>%
     dplyr::summarize(tradeimpact.rich.usd=mean(-(log2lev(tradeloss.rich) / (1 + log2lev(tradeloss.rich))) * GDP.2015.est / 1e9, na.rm=T),
                      tradeimpact.poor.usd=mean(tradeimpact.usd, na.rm=T) - tradeimpact.rich.usd,
@@ -314,7 +301,7 @@ set3 <- pdf %>% left_join(tradeloss.rich, by=c('ISO', 'mc', 'Year'='year'), suff
                    ci.75=c(wtd.quantile(tradeimpact.rich.usd, .75, weights=weight2, normwt=T),
                            wtd.quantile(tradeimpact.poor.usd, .75, weights=weight2, normwt=T)))
 
-set4 <- pdf %>%
+set4 <- levelprep %>%
     mutate(cumul.rencap.ccpc.usd=pmax((rencap.ccpc - rencap.nocc) / 1e9, -`Renewable Capital Est`) * 100 / 83.6,
            cumul.rencap.rest.usd=pmax((rencap.true - rencap.nocc) / 1e9, -`Renewable Capital Est`) * 100 / 83.6 - cumul.rencap.ccpc.usd,
            cumul.procap.usd=pmax((allcap.true - allcap.nocc) / 1e9 - cumul.rencap.rest.usd - cumul.rencap.ccpc.usd, -`Produced Capital Est`) * 100 / 83.6) %>%
