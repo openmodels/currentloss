@@ -28,7 +28,7 @@ for (rf.approach in rf.approaches) {
     allstat2 <- allres2 %>% group_by(ISO, paper, name) %>% summarize(status=ifelse(all(is.na(dimpact)), NA, max(Year[is.na(dimpact) & Year < 2000]))) %>%
       group_by(paper, name) %>% summarize(status=max(status, na.rm=T))
 
-source("src/loadmetadata.R")
+source("src/lib/loadmetadata.R")
 
 metadata$Q.Weather <- 1 * (metadata$`Weather weight` == "Pop. weight")
 metadata$Q.Poverty <- ifelse(metadata$`Rich/Poor` == "Interact", 0.5,
