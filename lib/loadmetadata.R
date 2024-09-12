@@ -1,3 +1,5 @@
+library(readxl)
+
 metadata <- read_xlsx("data/Current Losses Estimate Metadata.xlsx")
 metadata <- subset(metadata, !is.na(Paper) & Include == "Included")
 
