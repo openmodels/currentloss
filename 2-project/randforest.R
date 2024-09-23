@@ -5,8 +5,6 @@
 library(ranger)
 library(readxl)
 library(dplyr)
-library(rpart)
-library(rpart.plot)
 library(PBSmapping)
 
 rf.approaches <- c("all", "controls", "nonlinear", "dataset")
@@ -86,10 +84,6 @@ for (mcii in 1:MCNUM) {
             if (rf.approach == 'all') {
                 values <- allres4[, c('dimpact', 'Q.Weather', 'Q.Poverty', 'Q.Temp', 'Q.Prec', 'Q.YearFE', 'Q.Trends',
                                       'Q.OtherFE', 'Q.Control', 'Q.GLags', 'Q.YearLate', 'Q.YearSpan')]
-
-                ## mod <- rpart(dimpact ~ `Dependent` + `Weather weight` + `Rich/Poor` + `Temp` + `Prec.` +
-                ##  `Year FE` + `Trends` + `Other FE` + `Growth Lags` + `Dataset` + `Year Coverage`, data=values)
-                ## rpart.plot(mod)
 
                 preddf <- data.frame(Q.Weather=1, Q.Poverty=1, Q.Temp=1, Q.Prec=1, Q.YearFE=1, Q.Trends=1,
                                      Q.OtherFE=1, Q.Control=1, Q.GLags=1, Q.YearLate=1, Q.YearSpan=1)
