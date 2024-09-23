@@ -100,7 +100,7 @@ ggplot(pdf, aes(year, mu / 1e9, group=factor(slrconf))) +
     geom_line(aes(colour=factor(slrconf))) +
     geom_ribbon(data=subset(pdf, slrconf == 'Market-only'), aes(ymin=ci25 / 1e9, ymax=ci75 / 1e9), alpha=.5) +
     theme_bw() + theme(legend.justification=c(0,1), legend.position=c(0.01,0.99)) +
-    scale_colour_discrete("SLR:") + ylab("SLR Damages (2019 USD)") +
+    scale_colour_discrete("SLR:") + ylab("SLR Damages (billion 2019 USD)") +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023))
 ggsave("figures/eachstep-slr.pdf", width=2.5, height=2.5)
 

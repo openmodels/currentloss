@@ -90,3 +90,16 @@ prep.levels.allyr.ww <- function(allyr.ww) {
         mutate(allcap.usd=cumul.allcap.usd - lag(cumul.allcap.usd))
         ##mutate(allcap.usd=cumul.allcap.usd.nn - lag(cumul.allcap.usd.nn))
 }
+
+get.allyr.ww <- function(persist, trade.method) {
+    load(paste0("data/allyr-ww-", persist, "-", trade.method, ".RData"))
+    allyr.ww[allyr.ww$ISO == 'SDN', which(is.na(allyr.ww[allyr.ww$ISO == 'ABW', ][1, ]))] <- NA # country change affects
+    for2023 <- subset(allyr.ww, Year == 2022)
+    stopifnot(all(for2023$ISO == allyr.ww$ISO[allyr.ww$Year == 2023]))
+    for2023[, 1:8] <- subset(allyr.ww, Year == 2023)[, 1:8]
+    allyr.ww <- rbind(subset(allyr.ww, Year <= 2022), for2023)
+    allyr.ww <- allyr.ww %>% group_by(ISO, mc) %>% arrange(Year) %>%
+        mutate(across(dimpact:weight.norm, ~ stats::filter(., rep(1 / 10, 10), sides=1)))
+
+    allyr.ww
+}
