@@ -2,7 +2,7 @@ if (F) {
     setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
     source("src/2-project/driver.R")
-    source("src/2-project/utils.R")
+    source("src/lib/utils.R")
 }
 
 zhaodata <- read.csv("papers/models/tabula-Zhao et al. 2018.csv", nrows=14,
