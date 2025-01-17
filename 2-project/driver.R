@@ -84,7 +84,7 @@ library(ggplot2)
 library(cowplot)
 library(grid)
 library(scales)
-library(PBSmapping)
+source("~/projects/research-common/R/myPBSmapping.R")
 global.adm0 <- importShapefile("data/regions/ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp")
 global.adm0.polydata <- attr(global.adm0, 'PolyData')
 
