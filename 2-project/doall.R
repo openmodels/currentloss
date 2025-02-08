@@ -5,6 +5,7 @@ library(readxl)
 library(PBSmapping)
 library(MASS)
 
+source("~/projects/research-common/R/myPBSmapping.R")
 source("src/2-project/driver.R")
 source("src/lib/utils.R")
 
@@ -20,7 +21,13 @@ papers <- list("Dell et al. 2012" = "src/models/djo.R",
                "Kahn et al. 2021" = "src/models/kahnetal.R",
                "Kotz et al. 2022" = "src/models/kotzetal.R",
                "Kalkuhl & Wenz 2020" = "src/models/kalkuhlwenz.R",
-               "Sequeira et al. 2018" = "src/models/sequeira.R")
+               "Sequeira et al. 2018" = "src/models/sequeira.R",
+               "Zhao et al. 2018" = "src/models/zhaoetal.R",
+               "Damania et al. 2020" = "src/models/ddz.R",
+               "Henseler & Schumacher 2019" = "src/models/henselerschumacher.R",
+               "Burke et al. 2018" = "src/models/burkeetal2018.R",
+               "De Vos & Everaert 2021" = "src/models/devoseveraert.R",
+               "Yang et al. 2023" = "src/models/yangetal.R")
 
 results <- data.frame()
 allres <- data.frame()
@@ -34,7 +41,7 @@ for (paper in names(papers)) {
             funcs <- get.funcs(name)
             if (is.null(funcs))
                 next
-            oneres <- project.single(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper %in% c("Kotz et al. 2022", "Kalkuhl & Wenz 2020"), 1, 0))
+            oneres <- project.single(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper %in% c("Kotz et al. 2022", "Kalkuhl & Wenz 2020", "Damania et al. 2020", "Zhao et al. 2018"), 1, 0))
             if (contemp.only == F)
                 oneres.not.contemp.only <- oneres
             else {
@@ -74,8 +81,8 @@ results2 <- results %>% filter(preferred) %>% group_by(Year) %>% summarize(dimpa
 
 ggplot(subset(results, preferred), aes(Year, dimpact.pop, colour=paper, group=paste(paper, name))) +
     coord_cartesian(ylim=c(-0.04, 0.01)) +
-    geom_line() +
-    geom_line(data=results2, size=2, colour='black') +
+    geom_line(alpha=.5) +
+    geom_line(data=results2, size=1.5, colour='black') +
     theme_bw() + ylab("Impact (change in growth rate)")
 ggsave("figures/allimpacts.pdf", width=8, height=4)
 
@@ -90,23 +97,44 @@ results2 <- results %>% group_by(Year, name, paper) %>%
 results3 <- results2 %>% group_by(Year) %>% summarize(dimpact.pop.lags=median(dimpact.pop.lags, na.rm=T))
 
 ggplot(results2, aes(Year, dimpact.pop.lags, colour=paper, group=paste(paper, name))) +
-    geom_line() +
-    geom_line(data=results3, size=2, colour='black') +
+    geom_line(alpha=.5) +
+    geom_line(data=results3, size=1.5, colour='black') +
     theme_bw()
 ggsave("figures/lagimpacts.pdf", width=8, height=4)
 
 ## Now make the Monte Carlo
 MCNUM <- 30 # Have lots of models
-mcres <- data.frame()
+rm(allres, allres2)
+
+if (file.exists("data/mcres.RData")) {
+    load("data/mcres.RData")
+} else {
+    mcres <- data.frame()
+}
+if (file.exists("data/mcres2.RData")) {
+    load("data/mcres2.RData")
+} else {
+    mcres2 <- data.frame()
+}
 for (paper in names(papers)) {
     source(papers[[paper]])
     for (name in unique(results$name[results$paper == paper])) {
+        if (any(mcres$paper == paper & mcres$name == name) || any(mcres2$paper == paper & mcres2$name == name))
+            next
         print(c(paper, name))
         funcs <- get.funcs(name)
         contemp.only <- results$contemp.only[results$paper == paper & results$name == name & results$preferred][1]
-        onemcres <- project.mc(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper %in% c("Kotz et al. 2022", "Kalkuhl & Wenz 2020"), 1, 0))
-        mcres <- rbind(mcres, cbind(onemcres, name=name, paper=paper, contemp.only=contemp.only))
+        onemcres <- project.mc(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper %in% c("Kotz et al. 2022", "Kalkuhl & Wenz 2020", "Damania et al. 2020", "Zhao et al. 2018"), 1, 0))
+        if (which(names(papers) == paper) < 10) {
+            mcres <- rbind(mcres, cbind(onemcres, name=name, paper=paper, contemp.only=contemp.only))
+            save(mcres, file="data/mcres.RData")
+        } else {
+            mcres2 <- rbind(mcres2, cbind(onemcres, name=name, paper=paper, contemp.only=contemp.only))
+            save(mcres2, file="data/mcres2.RData")
+        }
     }
 }
 
+mcres <- rbind(mcres, mcres2)
 save(mcres, file="data/mcres.RData")
+file.remove("data/mcres2.RData")
