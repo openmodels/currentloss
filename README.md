@@ -74,6 +74,8 @@ it runs for each country under each Monte Carlo draw. Parallel
 computing is used to increase the speed on machines with multiple
 cores.
 
+The trade Eora data is not stored in the Code Ocean, and needs to be downloaded separately. This should be saved to the `data/I_O data` directory as a "Eora26" directory, containing folders following the naming pattern `Eora26_YYYY_bp` where YYYY is a year.
+
 ## 4. Generate result outputs (4-figures)
 
 1. Synthesis preparation: Run `prepare.R`, which generates the
