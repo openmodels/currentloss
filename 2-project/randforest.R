@@ -5,24 +5,25 @@
 library(ranger)
 library(readxl)
 library(dplyr)
-library(PBSmapping)
+source("~/projects/research-common/R/myPBSmapping.R")
 
 rf.approaches <- c("all", "controls", "nonlinear", "dataset")
 
 load("data/mcres.RData")
-load("data/mcres-decumul.RData")
 
-for (persist in c("0.21", "0.08")) {
+for (persist in c("0", "0.21", "0.36", "0.47")) {
 for (rf.approach in rf.approaches) {
-    allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[persist]])
+    load("data/mcres-decumul.RData")
+    kotzreplace <- decumul.bypersist[[persist]]
+    rm('decumul.bypersist')
+    allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), kotzreplace)
 
     ## Find rows for valid models that are NA (before some point in that model)
     allstat <- allres %>% group_by(ISO, paper, name) %>% summarize(status=ifelse(all(is.na(dimpact)), NA, max(Year[is.na(dimpact) & Year < 2000]))) %>%
-      group_by(paper, name) %>% summarize(status=max(status, na.rm=T))
-    allresfix <- allres %>% group_by(ISO, paper, name) %>% filter(!all(is.na(dimpact))) %>%
-      mutate(dimpact=ifelse(is.na(dimpact), 0, dimpact))
-    allres2 <- allres %>% left_join(allresfix, by=c('ISO', 'Year', 'paper', 'name', 'mc'), suffix=c('.ori', '.fix'))
-    allres2$dimpact <- ifelse(is.na(allres2$dimpact.ori), allres2$dimpact.fix, allres2$dimpact.ori)
+        group_by(paper, name) %>% summarize(status=max(status, na.rm=T))
+    allres2 <- allres %>% group_by(ISO, paper, name) %>% filter(!all(is.na(dimpact))) %>%
+        mutate(dimpact=ifelse(is.na(dimpact), 0, dimpact))
+
     allstat2 <- allres2 %>% group_by(ISO, paper, name) %>% summarize(status=ifelse(all(is.na(dimpact)), NA, max(Year[is.na(dimpact) & Year < 2000]))) %>%
       group_by(paper, name) %>% summarize(status=max(status, na.rm=T))
 
