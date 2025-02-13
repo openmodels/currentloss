@@ -23,4 +23,6 @@ metadata$`Year Coverage`[is.na(metadata$`Year Coverage`)] <- "NA"
 metadata$last.year <- sapply(metadata$`Year Coverage`, function(yys) as.numeric(strsplit(yys, " - ")[[1]][2]))
 metadata$first.year <- sapply(metadata$`Year Coverage`, function(yys) as.numeric(strsplit(yys, " - ")[[1]][1]))
 metadata$first.year[is.na(metadata$first.year)] <- 1950 # Varying 1901
+metadata$first.year[metadata$`Year Coverage` == "1990, 1995, 2000, 2005"] <- 1990
+metadata$last.year[metadata$`Year Coverage` == "1990, 1995, 2000, 2005"] <- 2005
 metadata$`Climate`[is.na(metadata$`Climate`)] <- "NA"
