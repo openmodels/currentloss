@@ -16,11 +16,17 @@ main.models <- list("Dell et al. 2012"="Main 2.3", "Burke et al. 2015"="Main", "
                     "Acevedo et al. 2020"="column_5",
                     "Kahn et al. 2021"="Table 2, Spec. 1, m = 30, HPJ-FE", "Kotz et al. 2022"="Main",
                     "Kalkuhl & Wenz 2020"="Table 4, Spec. 5",
-                    "Sequeira et al. 2018"="Table 5, Spec. 1 & 2, 4 & 5")
+                    "Sequeira et al. 2018"="Table 5, Spec. 1 & 2, 4 & 5",
+		    "Zhao et al. 2018"="Table 3, Col. 3",
+		    "Damania et al. 2020"="Table 1, Col 1",
+		    "Henseler & Schumacher 2019"="Main spec.",
+		    "Burke et al. 2018"="Main spec.",
+		    "De Vos & Everaert 2021"="Table 5, CCEPbc",
+		    "Yang et al. 2023"="Table 6, FE-NLS, 6")
 model.order <- rev(names(main.models))
 
 for (sample.approach in sample.approaches) {
-    for (persist in c("0.21", "0.08")) {
+    for (persist in c("0", "0.21", "0.36", "0.47")) {
         allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[persist]])
 
         ## Find rows for valid models that are NA (before some point in that model)

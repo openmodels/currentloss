@@ -2,6 +2,8 @@
 ## setwd("~/research/currentloss")
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
+do.skip.existing <- T
+
 library(ranger)
 library(readxl)
 library(dplyr)
@@ -13,6 +15,24 @@ load("data/mcres.RData")
 
 for (persist in c("0", "0.21", "0.36", "0.47")) {
 for (rf.approach in rf.approaches) {
+    if (rf.approach == 'all') {
+        savepath <- function(mcii) paste0("data/metaanal/mcrfres-", persist, "-", mcii, ".RData")
+    } else {
+        savepath <- function(mcii) paste0("data/metaanal/mcrfres-", persist, "-", rf.approach, "-", mcii, ".RData")
+    }
+
+    if (do.skip.existing) {
+        foundall <- T
+        for (mcii in 1:max(mcres$mc))
+            if (!file.exists(savepath(mcii))) {
+	        foundall <- F
+	        break
+	    }
+
+        if (foundall)
+            next
+    }
+
     load("data/mcres-decumul.RData")
     kotzreplace <- decumul.bypersist[[persist]]
     rm('decumul.bypersist')
@@ -75,6 +95,9 @@ isos <- unique(allres$ISO)
 years <- unique(allres$Year)
 
 for (mcii in 1:MCNUM) {
+    if (do.skip.existing && file.exists(savepath(mcii)))
+        next
+
     allres3 <- subset(allres2, mc == mcii)
     results <- data.frame()
 
@@ -110,9 +133,9 @@ for (mcii in 1:MCNUM) {
     }
 
     if (rf.approach == 'all') {
-        save(results, file=paste0("data/metaanal/mcrfres-", persist, "-", mcii, ".RData"))
+        save(results, file=savepath(mcii))
     } else {
-        save(results, file=paste0("data/metaanal/mcrfres-", persist, "-", rf.approach, "-", mcii, ".RData"))
+        save(results, file=savepath(mcii))
     }
 }
 
