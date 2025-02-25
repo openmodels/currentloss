@@ -3,10 +3,10 @@
 library(dplyr)
 
 do.costtype <- 'market' # 'all'
-do.case.only <- 'noAdaptation' #'' #'optimalfixed'
+do.case.only <- '' #'' #'optimalfixed'
 
-for (do.costtype in c('inundation', 'stormCapital')) {
-    for (do.case.only in c('noAdaptation', 'optimalfixed')) {
+for (do.costtype in c('all', 'market', 'inundation', 'stormCapital')) {
+    for (do.case.only in c('', 'noAdaptation', 'optimalfixed')) {
 
 load("data/totalcosts.RData")
 
@@ -113,6 +113,8 @@ write.csv(pred2, paste0("data/slrbyadm0-final", suffix, ".csv"), row.names=F)
 
 ## Compare to GDP
 source("src/lib/loadutils.R")
+
+pred2 <- read.csv("data/slrbyadm0-final.csv")
 
 df.gdp3 <- load.gdp3()
 

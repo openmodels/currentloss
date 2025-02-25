@@ -1,12 +1,12 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
-library(PBSmapping)
+source("~/projects/research-common/R/myPBSmapping.R")
 library(dplyr)
 
 source("src/lib/loadutils.R")
 
-persist <- 0.21
-results <- read.metaanal("mcrfres-0.21")
+persist <- 0.36
+results <- read.metaanal("mcrfres-0.36")
 
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
@@ -91,11 +91,11 @@ ggsave(paste0("figures/allimpacts-withrfci-", persist, ".pdf"), width=8, height=
 ### Figure 1 elements
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
-library(PBSmapping)
+source("~/projects/research-common/R/myPBSmapping.R")
 library(dplyr)
 library(ggplot2)
 
-persist <- 0.21
+persist <- 0.36
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
 load("data/mcres.RData")
@@ -110,25 +110,24 @@ allres2 <- allres %>% filter(!is.na(dimpact)) %>% left_join(polydata[, c('ADM0_A
 ## (a) All individual timeseries
 
 legend.papers <- unique(allres2$paper)
-legend.alphas <- rep(1, length(legend.papers))
-legend.alphas[legend.papers == "Kotz et al. 2022"] <- .5
 
 allres2.smooth <- rbind(allres2 %>% group_by(paper, name) %>% mutate(mu=stats::filter(c(rep(0, 9), mu), rep(1/10, 10), method='conv')[5:(length(mu)+4)]))
 
 ggplot(allres2.smooth, aes(Year, mu)) +
     coord_cartesian(ylim=c(-.035, .005)) +
-    geom_line(aes(colour=paper, group=paste(paper, name), alpha=paper), linewidth=.3) +
+    geom_line(aes(colour=paper, linetype=paper, group=paste(paper, name)), linewidth=.3) +
     theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
-    scale_colour_discrete("Reference:") +
-    scale_alpha_manual("Reference:", breaks=legend.papers, values=legend.alphas) +
-    theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.8, 'lines')) +
-    ggtitle("(a) Population-weighted mean of model projections")
+    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(8, "Dark2"), 2)) +
+    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash'), each=8)) +
+    theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.5, 'lines'), legend.text=element_text(size=7)) +
+    ggtitle("(a) Population-weighted mean of model projections") +
+    guides(colour=guide_legend(ncol=2), linetype=guide_legend(ncol=2))
 ggsave("figures/figure1a.pdf", width=5, height=3.5)
 
 ## Number for paper:
 (exp(range((allres2.smooth %>% group_by(paper, name) %>% summarize(mu=tail(mu, 1)))$mu)) - 1) * 100
-## -3.4732927  0.1684971
+## -8.201719  1.918016
 
 ## (b) All meta-analysis options
 load.metaanal <- function(filebase) {
@@ -182,14 +181,14 @@ ggsave("figures/figure1b.pdf", width=5, height=3.5)
 
 ## Range for paper
 subset(allmeta.smooth, Year == 2023)
-##    Year       mu     ci25     ci75 name
-## 1  2023 -0.00573 -0.00737 -0.00375 Median of main spec.
-## 2  2023 -0.0100  -0.0148  -0.00175 Monte Carlo over main spec.
-## 3  2023 -0.00820 -0.0202   0.00142 Monte Carlo over all spec.
-## 4  2023 -0.0105  -0.0176  -0.00364 RF with all quality criteria
-## 5  2023 -0.00812 -0.0129  -0.00216 RF with controls criteria
-## 6  2023 -0.00878 -0.0139  -0.00383 RF with nonlinearity criteria
-## 7  2023 -0.00966 -0.0143  -0.00529 RF with dataset criteria
+##    Year       mu     ci25      ci75 name
+## 1  2023 -0.00536 -0.00657 -0.00399  Median of main spec.
+## 2  2023 -0.00697 -0.0144   0.00123  Monte Carlo over main spec.
+## 3  2023 -0.00575 -0.0147   0.000460 Monte Carlo over all spec.
+## 4  2023 -0.0168  -0.0260  -0.00552  RF with all quality criteria
+## 5  2023 -0.0119  -0.0167  -0.00568  RF with controls criteria
+## 6  2023 -0.0168  -0.0383   0.00317  RF with nonlinearity criteria
+## 7  2023 -0.00952 -0.0138  -0.00529  RF with dataset criteria
 
 ## (c) Countries by reference
 polydata$gdppc <- 1e6 * polydata$GDP_MD / polydata$POP_EST
@@ -221,7 +220,13 @@ main.models <- list("Dell et al. 2012"="Main 2.3", "Burke et al. 2015"="Main", "
                     "Acevedo et al. 2020"="column_5",
                     "Kahn et al. 2021"="Table 2, Spec. 1, m = 30, HPJ-FE", "Kotz et al. 2022"="Main",
                     "Kalkuhl & Wenz 2020"="Table 4, Spec. 5",
-                    "Sequeira et al. 2018"="Table 5, Spec. 1 & 2, 4 & 5")
+                    "Sequeira et al. 2018"="Table 5, Spec. 1 & 2, 4 & 5",
+		    "Zhao et al. 2018"="Table 3, Col. 3",
+		    "Damania et al. 2020"="Table 1, Col 1",
+		    "Henseler & Schumacher 2019"="Main spec.",
+		    "Burke et al. 2018"="Main spec.",
+		    "De Vos & Everaert 2021"="Table 5, CCEPbc",
+		    "Yang et al. 2023"="Table 6, FE-NLS, 6")
 for (ii in 1:length(main.models))
     allres.end$is.main[allres.end$paper == names(main.models)[ii] & allres.end$name == main.models[[ii]]] <- T
 
@@ -239,7 +244,7 @@ allres.end.sum <- rbind(allres.end %>% filter(is.main & paper != "Baarsch et al.
 allres.end.sum$paper <- factor(allres.end.sum$paper, levels=rev(unique(allres2.smooth$paper)))
 
 ggplot(allres.end.sum, aes(paper, yy)) +
-    coord_flip() +
+    coord_flip(ylim=c(-.075, .065)) +
     geom_pointrange(aes(ymin=ymin, ymax=ymax)) +
     geom_point(aes(y=yy, colour="Pop-weighted")) +
     geom_point(aes(y=gdp.lo, colour="Income Q1")) +
@@ -248,7 +253,7 @@ ggplot(allres.end.sum, aes(paper, yy)) +
     geom_point(aes(y=t2m.hi, colour="Temperature Q3")) +
     theme_bw() +
     scale_x_discrete(NULL) +
-    scale_y_continuous("Direct Impact (change in growth rate)", limits=c(-.075, .065), labels=scales::percent) +
+    scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
     scale_colour_manual("Statistic:", breaks=c("Pop-weighted", "Income Q1", "Income Q3", "Temperature Q1", "Temperature Q3"),
                         values=c('black', '#a6cee3', '#1f78b4', '#b2df8a', '#33a02c')) +
     theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.8, 'lines'))
@@ -256,7 +261,7 @@ ggsave("figures/figure1c.pdf", width=5, height=3.5)
 
 ## Number for paper: Range of expected losses
 (exp(range(allres.end.sum$yy)) - 1) * 100
-## -1.0902813  0.1684971
+## -1.6744325  0.1684971
 
 load.metaanal2 <- function(filebase) {
     results <- read.metaanal(filebase)
@@ -334,7 +339,7 @@ names(allres.end2)[1] <- 'name'
 botheachs <- rbind(cbind(panel="Main specifications", allres.end2),
                    cbind(panel="Meta-analyses", allmeta2))
 
-ggplot(bothspans, aes(name, yy)) +
+ggplot(rbind(data.frame(panel="Meta-analyses", name=c(" ", "  ", "   ", "    "), ymin=NA, ymax=NA, gdp.lo=NA, gdp.hi=NA, t2m.lo=NA, t2m.hi=NA, yy=NA), bothspans), aes(name, yy)) +
     facet_wrap(~ panel, ncol=1, scales="free_y") +
     coord_flip() +
     geom_boxplot(data=botheachs, aes(y=dimpact)) +
@@ -344,10 +349,13 @@ ggplot(bothspans, aes(name, yy)) +
     geom_point(aes(y=t2m.lo, colour="Temperature Q1")) +
     geom_point(aes(y=t2m.hi, colour="Temperature Q3")) +
     theme_bw() +
-    scale_x_discrete(NULL, limits=rev) +
+    scale_x_discrete(NULL) +
     scale_y_continuous("Direct Impact, 2014-2023 (change in growth rate)", limits=c(-.085, .065), labels=scales::percent) +
     scale_colour_manual("Statistic:", breaks=c("Pop-weighted", "Income Q1", "Income Q3", "Temperature Q1", "Temperature Q3"),
                         values=c('#fb9a99', '#a6cee3', '#1f78b4', '#b2df8a', '#33a02c')) +
-    theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.8, 'lines')) +
-    ggtitle("(c) Distribution of end-of-period country impacts")
+    theme(legend.justification=c(0,0), legend.position=c(.1,.01), legend.key.size=unit(0.8, 'lines')) +
+    ggtitle("(c) Distribution of end-of-period country impacts") +
+    guides(colour=guide_legend(ncol=2))
 ggsave("figures/figure1cd.pdf", width=5, height=7)
+
+

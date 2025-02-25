@@ -3,6 +3,7 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 do.skip.existing <- T
+do.obsimport <- T
 
 library(ranger)
 library(readxl)
@@ -16,9 +17,9 @@ load("data/mcres.RData")
 for (persist in c("0", "0.21", "0.36", "0.47")) {
 for (rf.approach in rf.approaches) {
     if (rf.approach == 'all') {
-        savepath <- function(mcii) paste0("data/metaanal/mcrfres-", persist, "-", mcii, ".RData")
+        savepath <- function(mcii) paste0("data/metaanal/mcrfres-", persist, "-", mcii, ifelse(do.obsimport, "-obs", ""), ".RData")
     } else {
-        savepath <- function(mcii) paste0("data/metaanal/mcrfres-", persist, "-", rf.approach, "-", mcii, ".RData")
+        savepath <- function(mcii) paste0("data/metaanal/mcrfres-", persist, "-", rf.approach, "-", mcii, ifelse(do.obsimport, "-obs", ""), ".RData")
     }
 
     if (do.skip.existing) {
@@ -126,9 +127,16 @@ for (mcii in 1:MCNUM) {
             }
 
             rfmod <- ranger(dimpact ~ ., data=values, num.trees=500, max.depth=12, verbose=TRUE)
-            predictions <- predict(rfmod, preddf)
+            if (!do.obsimport) {
+                predictions <- predict(rfmod, preddf)
+                results <- rbind(results, data.frame(mc=mcii, Year=year, ISO=iso, dimpact=mean(predictions$predictions)))
+            } else {
+                terminals <- predict(rfmod, values, type="terminalNodes")$predictions
+                chosen <- predict(rfmod, preddf, type="terminalNodes")$predictions
+                values$usage <- sapply(1:nrow(values), function(ii) mean(terminals[ii, ] == chosen))
+                results <- rbind(results, data.frame(mc=mcii, Year=year, ISO=iso, index=1:nrow(values), usage=values$usage))
+            }
 
-            results <- rbind(results, data.frame(mc=mcii, Year=year, ISO=iso, dimpact=mean(predictions$predictions)))
         }
     }
 

@@ -1,3 +1,5 @@
+## NOT UPDATED FOR v2
+
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 library(dplyr)
