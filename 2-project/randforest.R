@@ -2,7 +2,7 @@
 ## setwd("~/research/currentloss")
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
-do.skip.existing <- T
+do.skip.existing <- F
 do.obsimport <- T
 
 library(ranger)
@@ -16,6 +16,9 @@ load("data/mcres.RData")
 
 for (persist in c("0", "0.21", "0.36", "0.47")) {
 for (rf.approach in rf.approaches) {
+    if (do.obsimport && (persist != "0.36" || rf.approach != "all"))
+      next
+
     if (rf.approach == 'all') {
         savepath <- function(mcii) paste0("data/metaanal/mcrfres-", persist, "-", mcii, ifelse(do.obsimport, "-obs", ""), ".RData")
     } else {
@@ -98,6 +101,7 @@ years <- unique(allres$Year)
 for (mcii in 1:MCNUM) {
     if (do.skip.existing && file.exists(savepath(mcii)))
         next
+    print(savepath(mcii))
 
     allres3 <- subset(allres2, mc == mcii)
     results <- data.frame()
@@ -134,7 +138,7 @@ for (mcii in 1:MCNUM) {
                 terminals <- predict(rfmod, values, type="terminalNodes")$predictions
                 chosen <- predict(rfmod, preddf, type="terminalNodes")$predictions
                 values$usage <- sapply(1:nrow(values), function(ii) mean(terminals[ii, ] == chosen))
-                results <- rbind(results, data.frame(mc=mcii, Year=year, ISO=iso, index=1:nrow(values), usage=values$usage))
+                results <- rbind(results, data.frame(mc=mcii, Year=year, ISO=iso, paper=allres4$paper, name=allres4$name, usage=values$usage))
             }
 
         }
