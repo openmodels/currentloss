@@ -53,47 +53,6 @@ for (rf.approach in rf.approaches) {
 
 source("src/lib/loadmetadata.R")
 
-metadata$Q.Weather <- 1 * (metadata$`Weather weight` == "Pop. weight")
-metadata$Q.Poverty <- ifelse(metadata$`Rich/Poor` == "Interact", 0.5,
-                      ifelse(metadata$`Rich/Poor` == "Subsetted", 1.0, 0.))
-
-metadata$Q.Temp <- ifelse(metadata$Temp == "VarT, DT, LDT, DT:T, LDT:LT", 1 - ((1 - .5)*(1 - .25)*(1 - .5)*(1 - .25)),
-                   ifelse(metadata$Temp %in% c("DT, LDT, DT:T, LDT:T, T", "DT, LDT, DT:T, LDT:T, LT"), 1 - ((1 - .25)*(1 - .5)*(1 - .25)*(1 - .5)),
-                   ifelse(metadata$Temp %in% c("DT, LDT, DT:T, LDT:T, T, T2", "DT, LDT, DT:T, LDT:T, LT, LT2"), 1 - ((1 - .25)*(1 - .5)*(1 - .25)*(1 - .5)*(1 - .5)),
-                   ifelse(metadata$Temp == "DT, LDT", 1 - (1 - .25),
-                   ifelse(metadata$Temp == "1 Lag", 1 - (1 - 0.25),
-                   ifelse(metadata$Temp == "5 Lags", 1 - (1 - 0.25)^4,
-                   ifelse(metadata$Temp %in% c("Quad", "Interacted with average", "Linear Spline", "LT, DT"), .5,
-		   ifelse(metadata$Temp == "Cubic", 1 - .5^2,
-                   ifelse(metadata$Temp == "10 Lags", 1 - (1 - 0.25)^9,
-		   ifelse(metadata$Temp == "T1, LT1, T2, LT2", 1 - .5*(.75^2),
-                   ifelse(metadata$Temp %in% c("Linear", "Z-score", "FD", "Average 1986-2000 -  Average 1970-1985", "Symmetric Spline"), 0., NA)))))))))))
-metadata$Q.Prec <- ifelse(metadata$Prec. %in% c("DP, LDP, DP:P, LDP:P, P", "DP, LDP, DP:P, LDP:P, LP"), 1 - ((1 - .25)*(1 - .5)*(1 - .25)*(1 - .5)),
-                   ifelse(metadata$Prec. %in% c("DP, LDP, DP:P, LDP:P, P, P2", "DP, LDP, DP:P, LDP:P, LP, LP2"), 1 - ((1 - .25)*(1 - .5)*(1 - .25)*(1 - .5)*(1 - .5)),
-                   ifelse(metadata$Prec. == "Indicatators", 1 - (1 - 0.5)*(1 - 0.5)^2*(1 - 0.5)^2*(1 - 0.5)^2,
-                   ifelse(metadata$Prec. == "5 Lags", 1 - (1 - 0.25)^4,
-                   ifelse(metadata$Prec. %in% c("Quad", "Interacted with average", "Linear Spline", "LP, DP"), .5,
-                   ifelse(metadata$Prec. %in% c("1 Lag", "DT, LDT"), 1 - (1 - 0.25),
-                   ifelse(metadata$Prec. == "10 Lags", 1 - (1 - 0.25)^9,
-                   ifelse(metadata$Prec. %in% c("Linear", "Z-score", "FD", "Average 1986-2000 -  Average 1970-1985", "Symmetric Spline"), 0,
-                   ifelse(metadata$Prec. %in% c("NA", "No"), -1, NA)))))))))
-metadata$Q.YearFE <- ifelse(metadata$`Year FE` == "By Region", 1,
-                     ifelse(metadata$`Year FE` == "By Continent", 0.75,
-                     ifelse(metadata$`Year FE` == "Yes", 0.5, 0)))
-metadata$Q.Trends <- ifelse(metadata$`Trends` == "Quad, by Unit", 1,
-                     ifelse(metadata$`Trends` == "Linear, by Unit", 0.5,
-                     ifelse(metadata$`Trends` == "Global", 0.25, 0)))
-metadata$Q.OtherFE <- ifelse(metadata$`Other FE` == "IIS", 1,
-                      ifelse(metadata$`Other FE` == "Poor x Year", .75,
-                      ifelse(metadata$`Other FE` == "HPJ-FE", 0.5,
-                      ifelse(metadata$`Other FE` == "Poor", 0.25, 0))))
-metadata$Q.Control <- ifelse(metadata$`Other Controls` == "Lag GDP, Lag capital, Pesaran controls", 1,
-                      ifelse(metadata$`Other Controls` == "Lag Weather, Disaster", 0.75,
-                      ifelse(metadata$`Other Controls` == "Lag Weather", 0.5, 0)))
-metadata$Q.GLags <- as.numeric(metadata$`Growth Lags`) / 4
-metadata$Q.YearLate <- 5 / (2015 - metadata$last.year + 5)
-metadata$Q.YearSpan <- (metadata$last.year - metadata$first.year) / 65
-
 MCNUM <- max(allres$mc)
 isos <- unique(allres$ISO)
 years <- unique(allres$Year)
