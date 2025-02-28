@@ -15,8 +15,9 @@ micemodel <- mice(metadata[, c(grep("Q.", names(metadata)), grep("R2", names(met
 metadata2 <- complete(micemodel)
 metadata2$papername <- paste(metadata$Paper, metadata$Name)
 metadata2$`Adjusted R2`[metadata2$`Adjusted R2` < 0] <- 0
+metadata2$`Raw R2` <- ifelse(is.na(metadata2$`Total R2`), metadata2$`Adjusted R2`, metadata2$`Total R2`)
 
-r2cols <- names(metadata)[grep("R2", names(metadata))]
+r2cols <- 'Raw R2' # names(metadata)[grep("R2", names(metadata))]
 
 for (r2col in r2cols) {
     for (persist in c("0", "0.21", "0.36", "0.47")) {

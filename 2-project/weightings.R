@@ -1,8 +1,11 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
+library(dplyr)
+
+source("~/projects/research-common/R/myPBSmapping.R")
 source("src/lib/loadmetadata.R")
 
-library(dplyr)
+polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
 allres <- data.frame()
 for (mc in 1:30) {
@@ -15,6 +18,10 @@ for (mc in 1:30) {
     allres <- rbind(allres, results)
 }
 
-allres2 <- allres %>% group_by(paper, name) %>% summarize(usage=mean(usage)) %>% group_by(paper) %>% summarize(usage=sum(usage))
+allres2 <- allres %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
+    group_by(paper, name) %>%
+    summarize(usage=sum(usage * POP_EST) / sum(POP_EST))
 
-allres2[order(allres2$usage, decreasing=T),]
+allres3 <- group_by(paper) %>% summarize(usage=sum(usage))
+
+allres3[order(allres3$usage, decreasing=T),]
