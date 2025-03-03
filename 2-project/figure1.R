@@ -159,7 +159,14 @@ for (rf.approach in c("all", "controls", "nonlinear", "dataset")) {
     allmeta <- rbind(allmeta, results2)
 }
 
-allmeta$name <- factor(allmeta$name, levels=as.character(c(paperweight.names, rf.names)))
+r2.names <- list("Total R2"="R² Filled", "Raw R2"="R² Unfilled")
+for (r2col in names(r2.names)) {
+    results2 <- load.metaanal(paste0("mcr2res-", persist, "-", r2col))
+    results2$name <- r2.names[[r2col]]
+    allmeta <- rbind(allmeta, results2)
+}
+
+allmeta$name <- factor(allmeta$name, levels=as.character(c(paperweight.names, rf.names, r2.names)))
 
 allmeta.smooth <- rbind(allmeta %>% group_by(name) %>% mutate(mu=stats::filter(c(rep(0, 9), mu), rep(1/10, 10), method='conv')[5:(length(mu)+4)],
                                                               ci25=stats::filter(c(rep(0, 9), ci25), rep(1/10, 10), method='conv')[5:(length(ci25)+4)],
@@ -167,13 +174,13 @@ allmeta.smooth <- rbind(allmeta %>% group_by(name) %>% mutate(mu=stats::filter(c
 
 ggplot(allmeta.smooth, aes(Year, mu)) +
     coord_cartesian(ylim=c(-.017, .001)) +
-    geom_line(aes(colour=name, linetype=grepl("RF", name))) +
-    geom_ribbon(data=subset(allmeta.smooth, name == "RF with all quality criteria"), aes(ymin=ci25, ymax=ci75), alpha=.25) +
+    geom_line(aes(colour=name, linetype=ifelse(grepl("RF", name), "Random forest", ifelse(grepl("R²", name), "R²-based", "Resampling")))) +
+    geom_ribbon(data=subset(allmeta.smooth, name == "R² Filled"), aes(ymin=ci25, ymax=ci75), alpha=.25) +
     theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
     scale_colour_discrete("Meta-analysis:") +
-    scale_linetype_manual(name="Method:", breaks=c(F, T), values=c('dashed', 'F1'), labels=c("Resampling", "Random forest")) +
-    theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.8, 'lines')) +
+    scale_linetype_manual(name="Method:", breaks=c("Resampling", "Random forest", "R²-based"), values=c('dotted', 'dashed', 'F1')) +
+    theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.7, 'lines')) +
     ggtitle("(b) Population-weighted mean of meta-analyses") +
     theme(legend.box="horizontal", legend.box.just="bottom") +
     guides(colour=guide_legend(order=1),linetype=guide_legend(order=2))
@@ -189,6 +196,8 @@ subset(allmeta.smooth, Year == 2023)
 ## 5  2023 -0.0119  -0.0167  -0.00568  RF with controls criteria
 ## 6  2023 -0.0168  -0.0383   0.00317  RF with nonlinearity criteria
 ## 7  2023 -0.00952 -0.0138  -0.00529  RF with dataset criteria
+## 8  2023 -0.00906 -0.0127  -0.00280  R² Filled
+## 9  2023 -0.0120  -0.0241  -0.00246  R² Unfilled
 
 ## (c) Countries by reference
 polydata$gdppc <- 1e6 * polydata$GDP_MD / polydata$POP_EST
@@ -287,6 +296,12 @@ for (rf.approach in c("all", "controls", "nonlinear", "dataset")) {
         results2 <- load.metaanal2(paste0("mcrfres-", persist, "-", rf.approach))
     results2$name <- rf.names[[rf.approach]]
     allmeta2 <- rbind(allmeta2, results2)
+}
+
+for (r2col in c("Total R2", "Raw R2")) {
+    results2 <- load.metaanal2(paste0("mcr2res-", persist, "-", r2col))
+    results2$name <- r2.names[[r2col]]
+    allmeta <- rbind(allmeta, results2)
 }
 
 allmeta2.sum <- allmeta2 %>% group_by(name) %>%
