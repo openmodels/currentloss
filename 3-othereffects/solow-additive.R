@@ -11,7 +11,7 @@ library(parallel)
 
 do.mcs <- 1:30
 persist <- "0.36"
-trade.method <- 'dd'
+trade.method <- 'dd-mcr2all'
 
 source("src/lib/utils2.R")
 

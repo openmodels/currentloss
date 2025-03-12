@@ -10,13 +10,12 @@ library(rstan)
 library(parallel)
 
 do.mcs <- 1:30
+do.trade.suffix <- "-mcr2all"
 ## persist <- "0.36"
 ## trade.method <- 'dd'
 
 for (persist in c("0", "0.21", "0.36", "0.47")) {
-trade.methods <- c("dd", "fd", "li")
-if (persist == "0.36")
-    trade.methods <- c(trade.methods, c("dd-mcpaperall", "fd-mcpaperall", "li-mcpaperall"))
+trade.methods <- paste0(c("dd", "fd", "li"), do.trade.suffix)
 
 for (trade.method in trade.methods) {
 

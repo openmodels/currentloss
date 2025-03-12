@@ -43,7 +43,7 @@ load.slr2 <- function(df.gdp3) {
 }
 
 load.tradeloss <- function(method, persist) {
-    if (method != 'dd') {
+    if (substring(method, 1, 2) != 'dd') {
         tradeloss.all <- data.frame()
         for (year in 1940:2023) {
             load(paste0(paste0("data/tradeloss-", method, "/tradeloss-", year, "-", persist, ".RData")))
