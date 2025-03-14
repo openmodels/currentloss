@@ -10,8 +10,8 @@ library(rstan)
 library(parallel)
 
 do.mcs <- 1:30
-persist <- "0.21"
-trade.method <- 'dd'
+persist <- "0.36"
+trade.method <- 'dd-mcr2all'
 
 source("src/lib/utils2.R")
 
