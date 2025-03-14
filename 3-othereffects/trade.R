@@ -10,7 +10,7 @@ source("src/3-othereffects/trade-io.R")
 ## method.function <- calc.final.demand.method
 do.keep.incgrp <- NULL
 do.metaanal <- "mcpaperres-PERSIST-all" # "mcr2res-PERSIST-Total R2" # "mcrfres-PERSIST"
-do.outdir.suffix <- "mcpaperall" # "-mcr2all" # ""
+do.outdir.suffix <- "-mcpaperall" # "-mcr2all" # ""
 
 method.function.map <- list('dd'=NULL, 'fd'=calc.final.demand.method, 'li'=calc.leontief.method)
 

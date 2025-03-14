@@ -301,7 +301,7 @@ for (rf.approach in c("all", "controls", "nonlinear", "dataset")) {
 for (r2col in c("Total R2", "Raw R2")) {
     results2 <- load.metaanal2(paste0("mcr2res-", persist, "-", r2col))
     results2$name <- r2.names[[r2col]]
-    allmeta <- rbind(allmeta, results2)
+    allmeta2 <- rbind(allmeta2, results2)
 }
 
 allmeta2.sum <- allmeta2 %>% group_by(name) %>%
@@ -354,23 +354,29 @@ names(allres.end2)[1] <- 'name'
 botheachs <- rbind(cbind(panel="Main specifications", allres.end2),
                    cbind(panel="Meta-analyses", allmeta2))
 
-ggplot(rbind(data.frame(panel="Meta-analyses", name=c(" ", "  ", "   ", "    "), ymin=NA, ymax=NA, gdp.lo=NA, gdp.hi=NA, t2m.lo=NA, t2m.hi=NA, yy=NA), bothspans), aes(name, yy)) +
+mylevels <- c(" ", "  ", "   ", "    ", rev(as.character(bothspans$name)))
+bothspans$name <- factor(bothspans$name, levels=mylevels)
+botheachs$name <- factor(botheachs$name, levels=mylevels)
+
+## ggplot(rbind(data.frame(panel="Meta-analyses", name=factor(c(" ", "  ", "   ", "    "), levels=mylevels), ymin=NA, ymax=NA, gdp.lo=NA, gdp.hi=NA, t2m.lo=NA, t2m.hi=NA, yy=NA), bothspans), aes(name, yy)) +
+ggplot(bothspans, aes(name, yy)) +
     facet_wrap(~ panel, ncol=1, scales="free_y") +
     coord_flip() +
     geom_boxplot(data=botheachs, aes(y=dimpact)) +
-    geom_point(aes(y=yy, colour="Pop-weighted")) +
+    geom_point(aes(y=yy, colour="Pop-weighted"), position=position_nudge(x=.2)) +
     geom_point(aes(y=gdp.lo, colour="Income Q1")) +
     geom_point(aes(y=gdp.hi, colour="Income Q3")) +
-    geom_point(aes(y=t2m.lo, colour="Temperature Q1")) +
-    geom_point(aes(y=t2m.hi, colour="Temperature Q3")) +
+    geom_point(aes(y=t2m.lo, colour="Temperature Q1"), position=position_nudge(x=-.2)) +
+    geom_point(aes(y=t2m.hi, colour="Temperature Q3"), position=position_nudge(x=-.2)) +
     theme_bw() +
     scale_x_discrete(NULL) +
-    scale_y_continuous("Direct Impact, 2014-2023 (change in growth rate)", limits=c(-.085, .065), labels=scales::percent) +
+    scale_y_continuous("Direct Impact, 2014-2023 (growth rate change)", limits=c(-.085, .065), labels=scales::percent) +
     scale_colour_manual("Statistic:", breaks=c("Pop-weighted", "Income Q1", "Income Q3", "Temperature Q1", "Temperature Q3"),
                         values=c('#fb9a99', '#a6cee3', '#1f78b4', '#b2df8a', '#33a02c')) +
-    theme(legend.justification=c(0,0), legend.position=c(.1,.01), legend.key.size=unit(0.8, 'lines')) +
-    ggtitle("(c) Distribution of end-of-period country impacts") +
+    ##theme(legend.justification=c(0,0), legend.position=c(.1,.001), legend.key.size=unit(0.8, 'lines'), plot.margin=margin(t=5, r=5, b=20, l=5, unit="pt")) +
+    theme(legend.justification=c(0,0), legend.position="bottom", legend.key.size=unit(0.8, 'lines'), plot.margin=margin(t=5, r=5, b=20, l=5, unit="pt")) +
+    ggtitle("(c) End-of-period country impacts") +
     guides(colour=guide_legend(ncol=2))
-ggsave("figures/figure1cd.pdf", width=5, height=7)
+ggsave("figures/figure1cd.pdf", width=5, height=8.15)
 
 
