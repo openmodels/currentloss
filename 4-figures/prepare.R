@@ -4,9 +4,22 @@
 library(Hmisc)
 library(PBSmapping)
 
-persist <- "0.08"
-trade.method <- 'fd'
+do.redo <- F
+persist <- "0.36"
+trade.method <- 'dd'
 solow.config <- '' #'' #'-prodonly' #'-additive'
+
+for (persist in c("0.36", "0", "0.21", "0.47")) {
+    for (trade.method.prefix in c('dd', 'fd', 'li')) {
+        for (trade.method in paste0(trade.method.prefix, c("", "-mcpaperall", "-mcr2all"))) {
+            for (solow.config in c('', '-prodonly', '-noadd', '-additive')) {
+                if (!file.exists(paste0("data/solow-", persist, "-", trade.method, solow.config)))
+                    next
+                if (!do.redo && file.exists(paste0("data/allyr-ww-", persist, "-", trade.method, solow.config, ".RData")))
+                    next
+
+                print(c(persist, trade.method, solow.config))
+
 source("src/lib/utils2.R")
 
 load.solowdata()
@@ -54,6 +67,9 @@ for (mcii in 1:30) {
             failures <- c(failures, paste(mcii, iso))
             next
         }
+
+        if (is.null(la$cumulpart) && solow.config == '-noadd')
+            la$cumulpart <- rep(1, stan.data$T)
 
         denom <- df2$denom[df2$ISO == iso][1]
         if (solow.config != '-prodonly') {
@@ -112,3 +128,8 @@ allyr.ww <- allyr %>% left_join(solowsum3, by=c('ISO', 'mc'), suffix=c('', '.sol
                TRUE ~ weight / sum(weight, na.rm=T)))
 
 save(allyr.ww, file=paste0("data/allyr-ww-", persist, "-", trade.method, solow.config, ".RData"))
+
+            }
+        }
+    }
+}
