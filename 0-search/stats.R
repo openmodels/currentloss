@@ -7,21 +7,39 @@ for (source in c('scopus', 'websci')) {
     source("src/0-search/standardize.R")
 
     if (source == 'websci') {
-        df3 <- df2[, c('DOI', 'Authors', 'Article Title', 'Source Title', 'Publication Year', 'included', 'XG.gemini', 'XE.gemini', 'XW.gemini', 'XN.gemini', 'PP.gemini', 'XG.openai', 'XE.openai', 'XW.openai', 'XN.openai', 'PP.openai', 'XX.common', 'Verdict.common', 'AI.include')]
+        df3 <- df2[, c('DOI', 'Authors', 'Article Title', 'Source Title', 'Publication Year', 'included', 'XG.gemini', 'XE.gemini', 'XW.gemini', 'XN.gemini', 'PP.gemini', 'XG.openai', 'XE.openai', 'XW.openai', 'XN.openai', 'PP.openai')]
         names(df3)[3:5] <- c('Title', 'Journal', 'Year')
     } else {
-        df3 <- df2[, c('DOI', 'Authors', 'Title', 'Source.title', 'Year', 'included', 'XG.gemini', 'XE.gemini', 'XW.gemini', 'XN.gemini', 'PP.gemini', 'XG.openai', 'XE.openai', 'XW.openai', 'XN.openai', 'PP.openai', 'XX.common', 'Verdict.common', 'AI.include')]
+        df3 <- df2[, c('DOI', 'Authors', 'Title', 'Source.title', 'Year', 'included', 'XG.gemini', 'XE.gemini', 'XW.gemini', 'XN.gemini', 'PP.gemini', 'XG.openai', 'XE.openai', 'XW.openai', 'XN.openai', 'PP.openai')]
         names(df3)[4] <- 'Journal'
     }
     df3$source <- source
 
-    df2$XG.common <- ifelse(!is.na(df2$XG.gemini) & !is.na(df2$XG.openai), df2$XG.gemini & df2$XG.openai, NA)
-    df2$XE.common <- ifelse(!is.na(df2$XE.gemini) & !is.na(df2$XE.openai), df2$XE.gemini & df2$XE.openai, NA)
-    df2$XW.common <- ifelse(!is.na(df2$XW.gemini) & !is.na(df2$XW.openai), df2$XW.gemini & df2$XW.openai, NA)
-    df2$XN.common <- ifelse(!is.na(df2$XN.gemini) & !is.na(df2$XN.openai), df2$XN.gemini & df2$XN.openai, NA)
+    df3$XG.common <- ifelse(!is.na(df3$XG.gemini) & !is.na(df3$XG.openai), df3$XG.gemini & df3$XG.openai, NA)
+    df3$XE.common <- ifelse(!is.na(df3$XE.gemini) & !is.na(df3$XE.openai), df3$XE.gemini & df3$XE.openai, NA)
+    df3$XW.common <- ifelse(!is.na(df3$XW.gemini) & !is.na(df3$XW.openai), df3$XW.gemini & df3$XW.openai, NA)
+    df3$XN.common <- ifelse(!is.na(df3$XN.gemini) & !is.na(df3$XN.openai), df3$XN.gemini & df3$XN.openai, NA)
 
     alldf <- rbind(alldf, df3)
 }
 
 table(alldf$source)
 length(unique(alldf$DOI))
+
+sum(alldf$XG.common, na.rm=T)
+sum(alldf$XW.common, na.rm=T)
+sum(alldf$XE.common, na.rm=T)
+sum(alldf$XN.common, na.rm=T)
+
+sum(!alldf$XG.common & !alldf$XE.common & !alldf$XW.common & !alldf$XN.common, na.rm=T)
+
+allfurther <- data.frame()
+for (source in c('scopus', 'websci')) {
+    df <- read.csv(paste0("data/search/further-consideration-", source, ".csv"))
+    allfurther <- rbind(allfurther, df[, c('DOI', 'included', 'Final.Verdict', 'Final.include')])
+}
+
+allfurther$Final.Verdict[allfurther$Final.include] <- "include"
+table(allfurther$Final.Verdict)
+
+subset(allfurther, !included & Final.include)
