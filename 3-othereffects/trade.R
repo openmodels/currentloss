@@ -9,7 +9,6 @@ source("src/3-othereffects/trade-io.R")
 ## method <- 'dd'
 ## method.function <- calc.final.demand.method
 do.keep.incgrp <- NULL
-do.metaanal <- "mcpaperres-PERSIST-all" # "mcr2res-PERSIST-Total R2" # "mcrfres-PERSIST"
 do.outdir.suffix <- "-mcpaperall" # "-mcr2all" # ""
 
 method.function.map <- list('dd'=NULL, 'fd'=calc.final.demand.method, 'li'=calc.leontief.method)
@@ -42,7 +41,7 @@ df.gdp3 <- load.gdp3()
 slr2 <- load.slr2(df.gdp3)
 
 for (persist in c('0', '0.21', '0.36', '0.47')) {
-    results <- read.metaanal(sub("PERSIST", persist, do.metaanal))
+    results <- read.metaanal.trade(do.outdir.suffix, persist)
 
     results2 <- results %>% group_by(ISO, mc) %>%
         mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - as.numeric(persist))^(0:30), sides=1)[-1:-30]) %>%

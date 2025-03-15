@@ -3,7 +3,7 @@ library(countrycode)
 source("src/lib/loadutils.R")
 
 ## Grab pre-Solow results for countries without capital info
-results <- read.metaanal(paste0("mcrfres-", persist))
+results <- read.metaanal.trade(trade.method, persist)
 results2 <- results %>% group_by(ISO, mc) %>%
     mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - as.numeric(persist))^(0:30), sides=1)[-1:-30])
 

@@ -1,6 +1,20 @@
 library(readxl)
 library(reshape2)
 
+read.metaanal.trade <- function(trade.method, persist) {
+    if (grepl("-mcpaperall", trade.method)) {
+        print("Loading Monte Carlo over all spec.")
+        metaanal <- "mcpaperres-PERSIST-all"
+    } else if (grepl("-mcr2all", trade.method)) {
+        print("Loading R² Filled")
+        metaanal <- "mcr2res-PERSIST-Total R2"
+    } else {
+        print("Loading RF with all quality criteria")
+        metaanal <- "mcrfres-PERSIST"
+    }
+    read.metaanal(sub("PERSIST", persist, metaanal))
+}
+
 read.metaanal <- function(filebase) {
     allres <- data.frame()
     for (mc in 1:30) {

@@ -11,6 +11,7 @@ library(parallel)
 
 do.mcs <- 1:30
 do.trade.suffix <- "-mcpaperall"
+
 ## persist <- "0.36"
 ## trade.method <- 'dd'
 
