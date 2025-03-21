@@ -6,11 +6,11 @@ library(dplyr)
 library(reshape2)
 library(ggplot2)
 library(Hmisc)
-library(PBSmapping)
+source("~/projects/research-common/R/myPBSmapping.R")
 library(countrycode)
 
-persist = 0.21
-trade.method <- 'dd'
+persist = 0.36
+trade.method <- 'dd-mcr2all'
 source("src/lib/utils2.R")
 source("src/lib/synth.R")
 
@@ -422,3 +422,51 @@ subset(sumbygroup, Group == "AOSIS")
 subset(sumbygroup, Group == "EU")
 subset(sumbygroup, Group == "Africa")
 subset(sumbygroup, Group == "LDCs")
+
+## Maps
+
+cents <- calcCentroid(shp, rollup=2)
+areas <- calcArea(shp, rollup=2)
+centroids <- cents %>% left_join(areas, by=c('PID', 'SID')) %>% group_by(PID) %>%
+    dplyr::summarize(X=X[which.max(area)], Y=Y[which.max(area)])
+
+source("src/lib/distance.R")
+centroids$show <- F
+for (PID in order(polydata$POP_EST, decreasing=T)) {
+    dists <- gcd.slc(centroids$X[PID], centroids$Y[PID], centroids$X[centroids$show], centroids$Y[centroids$show])
+    if (all(dists > 600))
+        centroids$show[PID] <- T
+}
+centroids$show[centroids$X < -176] <- F
+centroids$show[centroids$X > 176] <- F
+centroids$show[centroids$Y < -50] <- F
+centroids$show[centroids$Y > 65] <- F
+
+sumbyiso$ISO %in% polydata$ADM0_A3
+
+shp2 <- shp %>% left_join(polydata[, c('PID', 'ADM0_A3')]) %>% left_join(sumbyiso, by=c('ADM0_A3'='ISO'))
+centroids2 <- centroids %>% left_join(polydata[, c('PID', 'ADM0_A3')]) %>% left_join(sumbyiso, by=c('ADM0_A3'='ISO'))
+
+shpl <- importShapefile("data/regions/ne_10m_land/ne_10m_land.shp")
+
+gg <- ggplot(shp2, aes(X, Y)) +
+    geom_polygon(data=shpl, aes(group=paste(PID, SID)), fill='#808080', colour=NA) +
+    geom_polygon(aes(fill=pmin(.1, pmax(-.25, log2lev(total))), group=paste(PID, SID))) +
+    geom_polygon(data=shpl, aes(group=paste(PID, SID)), fill=NA, colour='black', linewidth=.01) +
+    geom_label(data=subset(centroids2, show), aes(label=round(log2lev(total) * 100)), size=3, label.padding=unit(0.1, "lines")) +
+    xlab(NULL) + ylab(NULL) + coord_map(ylim=c(-50, 65)) +
+    scale_fill_gradient2("Change in GDP (%):", low = scales::muted("red"), high = scales::muted("blue"), labels=scales::percent, guide=guide_colorbar(barwidth=10, barheight=1)) +
+    theme_bw() + theme(legend.position="bottom", legend.key.width=unit(10,"in"),
+                       legend.key.height=unit(1,"in"))
+ggsave("figures/finalprod-map.pdf", width=10, height=5.5)
+
+gg <- ggplot(shp2, aes(X, Y)) +
+    geom_polygon(data=shpl, aes(group=paste(PID, SID)), fill='#808080', colour=NA) +
+    geom_polygon(aes(fill=log2lev(allcap.chg), group=paste(PID, SID))) +
+    geom_polygon(data=shpl, aes(group=paste(PID, SID)), fill=NA, colour='black', linewidth=.01) +
+    geom_label(data=centroids2, aes(label=round(log2lev(allcap.chg) * 100)), size=2, label.padding=unit(0.1, "lines")) +
+    xlab(NULL) + ylab(NULL) + coord_map(ylim=c(-50, 65)) +
+    scale_fill_gradient2("Change in capital (%):", low = scales::muted("red"), high = scales::muted("blue"), labels=scales::percent, guide=guide_colorbar(barwidth=10, barheight=1)) +
+    theme_bw() + theme(legend.position="bottom", legend.key.width=unit(10,"in"),
+                       legend.key.height=unit(1,"in"))
+ggsave("figures/finalcap-map.pdf", width=10, height=4)

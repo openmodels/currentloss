@@ -1,5 +1,5 @@
 if (F) {
-    setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
+    setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
     source("src/2-project/driver.R")
     source("src/lib/utils.R")
@@ -11,7 +11,7 @@ get.funcs <- function(name) {
         se <- c(0.00418, 0.000155)
     } else if (name == "Poor vs. Rich") {
         ## T, Txpoor, T2, T2xpoor
-        beta <- c(0.00828, -0.0209, 0.000340, -7.41e-5)
+        beta <- c(0.00828, -0.0209, -0.000340, -7.41e-5)
         se <- c(0.00387, 0.0351, 0.000144, 0.000796)
     }
 

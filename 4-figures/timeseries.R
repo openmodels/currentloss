@@ -9,8 +9,8 @@ library(sf)
 
 do.for.subset <- "global" # "global" or "L+MIC"
 
-persist <- "0.21"
-trade.method <- "dd"
+persist <- "0.36"
+trade.method <- "dd-mcr2all"
 source("src/lib/utils2.R")
 source("src/lib/synth.R")
 
@@ -80,9 +80,9 @@ allyr3.gdp <- get.weighted.ts(allyr.ww, 'gdp', do.for.subset)
 allyr4 <- rbind(cbind(allyr3.pop, weights = "Population"), cbind(allyr3.gdp, weights = "Output"))
 
 y_label <- if (do.for.subset == "L+MIC") {
-    "Global weighted changing in GDP (%) for \n Low & Middle Income countries"
+    "Global weighted change in GDP (%) for \n Low & Middle Income countries"
 } else {
-    "Global weighted changing in GDP (%)"
+    "Global weighted change in GDP (%)"
 }
 
 gp <- ggplot(allyr3.pop, aes(Year)) +
@@ -96,7 +96,7 @@ gp <- ggplot(allyr3.pop, aes(Year)) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
     scale_colour_manual(NULL, breaks=c("Direct Impact", "Direct + SLR", "Direct + SLR + Trade", "Total Impact", "Output-weighted Total"), values=c("#1b9e77", "#7570b3", "#d95f02", "#000000", "#808080")) +
     theme(legend.position=c(.5, .25))
-ggsave(paste0("figures/globaltime-noloess_", do.for.subset, ".pdf"), width=6.25, height=4)
+ggsave(paste0("figures/globaltime-noloess_", do.for.subset, ".pdf"), width=6.25, height=3.9)
 
 ## Pres fig 1: direct-only
 gp <- ggplot(allyr3.pop, aes(Year)) +
@@ -109,7 +109,7 @@ gp <- ggplot(allyr3.pop, aes(Year)) +
   theme_bw() + scale_y_continuous("Global weighted changing in GDP (%)", labels=scales::percent) +
   scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
   scale_colour_manual(NULL, breaks=c("Direct Impact", "Direct + SLR", "Direct + SLR + Trade", "Total Impact", "Output-weighted Total"), values=c("#1b9e77", "#7570b3", "#d95f02", "#000000", "#808080")) + theme(legend.position=c(.5, .25))
-ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step1.pdf"), width=6.25, height=4)
+ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step1.pdf"), width=6.25, height=3.9)
 
 ## Pres fig 2: direct + slr
 gp <- ggplot(allyr3.pop, aes(Year)) +
@@ -122,7 +122,7 @@ gp <- ggplot(allyr3.pop, aes(Year)) +
   theme_bw() + scale_y_continuous("Global weighted changing in GDP (%)", labels=scales::percent) +
   scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
   scale_colour_manual(NULL, breaks=c("Direct Impact", "Direct + SLR", "Direct + SLR + Trade", "Total Impact", "Output-weighted Total"), values=c("#1b9e77", "#7570b3", "#d95f02", "#000000", "#808080")) + theme(legend.position=c(.5, .25))
-ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step2.pdf"), width=6.25, height=4)
+ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step2.pdf"), width=6.25, height=3.9)
 
 ## Pres fig 2.5: direct + slr + trade
 gp <- ggplot(allyr3.pop, aes(Year)) +
@@ -135,7 +135,7 @@ gp <- ggplot(allyr3.pop, aes(Year)) +
   theme_bw() + scale_y_continuous("Global weighted changing in GDP (%)", labels=scales::percent) +
   scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
   scale_colour_manual(NULL, breaks=c("Direct Impact", "Direct + SLR", "Direct + SLR + Trade", "Total Impact", "Output-weighted Total"), values=c("#1b9e77", "#7570b3", "#d95f02", "#000000", "#808080")) + theme(legend.position=c(.5, .25))
-ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step3.pdf"), width=6.25, height=4)
+ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step3.pdf"), width=6.25, height=3.9)
 
 ## Pres fig 3: total
 gp <- ggplot(allyr3.pop, aes(Year)) +
@@ -148,7 +148,7 @@ gp <- ggplot(allyr3.pop, aes(Year)) +
   theme_bw() + scale_y_continuous("Global weighted changing in GDP (%)", labels=scales::percent) +
   scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
   scale_colour_manual(NULL, breaks=c("Direct Impact", "Direct + SLR", "Direct + SLR + Trade", "Total Impact", "Output-weighted Total"), values=c("#1b9e77", "#7570b3", "#d95f02", "#000000", "#808080")) + theme(legend.position=c(.5, .25))
-ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step4.pdf"), width=6.25, height=4)
+ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step4.pdf"), width=6.25, height=3.9)
 
 ## Pres fig 4: + output-weighted
 gp <- ggplot(allyr3.pop, aes(Year)) +
@@ -161,11 +161,15 @@ gp <- ggplot(allyr3.pop, aes(Year)) +
   theme_bw() + scale_y_continuous("Global weighted changing in GDP (%)", labels=scales::percent) +
   scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
   scale_colour_manual(NULL, breaks=c("Direct Impact", "Direct + SLR", "Direct + SLR + Trade", "Total Impact", "Output-weighted Total"), values=c("#1b9e77", "#7570b3", "#d95f02", "#000000", "#808080")) + theme(legend.position=c(.5, .25))
-ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step5.pdf"), width=6.25, height=4)
+ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step5.pdf"), width=6.25, height=3.9)
 
 ## Numbers for pres
 tail(allyr3.pop, 1)
+##    Year   solow  prod25  prod75   total totimpact slrloss tradeloss
+## 1  2023 -0.0237 -0.0898 -0.0210 -0.0525   -0.0424 0.00107   0.00375
 tail(allyr3.gdp, 1)
+##    Year   solow  prod25  prod75   total totimpact  slrloss tradeloss
+## 1  2023 -0.0138 -0.0537 -0.0133 -0.0351   -0.0281 0.000403   0.00360
 
 ## Numbers for report
 allyr3.pop.mc <- get.weighted.mcts(allyr.ww, 'pop', do.for.subset)
@@ -176,10 +180,10 @@ allyr3.pop.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
               ci75=log2lev(wtd.quantile(total, .75, weights=weight2, normwt=T)))
 ## Global:
 ##        mu    ci25    ci75
-## 1 -0.0569 -0.0917 -0.0301
+## 1 -0.0511 -0.0858 -0.0208
 ## L+MIC:
 ##        mu    ci25    ci75
-## 1 -0.0627  -0.100 -0.0331
+## TODO
 allyr3.gdp.mc <- get.weighted.mcts(allyr.ww, 'gdp', do.for.subset)
 allyr3.gdp.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
     dplyr::summarize(total=mean(total), weight2=mean(weight2)) %>%
@@ -188,10 +192,10 @@ allyr3.gdp.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
               ci75=log2lev(wtd.quantile(total, .75, weights=weight2, normwt=T)))
 ## Global:
 ##        mu    ci25    ci75
-## 1 -0.0412 -0.0568 -0.0182
+## 1 -0.0345 -0.0523 -0.0132
 ## L+MIC:
 ##        mu    ci25    ci75
-## 1 -0.0524 -0.0837 -0.0273
+## TODO
 
 ## Determine ranges
 
