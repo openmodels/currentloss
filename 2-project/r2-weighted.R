@@ -18,10 +18,13 @@ metadata2$`Adjusted R2`[metadata2$`Adjusted R2` < 0] <- 0
 metadata2$`Raw R2` <- ifelse(is.na(metadata$`Total R2`), metadata$`Adjusted R2`, metadata$`Total R2`)
 metadata2$`Raw R2`[is.na(metadata2$`Raw R2`)] <- 0
 
-r2cols <- names(metadata)[grep("R2", names(metadata))]
+r2cols <- names(metadata2)[grep("R2", names(metadata2))]
+isos <- unique(mcres$ISO)
+years <- unique(mcres$Year)
 
 for (r2col in r2cols) {
     for (persist in c("0", "0.21", "0.36", "0.47")) {
+        print(c(r2col, persist))
         allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[persist]])
 
         ## Find rows for valid models that are NA (before some point in that model)
@@ -37,15 +40,18 @@ for (r2col in r2cols) {
             print(c(persist, mcii))
 
             outpath <- paste0("data/metaanal/mcr2res-", persist, "-", r2col, "-", mcii, ".RData")
-            if (file.exists(outpath))
-                next
+            ## if (file.exists(outpath))
+            ##     next
 
-	    chosen <- sample(metadata2$papername, 1, prob=metadata2[, r2col])
-            allres3 <- subset(allres2, papername == chosen & mc == mcii)
-            results <- allres3[, c('mc', 'Year', 'ISO', 'dimpact')]
+            for (iso in isos) {
+                for (year in years) {
+                    chosen <- sample(metadata2$papername, 1, prob=metadata2[, r2col])
+                    allres3 <- subset(allres2, papername == chosen & mc == mcii & ISO == iso & Year == year)
+                    results <- allres3[, c('mc', 'Year', 'ISO', 'dimpact')]
+                }
+            }
 
             save(results, file=outpath)
         }
-
     }
 }
