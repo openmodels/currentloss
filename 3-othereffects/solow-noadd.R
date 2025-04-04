@@ -13,7 +13,11 @@ library(parallel)
 
 do.mcs <- 1:30
 persist <- "0.36"
-trade.method <- 'dd-mcr2all'
+do.trade.suffix <- "-mcr2all"
+
+trade.methods <- paste0(c("dd", "fd", "li"), do.trade.suffix)
+for (trade.method in trade.methods) {
+print(c(persist, trade.method))
 
 source("src/lib/utils2.R")
 
@@ -208,4 +212,6 @@ for (mcii in 1:30) {
         sumbymc <- rbind(sumbymc, allrows[[ii]])
 
     write.csv(sumbymc, paste0("data/solow-", persist, "-", trade.method, "-noadd/solow-v4-", persist, "-", mcii, ".csv"), row.names=F)
+}
+
 }
