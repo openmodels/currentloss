@@ -26,36 +26,38 @@ metadata2$`Raw R2`[is.na(metadata2$`Raw R2`)] <- 0
 r2cols <- names(metadata2)[grep("R2", names(metadata2))]
 isos <- unique(mcres$ISO)
 years <- unique(mcres$Year)
+nummc <- max(mcres$mc)
 
-for (r2col in r2cols) {
-    for (persist in c("0", "0.21", "0.36", "0.47")) {
+for (persist in c("0.36", "0.21", "0.47", "0")) {
+    allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[persist]])
+    
+    ## Find rows for valid models that are NA (before some point in that model)
+    allresfix <- allres %>% group_by(ISO, paper, name) %>% filter(!all(is.na(dimpact))) %>%
+        mutate(dimpact=ifelse(is.na(dimpact), 0, dimpact))
+    allres2 <- allres %>% left_join(allresfix, by=c('ISO', 'Year', 'paper', 'name', 'mc'), suffix=c('.ori', '.fix'))
+    allres2$dimpact <- ifelse(is.na(allres2$dimpact.ori), allres2$dimpact.fix, allres2$dimpact.ori)
+
+    rm(allres, allresfix)
+    
+    ## For the mainmed method
+    allres2$papername <- paste(allres2$paper, allres2$name)
+
+    for (r2col in c("Total R2", "Raw R2", r2cols[!(r2cols %in% c("Total R2", "Raw R2"))])) {
         print(c(r2col, persist))
-        allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[persist]])
-
-        ## Find rows for valid models that are NA (before some point in that model)
-        allresfix <- allres %>% group_by(ISO, paper, name) %>% filter(!all(is.na(dimpact))) %>%
-            mutate(dimpact=ifelse(is.na(dimpact), 0, dimpact))
-        allres2 <- allres %>% left_join(allresfix, by=c('ISO', 'Year', 'paper', 'name', 'mc'), suffix=c('.ori', '.fix'))
-        allres2$dimpact <- ifelse(is.na(allres2$dimpact.ori), allres2$dimpact.fix, allres2$dimpact.ori)
-
-        ## For the mainmed method
-        allres2$papername <- paste(allres2$paper, allres2$name)
-
-        for (mcii in 1:max(allres$mc)) {
+        
+        for (mcii in 1:nummc) {
             print(c(persist, mcii))
 
             outpath <- paste0("data/metaanal/mcr2res-", persist, "-", r2col, "-", mcii, ".RData")
-            ## if (file.exists(outpath))
-            ##     next
+            if (file.exists(outpath))
+                next
 
-            for (iso in isos) {
-                for (year in years) {
-                    chosen <- sample(metadata2$papername, 1, prob=metadata2[, r2col])
-                    allres3 <- subset(allres2, papername == chosen & mc == mcii & ISO == iso & Year == year)
-                    results <- allres3[, c('mc', 'Year', 'ISO', 'dimpact')]
-                }
-            }
-
+            allres3 <- subset(allres2, mc == mcii) %>% left_join(metadata2, by='papername')
+            allres3$weights <- allres3[, r2col]
+            
+            results <- allres3 %>%
+                group_by(mc, ISO, Year) %>% summarize(dimpact=sample(dimpact, 1, prob=weights))
+            
             save(results, file=outpath)
         }
     }

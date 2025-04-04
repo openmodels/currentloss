@@ -19,7 +19,6 @@ for (persist in c("0.36", "0", "0.21", "0.47")) {
 trade.methods <- paste0(c("dd", "fd", "li"), do.trade.suffix)
 
 for (trade.method in trade.methods) {
-
 print(c(persist, trade.method))
 
 source("src/lib/utils2.R")
