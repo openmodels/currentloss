@@ -281,32 +281,33 @@ allsums$Group[allsums$Group == 'Seven seas (open ocean)'] <- "Open Ocean"
 subset(allsums, Group == "Least developed region")
 subset(allsums, Group == "South-Eastern Asia")
 log2lev(allsums$total[allsums$Group == "South-Eastern Asia"])
-## -0.1148802
+## -0.1139581
 log2lev(allsums$prod25[allsums$Group == "South-Eastern Asia"])
-## -0.1795854
+## -0.214318
 log2lev(allsums$prod75[allsums$Group == "South-Eastern Asia"])
-## -0.08045667
+## -0.03971981
 subset(allsums, Group == "Western Africa")
 log2lev(allsums$total[allsums$Group == "Western Africa"])
 log2lev(allsums$prod25[allsums$Group == "Western Africa"])
 log2lev(allsums$prod75[allsums$Group == "Western Africa"])
 subset(allsums, Group == "Africa")
 log2lev(allsums$total[allsums$Group == "Africa"])
-## -0.07354165
+## -0.06953691
 log2lev(allsums$prod25[allsums$Group == "Africa"])
-## -0.1192797
+## -0.130407
 log2lev(allsums$prod75[allsums$Group == "Africa"])
-## -0.04323921
+## -0.03127444
 subset(allsums, Group == "Europe")
 log2lev(allsums$total[allsums$Group == "Europe"])
-## 0.01752261
+## 0.02022758
 log2lev(allsums$prod25[allsums$Group == "Europe"])
-## -0.004269379
+## -0.0007376302
 log2lev(allsums$prod75[allsums$Group == "Europe"])
-## 0.05075724
+## 0.04630093
 subset(allsums, Group == "Central Asia")
 subset(allsums, Group == "High income: OECD")
 log2lev(allsums$total[allsums$Group == "South America"])
+## -0.03776794
 
 ## Drop sub-regions thar are continents
 allsums <- subset(allsums, panel != "Sub-region" | !(Group %in% unique(sumbycontinent$Group)))

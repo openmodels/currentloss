@@ -11,6 +11,11 @@ load("data/mcres-decumul.RData")
 
 source("src/lib/loadmetadata.R")
 
+metadata.plot <- metadata
+names(metadata.plot)[grep("R2", names(metadata))] <- gsub(" ", ".", names(metadata.plot)[grep("R2", names(metadata))])
+micemodel <- mice(metadata.plot[, c(grep("Q.", names(metadata.plot)), grep("R2", names(metadata.plot)))])
+stripplot(micemodel)
+
 micemodel <- mice(metadata[, c(grep("Q.", names(metadata)), grep("R2", names(metadata)))])
 metadata2 <- complete(micemodel)
 metadata2$papername <- paste(metadata$Paper, metadata$Name)

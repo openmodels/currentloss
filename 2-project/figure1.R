@@ -15,19 +15,6 @@ results2 <- results %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO
     group_by(Year) %>% summarize(mu=mean(gloimpact),
                                  ci25=quantile(gloimpact, .25),
                                  ci75=quantile(gloimpact, .75))
-##results2.loess <- rbind(data.frame(Year=1850:1939, mu=0, ci25=0, ci75=0), results2)
-## results2$muloess = tail(predict(loess(mu ~ 0 + Year, results2.loess, span=.25)), nrow(results2))
-## results2$ci25loess = tail(predict(loess(ci25 ~ Year, results2.loess, span=.25)), nrow(results2))
-## results2$ci75loess = tail(predict(loess(ci75 ~ Year, results2.loess, span=.25)), nrow(results2))
-
-results2$muloess = predict(loess(mu ~ 0 + Year, results2, span=.24))
-results2$ci25loess = predict(loess(ci25 ~ Year, results2, span=.24))
-results2$ci75loess = predict(loess(ci75 ~ Year, results2, span=.24))
-
-library(ggplot2)
-ggplot(results2, aes(Year, muloess)) +
-    geom_line() + geom_ribbon(aes(ymin=ci25loess, ymax=ci75loess), alpha=.5) +
-    theme_bw() + xlab(NULL) + scale_y_continuous("Global population-weighted GDP loss", labels=scales::percent)
 
 ggplot(results2, aes(Year, mu)) +
     geom_line() + geom_ribbon(aes(ymin=ci25, ymax=ci75), alpha=.5) +
@@ -48,45 +35,100 @@ allres2 <- allres %>% filter(!is.na(dimpact)) %>% left_join(polydata[, c('ADM0_A
 
 allres3 <- allres2 %>% group_by(Year) %>% summarize(mu=median(mu, na.rm=T))
 
-labels <- data.frame(Year=c(2018, 2018), xend=c(1997, 1997),
-                     y=c(results2$mu[results2$Year == 2018], allres3$mu[allres3$Year == 2018]),
-                     yend=c(-.035, .015), label=c("Random Forest", "Median Model"))
+allres2.smooth <- rbind(allres2 %>% group_by(paper, name) %>% mutate(mu=stats::filter(c(rep(0, 9), mu), rep(1/10, 10), method='conv')[5:(length(mu)+4)]))
+allres3.smooth <- allres3 %>% mutate(mu=stats::filter(c(rep(0, 9), mu), rep(1/10, 10), method='conv')[5:(length(mu)+4)])
+results2.smooth <- results2 %>% mutate(mu=stats::filter(c(rep(0, 9), mu), rep(1/10, 10), method='conv')[5:(length(mu)+4)])
+
+results2b <- load.metaanal(paste0("mcr2res-", persist, "-Total R2"))
+results2b.smooth <- results2b %>% mutate(mu=stats::filter(c(rep(0, 9), mu), rep(1/10, 10), method='conv')[5:(length(mu)+4)],
+                                         ci25=stats::filter(c(rep(0, 9), ci25), rep(1/10, 10), method='conv')[5:(length(ci25)+4)],
+                                         ci75=stats::filter(c(rep(0, 9), ci75), rep(1/10, 10), method='conv')[5:(length(ci75)+4)])
+
+labels <- data.frame(Year=c(2010, 2010, 1990), xend=c(2010, 2010, 1990),
+                     y=c(results2.smooth$mu[results2.smooth$Year == 2010], allres3.smooth$mu[allres3.smooth$Year == 2010],
+                         results2b.smooth$mu[results2b.smooth$Year == 1990]),
+                     yend=c(-.02, .003, -.02), label=c("Random Forest", "Median Model", "R²-Weighted"))
 
 ggplot(allres2, aes(Year, mu)) +
-    coord_cartesian(ylim=c(-.05, .025)) +
-    geom_line(aes(colour=paper, group=paste(paper, name)), linewidth=.3) +
-    geom_line(data=allres3, size=2, colour='black', alpha=.75) +
+    coord_cartesian(ylim=c(-.035, .005)) +
+    geom_line(aes(colour=paper, linetype=paper, group=paste(paper, name)), linewidth=.3) +
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
+    theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
+    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(8, "Dark2"), 2)) +
+    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash'), each=8)) +
+    theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.5, 'lines'), legend.text=element_text(size=7)) +
+    guides(colour=guide_legend(ncol=2), linetype=guide_legend(ncol=2))
+ggsave(paste0("figures/allimpacts-nosmooth-", persist, ".pdf"), width=6.5, height=4)
+
+ggplot(allres2.smooth, aes(Year, mu)) +
+    coord_cartesian(ylim=c(-.035, .005)) +
+    geom_line(aes(colour=paper, linetype=paper, group=paste(paper, name)), linewidth=.3) +
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
+    theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
+    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(8, "Dark2"), 2)) +
+    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash'), each=8)) +
+    theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.5, 'lines'), legend.text=element_text(size=7)) +
+    guides(colour=guide_legend(ncol=2), linetype=guide_legend(ncol=2))
+ggsave(paste0("figures/allimpacts-", persist, ".pdf"), width=6.5, height=4)
+
+ggplot(subset(allres2.smooth, Year == 2023), aes(mu)) +
+    coord_flip(xlim=c(-.035, .005)) +
+    geom_histogram(bins=100) + geom_boxplot(aes(y=-5), width=5, outliers=F, coef=1.58) + ylab(NULL) +
+    theme_bw() + theme(axis.line.y = element_blank(),
+                       axis.text.y = element_blank(),
+                       axis.ticks.y = element_blank(),
+                       axis.title.y = element_blank(),
+                       axis.line.x = element_blank(),
+                       axis.text.x = element_blank(),
+                       axis.ticks.x = element_blank(),
+                       axis.title.x = element_blank())
+ggsave(paste0("figures/allimpacts-", persist, "-hist.pdf"), width=0.75, height=4)
+
+ggplot(allres2.smooth, aes(Year, mu)) +
+    coord_cartesian(ylim=c(-.035, .005)) +
+    geom_line(aes(colour=paper, linetype=paper, group=paste(paper, name)), linewidth=.3) +
+    geom_line(data=allres3.smooth, size=2, colour='black', alpha=.75) +
     geom_segment(data=labels[2,], aes(xend=xend, y=y, yend=yend)) +
     geom_label(data=labels[2,], aes(x=xend, y=yend, label=label), vjust="center", hjust="center") +
     theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
-    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1940, 2023)) +
-    scale_colour_discrete("Reference:")
-ggsave(paste0("figures/allimpacts-", persist, ".pdf"), width=8, height=4)
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
+    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(8, "Dark2"), 2)) +
+    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash'), each=8)) +
+    theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.5, 'lines'), legend.text=element_text(size=7)) +
+    guides(colour=guide_legend(ncol=2), linetype=guide_legend(ncol=2))
+ggsave(paste0("figures/allimpacts-withmed-", persist, ".pdf"), width=6.5, height=4)
 
-ggplot(allres2, aes(Year, mu)) +
-    coord_cartesian(ylim=c(-.05, .025)) +
-    geom_line(aes(colour=paper, group=paste(paper, name)), linewidth=.3) +
-    geom_line(data=allres3, size=2, colour='black', alpha=.75) +
-    geom_line(data=results2, size=2, colour='#b15928', alpha=.75) +
+ggplot(allres2.smooth, aes(Year, mu)) +
+    coord_cartesian(ylim=c(-.035, .005)) +
+    geom_line(aes(colour=paper, linetype=paper, group=paste(paper, name)), linewidth=.3) +
+    geom_line(data=allres3.smooth, size=2, colour='black', alpha=.75) +
+    geom_line(data=results2.smooth, size=2, colour='#b15928', alpha=.75) +
+    geom_segment(data=labels[1:2,], aes(xend=xend, y=y, yend=yend)) +
+    geom_label(data=labels[1:2,], aes(x=xend, y=yend, label=label), vjust="center", hjust="center") +
+    theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
+    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(8, "Dark2"), 2)) +
+    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash'), each=8)) +
+    theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.5, 'lines'), legend.text=element_text(size=7)) +
+    guides(colour=guide_legend(ncol=2), linetype=guide_legend(ncol=2))
+ggsave(paste0("figures/allimpacts-withrf-", persist, ".pdf"), width=6.5, height=4)
+
+ggplot(allres2.smooth, aes(Year, mu)) +
+    coord_cartesian(ylim=c(-.035, .005)) +
+    geom_line(aes(colour=paper, linetype=paper, group=paste(paper, name)), linewidth=.3) +
+    geom_line(data=allres3.smooth, size=2, colour='black', alpha=.75) +
+    geom_line(data=results2.smooth, size=2, colour='#b15928', alpha=.75) +
+    geom_ribbon(data=results2b.smooth, aes(ymin=ci25, ymax=ci75), alpha=.5) +
+    geom_line(data=results2b.smooth, size=2, colour='#ffed6f', alpha=.75) +
     geom_segment(data=labels, aes(xend=xend, y=y, yend=yend)) +
     geom_label(data=labels, aes(x=xend, y=yend, label=label), vjust="center", hjust="center") +
     theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
-    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1940, 2023)) +
-    scale_colour_discrete("Reference:")
-ggsave(paste0("figures/allimpacts-withrf-", persist, ".pdf"), width=8, height=4)
-
-ggplot(allres2, aes(Year, mu)) +
-    coord_cartesian(ylim=c(-.05, .025)) +
-    geom_line(aes(colour=paper, group=paste(paper, name)), linewidth=0) +
-    geom_line(data=allres3, size=2, colour='black', alpha=.75) +
-    geom_line(data=results2, size=2, colour='#b15928', alpha=.75) +
-    geom_ribbon(data=results2, aes(ymin=ci25, ymax=ci75), alpha=.5) +
-    geom_segment(data=labels, aes(xend=xend, y=y, yend=yend)) +
-    geom_label(data=labels, aes(x=xend, y=yend, label=label), vjust="center", hjust="center") +
-    theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
-    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1940, 2023)) +
-    scale_colour_discrete("Reference:")
-ggsave(paste0("figures/allimpacts-withrfci-", persist, ".pdf"), width=8, height=4)
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
+    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(8, "Dark2"), 2)) +
+    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash'), each=8)) +
+    theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.5, 'lines'), legend.text=element_text(size=7)) +
+    guides(colour=guide_legend(ncol=2), linetype=guide_legend(ncol=2))
+ggsave(paste0("figures/allimpacts-withall-", persist, ".pdf"), width=6.5, height=4)
 
 ### Figure 1 elements
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
@@ -94,6 +136,7 @@ ggsave(paste0("figures/allimpacts-withrfci-", persist, ".pdf"), width=8, height=
 source("~/projects/research-common/R/myPBSmapping.R")
 library(dplyr)
 library(ggplot2)
+source("src/lib/loadutils.R")
 
 persist <- 0.36
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
@@ -127,7 +170,7 @@ ggsave("figures/figure1a.pdf", width=5, height=3.5)
 
 ## Number for paper:
 (exp(range((allres2.smooth %>% group_by(paper, name) %>% summarize(mu=tail(mu, 1)))$mu)) - 1) * 100
-## -8.201719  1.918016
+## -8.201719  0.1684971
 
 ## (b) All meta-analysis options
 load.metaanal <- function(filebase) {
@@ -196,8 +239,8 @@ subset(allmeta.smooth, Year == 2023)
 ## 5  2023 -0.0119  -0.0167  -0.00568  RF with controls criteria
 ## 6  2023 -0.0168  -0.0383   0.00317  RF with nonlinearity criteria
 ## 7  2023 -0.00952 -0.0138  -0.00529  RF with dataset criteria
-## 8  2023 -0.00906 -0.0127  -0.00280  R² Filled
-## 9  2023 -0.0120  -0.0241  -0.00246  R² Unfilled
+## 8  2023 -0.0116  -0.0179  -0.00417  R² Filled
+## 9  2023 -0.0126  -0.0214  -0.00248  R² Unfilled
 
 ## (c) Countries by reference
 polydata$gdppc <- 1e6 * polydata$GDP_MD / polydata$POP_EST
@@ -270,7 +313,7 @@ ggsave("figures/figure1c.pdf", width=5, height=3.5)
 
 ## Number for paper: Range of expected losses
 (exp(range(allres.end.sum$yy)) - 1) * 100
-## -1.6744325  0.1684971
+## [1] -1.6744325  0.1684971
 
 load.metaanal2 <- function(filebase) {
     results <- read.metaanal(filebase)

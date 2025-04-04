@@ -183,7 +183,8 @@ allyr3.pop.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
 ## 1 -0.0511 -0.0858 -0.0208
 ## L+MIC:
 ##        mu    ci25    ci75
-## TODO
+## 1 -0.0593 -0.0990 -0.0265
+
 allyr3.gdp.mc <- get.weighted.mcts(allyr.ww, 'gdp', do.for.subset)
 allyr3.gdp.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
     dplyr::summarize(total=mean(total), weight2=mean(weight2)) %>%
@@ -195,7 +196,7 @@ allyr3.gdp.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
 ## 1 -0.0345 -0.0523 -0.0132
 ## L+MIC:
 ##        mu    ci25    ci75
-## TODO
+## 1 -0.0463 -0.0737 -0.0185
 
 ## Determine ranges
 
@@ -244,6 +245,7 @@ y_axis_label <- if (do.for.subset == "L+MIC") {
 
 ## Number for report
 sum(subset(pdf4, Year == 2023)$value)
+## -1876.409
 
 gp <- ggplot(subset(pdf4, Year >= 1960), aes(Year)) +
     #coord_cartesian(ylim=c(-10000, 0)) +
