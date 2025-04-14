@@ -30,8 +30,8 @@ get.weighted.mcts <- function(allyr.ww, iso.weight, do.for.subset) {
         dplyr::summarize(totimpact = wtd.mean(totimpact, weights = iso.weight, normwt = T),
                          slrloss = wtd.mean(slrloss, weights = iso.weight, normwt = T),
                          tradeloss = wtd.mean(tradeloss, weights = iso.weight, normwt = T),
-                         solow = ifelse(all(is.na(product.chg)), NA, wtd.mean(product.chg - totimpact - tradeloss - slrloss, weights = iso.weight, normwt = T)),
-                         total = ifelse(all(is.na(product.chg)), wtd.mean(totimpact - tradeloss - slrloss, weights = iso.weight, normwt = T), wtd.mean(product.chg, weights = iso.weight, normwt = T)),
+                         solow = ifelse(all(is.na(product.chg)), NA, wtd.mean(log2lev(product.chg - totimpact - tradeloss - slrloss), weights = iso.weight, normwt = T)),
+                         total = ifelse(all(is.na(product.chg)), wtd.mean(log2lev(totimpact - tradeloss - slrloss), weights = iso.weight, normwt = T), wtd.mean(log2lev(product.chg), weights = iso.weight, normwt = T)),
                          weight2 = wtd.mean(weight.norm, weights = iso.weight))
 
     allyr3
