@@ -40,7 +40,7 @@ wtd.median <- function(xx, weights=NULL, normwt=F) {
 polydata <- st_read("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp")
 
 allyr2.temp <- allyr.ww %>% group_by(ISO, Year) %>%
-    filter(weight.norm > 1e-9) %>%
+    filter(weight.norm > 1e-9 & !is.na(totimpact)) %>%
     dplyr::summarize(totimpact.median=wtd.median(totimpact, weights=weight.norm, normwt=T), tradeloss.median=wtd.median(tradeloss, weights=weight.norm, normwt=T), slrloss.median=wtd.median(slrloss, weights=weight.norm, normwt=T), solow=ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg - totimpact.median - -tradeloss.median - -slrloss.median, weights=weight.norm, normwt=T)),
                      total=ifelse(all(is.na(product.chg)), wtd.median(totimpact.median - tradeloss.median - slrloss.median, weights=weight.norm, normwt=T), wtd.median(product.chg, weights=weight.norm, normwt=T)),
                      prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact - tradeloss - slrloss, .25, weights=weight.norm, normwt=T), wtd.quantile(product.chg, .25, weights=weight.norm, normwt=T)),
@@ -166,10 +166,10 @@ ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step5.pdf"), width
 ## Numbers for pres
 tail(allyr3.pop, 1)
 ##    Year   solow  prod25  prod75   total totimpact slrloss tradeloss
-## 1  2023 -0.0237 -0.0898 -0.0210 -0.0525   -0.0424 0.00107   0.00375
+## 1  2023 -0.0285 -0.0631 -0.0338 -0.0501   -0.0331 0.00107   0.00779
 tail(allyr3.gdp, 1)
 ##    Year   solow  prod25  prod75   total totimpact  slrloss tradeloss
-## 1  2023 -0.0138 -0.0537 -0.0133 -0.0351   -0.0281 0.000403   0.00360
+## 1  2023 -0.0198 -0.0267 -0.0100 -0.0173  -0.00629 0.000392   0.00659
 
 ## Numbers for report
 allyr3.pop.mc <- get.weighted.mcts(allyr.ww, 'pop', do.for.subset)
@@ -180,7 +180,7 @@ allyr3.pop.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
               ci75=log2lev(wtd.quantile(total, .75, weights=weight2, normwt=T)))
 ## Global:
 ##        mu    ci25    ci75
-## 1 -0.0511 -0.0858 -0.0208
+## 1 -0.0489 -0.0611 -0.0333
 ## L+MIC:
 ##        mu    ci25    ci75
 ## 1 -0.0593 -0.0990 -0.0265
@@ -193,7 +193,7 @@ allyr3.gdp.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
               ci75=log2lev(wtd.quantile(total, .75, weights=weight2, normwt=T)))
 ## Global:
 ##        mu    ci25    ci75
-## 1 -0.0345 -0.0523 -0.0132
+## 1 -0.0171 -0.0263 -0.00995
 ## L+MIC:
 ##        mu    ci25    ci75
 ## 1 -0.0463 -0.0737 -0.0185
@@ -245,7 +245,7 @@ y_axis_label <- if (do.for.subset == "L+MIC") {
 
 ## Number for report
 sum(subset(pdf4, Year == 2023)$value)
-## -1876.409
+## -1864.735
 
 gp <- ggplot(subset(pdf4, Year >= 1960), aes(Year)) +
     #coord_cartesian(ylim=c(-10000, 0)) +

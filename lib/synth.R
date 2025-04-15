@@ -16,22 +16,31 @@ get.weighted.mcts <- function(allyr.ww, iso.weight, do.for.subset) {
         left_join(df.pop3, by = c('ISO' = 'Country Code')) %>%
         left_join(polydata, by = c('ISO' = 'ADM0_A3'))
 
-    if (do.for.subset == "L+MIC") {
-        allyr2 <- allyr2 %>%
-            filter(INCOME_GRP %in% c("5. Low income", "4. Lower middle income", "3. Upper middle income"))
-    }
-
     if (iso.weight == 'pop')
         allyr2$iso.weight <- allyr2$POP
     else
         allyr2$iso.weight <- allyr2$GDP.2015
 
-    allyr3 <- allyr2 %>% group_by(mc, Year) %>%
-        dplyr::summarize(totimpact = wtd.mean(totimpact, weights = iso.weight, normwt = T),
+    ## Solow value to use for missing countries
+    ## total = totimpact - tradeloss - slrloss + solow
+    solow.global <- allyr2 %>% group_by(mc, Year) %>%
+        dplyr::summarize(known2total.global = ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg / (totimpact - tradeloss - slrloss), weights = iso.weight, normwt = T)))
+
+    if (do.for.subset == "L+MIC") {
+        allyr2 <- allyr2 %>%
+            filter(INCOME_GRP %in% c("5. Low income", "4. Lower middle income", "3. Upper middle income"))
+    }
+
+    allyr3 <- allyr2 %>% left_join(solow.global, by=c('mc', 'Year')) %>%
+        ## Fill in missing total values
+        mutate(product.chg = ifelse(is.na(product.chg), known2total.global * (totimpact - tradeloss - slrloss), product.chg)) %>% group_by(mc, Year) %>%
+        dplyr::summarize(solow.lev = ifelse(all(is.na(product.chg)), NA, wtd.mean(log2lev(product.chg - (totimpact - tradeloss - slrloss)), weights = iso.weight, normwt = T)),
+                         solow = ifelse(all(is.na(product.chg)), NA, wtd.mean(product.chg - (totimpact - tradeloss - slrloss), weights = iso.weight, normwt = T)),
+                         total.lev = ifelse(all(is.na(product.chg)), wtd.mean(totimpact - tradeloss - slrloss, weights = iso.weight, normwt = T), wtd.mean(log2lev(product.chg), weights = iso.weight, normwt = T)),
+                         total = ifelse(all(is.na(product.chg)), wtd.mean(totimpact - tradeloss - slrloss, weights = iso.weight, normwt = T), wtd.mean(product.chg, weights = iso.weight, normwt = T)),
+                         totimpact = wtd.mean(totimpact, weights = iso.weight, normwt = T),
                          slrloss = wtd.mean(slrloss, weights = iso.weight, normwt = T),
                          tradeloss = wtd.mean(tradeloss, weights = iso.weight, normwt = T),
-                         solow = ifelse(all(is.na(product.chg)), NA, wtd.mean(log2lev(product.chg - totimpact - tradeloss - slrloss), weights = iso.weight, normwt = T)),
-                         total = ifelse(all(is.na(product.chg)), wtd.mean(log2lev(totimpact - tradeloss - slrloss), weights = iso.weight, normwt = T), wtd.mean(log2lev(product.chg), weights = iso.weight, normwt = T)),
                          weight2 = wtd.mean(weight.norm, weights = iso.weight))
 
     allyr3
