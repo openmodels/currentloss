@@ -8,18 +8,19 @@ source("src/3-othereffects/trade-io.R")
 
 ## method <- 'dd'
 ## method.function <- calc.final.demand.method
-do.keep.incgrp <- NULL
-do.outdir.suffix <- "-mcpaperall" # "-mcr2all" # ""
+do.keep.incgrp <- NA
+do.outdir.suffix <- "" #"-mcpaperall" # "-mcr2all" # ""
 
 method.function.map <- list('dd'=NULL, 'fd'=calc.final.demand.method, 'li'=calc.leontief.method)
 
 for (method in c('dd', 'fd', 'li')) {
     method.function <- method.function.map[[method]]
 
-## for (do.keep.incgrp in c('1-2', '3-5')) {
+for (do.keep.incgrp in c(NA, '1-2', '3-5')) {
 
-if (!is.null(do.keep.incgrp)) {
-    library(PBSmapping)
+if (!is.na(do.keep.incgrp)) {
+    source("~/projects/research-common/R/myPBSmapping.R")
+
     polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
     if (do.keep.incgrp == '3-5')
         dropiso <- polydata$ADM0_A3[polydata$INCOME_GRP %in% c("2. High income: nonOECD", "1. High income: OECD")]
@@ -40,7 +41,7 @@ comtrade <- rbind(read.csv("data/trade/uncomtrade-1992.csv"), read.csv("data/tra
 df.gdp3 <- load.gdp3()
 slr2 <- load.slr2(df.gdp3)
 
-for (persist in c('0', '0.21', '0.36', '0.47')) {
+for (persist in c('0.36', '0', '0.21', '0.47')) {
     results <- read.metaanal.trade(do.outdir.suffix, persist)
 
     results2 <- results %>% group_by(ISO, mc) %>%
@@ -111,5 +112,5 @@ for (persist in c('0', '0.21', '0.36', '0.47')) {
     }
 }
 
-## }
+}
 }
