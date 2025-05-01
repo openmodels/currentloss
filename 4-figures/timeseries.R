@@ -7,10 +7,10 @@ library(PBSmapping)
 library(ggplot2)
 library(sf)
 
-do.for.subset <- "global" # "global" or "L+MIC"
+do.for.subset <- "L+MIC" # "global" or "L+MIC"
 
 persist <- "0.36"
-trade.method <- "dd-mcr2all"
+trade.method <- "dd"
 source("src/lib/utils2.R")
 source("src/lib/synth.R")
 
@@ -96,7 +96,7 @@ gp <- ggplot(allyr3.pop, aes(Year)) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
     scale_colour_manual(NULL, breaks=c("Direct Impact", "Direct + SLR", "Direct + SLR + Trade", "Total Impact", "Output-weighted Total"), values=c("#1b9e77", "#7570b3", "#d95f02", "#000000", "#808080")) +
     theme(legend.position=c(.5, .25))
-ggsave(paste0("figures/globaltime-noloess_", do.for.subset, ".pdf"), width=6.25, height=3.9)
+ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-", persist, "-", trade.method, ".pdf"), width=6.25, height=3.9)
 
 ## Pres fig 1: direct-only
 gp <- ggplot(allyr3.pop, aes(Year)) +
@@ -109,7 +109,7 @@ gp <- ggplot(allyr3.pop, aes(Year)) +
   theme_bw() + scale_y_continuous("Global weighted changing in GDP (%)", labels=scales::percent) +
   scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
   scale_colour_manual(NULL, breaks=c("Direct Impact", "Direct + SLR", "Direct + SLR + Trade", "Total Impact", "Output-weighted Total"), values=c("#1b9e77", "#7570b3", "#d95f02", "#000000", "#808080")) + theme(legend.position=c(.5, .25))
-ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step1.pdf"), width=6.25, height=3.9)
+ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step1-", persist, "-", trade.method, ".pdf"), width=6.25, height=3.9)
 
 ## Pres fig 2: direct + slr
 gp <- ggplot(allyr3.pop, aes(Year)) +
@@ -122,7 +122,7 @@ gp <- ggplot(allyr3.pop, aes(Year)) +
   theme_bw() + scale_y_continuous("Global weighted changing in GDP (%)", labels=scales::percent) +
   scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
   scale_colour_manual(NULL, breaks=c("Direct Impact", "Direct + SLR", "Direct + SLR + Trade", "Total Impact", "Output-weighted Total"), values=c("#1b9e77", "#7570b3", "#d95f02", "#000000", "#808080")) + theme(legend.position=c(.5, .25))
-ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step2.pdf"), width=6.25, height=3.9)
+ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step2-", persist, "-", trade.method, ".pdf"), width=6.25, height=3.9)
 
 ## Pres fig 2.5: direct + slr + trade
 gp <- ggplot(allyr3.pop, aes(Year)) +
@@ -135,7 +135,7 @@ gp <- ggplot(allyr3.pop, aes(Year)) +
   theme_bw() + scale_y_continuous("Global weighted changing in GDP (%)", labels=scales::percent) +
   scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
   scale_colour_manual(NULL, breaks=c("Direct Impact", "Direct + SLR", "Direct + SLR + Trade", "Total Impact", "Output-weighted Total"), values=c("#1b9e77", "#7570b3", "#d95f02", "#000000", "#808080")) + theme(legend.position=c(.5, .25))
-ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step3.pdf"), width=6.25, height=3.9)
+ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step3-", persist, "-", trade.method, ".pdf"), width=6.25, height=3.9)
 
 ## Pres fig 3: total
 gp <- ggplot(allyr3.pop, aes(Year)) +
@@ -148,7 +148,7 @@ gp <- ggplot(allyr3.pop, aes(Year)) +
   theme_bw() + scale_y_continuous("Global weighted changing in GDP (%)", labels=scales::percent) +
   scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
   scale_colour_manual(NULL, breaks=c("Direct Impact", "Direct + SLR", "Direct + SLR + Trade", "Total Impact", "Output-weighted Total"), values=c("#1b9e77", "#7570b3", "#d95f02", "#000000", "#808080")) + theme(legend.position=c(.5, .25))
-ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step4.pdf"), width=6.25, height=3.9)
+ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step4-", persist, "-", trade.method, ".pdf"), width=6.25, height=3.9)
 
 ## Pres fig 4: + output-weighted
 gp <- ggplot(allyr3.pop, aes(Year)) +
@@ -161,15 +161,22 @@ gp <- ggplot(allyr3.pop, aes(Year)) +
   theme_bw() + scale_y_continuous("Global weighted changing in GDP (%)", labels=scales::percent) +
   scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
   scale_colour_manual(NULL, breaks=c("Direct Impact", "Direct + SLR", "Direct + SLR + Trade", "Total Impact", "Output-weighted Total"), values=c("#1b9e77", "#7570b3", "#d95f02", "#000000", "#808080")) + theme(legend.position=c(.5, .25))
-ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step5.pdf"), width=6.25, height=3.9)
+ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step5-", persist, "-", trade.method, ".pdf"), width=6.25, height=3.9)
 
 ## Numbers for pres
 tail(allyr3.pop, 1)
 ##    Year   solow  prod25  prod75   total totimpact slrloss tradeloss
 ## 1  2023 -0.0285 -0.0631 -0.0338 -0.0501   -0.0331 0.00107   0.00779
+## RF:
+##    Year   solow prod25  prod75   total totimpact slrloss tradeloss
+## 1  2023 -0.0368 -0.107 -0.0252 -0.0751   -0.0447 0.00105    0.0131
 tail(allyr3.gdp, 1)
 ##    Year   solow  prod25  prod75   total totimpact  slrloss tradeloss
 ## 1  2023 -0.0198 -0.0267 -0.0100 -0.0173  -0.00629 0.000392   0.00659
+## RF:
+##    Year   solow  prod25  prod75   total totimpact  slrloss tradeloss
+## 1  2023 -0.0266 -0.0644 -0.0222 -0.0456   -0.0289 0.000375    0.0101
+
 
 ## Numbers for report
 allyr3.pop.mc <- get.weighted.mcts(allyr.ww, 'pop', do.for.subset)
@@ -184,6 +191,13 @@ allyr3.pop.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
 ## L+MIC:
 ##        mu    ci25    ci75
 ## 1 -0.0593 -0.0990 -0.0265
+## RF:
+## Global:
+##        mu   ci25    ci75
+## 1 -0.0724 -0.101 -0.0249
+## L+MIC:
+##        mu   ci25    ci75
+## 1 -0.0766 -0.114 -0.0255
 
 allyr3.gdp.mc <- get.weighted.mcts(allyr.ww, 'gdp', do.for.subset)
 allyr3.gdp.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
@@ -197,6 +211,13 @@ allyr3.gdp.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
 ## L+MIC:
 ##        mu    ci25    ci75
 ## 1 -0.0463 -0.0737 -0.0185
+## RF:
+## Global:
+##        mu    ci25    ci75
+## 1 -0.0445 -0.0624 -0.0220
+## L+MIC:
+##        mu    ci25    ci75
+## 1 -0.0571 -0.0848 -0.0208
 
 ## Determine ranges
 
@@ -246,6 +267,7 @@ y_axis_label <- if (do.for.subset == "L+MIC") {
 ## Number for report
 sum(subset(pdf4, Year == 2023)$value)
 ## -1864.735
+## RF: -4067.772
 
 gp <- ggplot(subset(pdf4, Year >= 1960), aes(Year)) +
     #coord_cartesian(ylim=c(-10000, 0)) +
@@ -254,7 +276,7 @@ gp <- ggplot(subset(pdf4, Year >= 1960), aes(Year)) +
     theme_bw() + scale_y_continuous(y_axis_label) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1960, 2023.7)) +
     scale_fill_manual(NULL, breaks=rev(c('totimpact.usd', 'slrimpact.usd', 'tradeimpact.usd', 'solow.usd', 'allcap.usd')), labels=rev(c("Direct Impact", "Coastal Impact", "International Impact", "Capital Impact", "Capital Loss")), values=rev(c("#7570b3", "#1b9e77", "#66a61e", "#d95f02", "#e7298a"))) + theme(legend.position=c(.5, .25))
-ggsave(paste0("figures/totalbyyear_", do.for.subset, ".pdf"), width=5, height=4)
+ggsave(paste0("figures/totalbyyear_", do.for.subset, "-", persist, "-", trade.method, ".pdf"), width=5, height=4)
 
 ## Construct table with lots of breakdowns by year
 set1 <- levelprep %>% filter(Year == 2023) %>% group_by(ISO, mc) %>%
@@ -367,5 +389,5 @@ gp <- ggplot(subset(allsets, !is.na(CONTINENT) & CONTINENT != "Antarctica"), aes
     ylab("Total global loss in lower-income countries ($billion)") +
     xlab(NULL) + scale_fill_discrete(NULL) +
     theme_bw() + theme(legend.position="bottom")
-ggsave(paste0("figures/totalbyothers_", do.for.subset, ".pdf"), width=6, height=6)
+ggsave(paste0("figures/totalbyothers_", do.for.subset, "-", persist, "-", trade.method, ".pdf"), width=6, height=6)
 

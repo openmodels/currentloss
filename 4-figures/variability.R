@@ -7,7 +7,7 @@ library(PBSmapping)
 library(ggplot2)
 library(sf)
 
-persist <- "0.21"
+persist <- "0.36"
 trade.method <- "dd"
 source("src/lib/utils2.R")
 source("src/lib/synth.R")
@@ -21,7 +21,7 @@ wtd.median <- function(xx, weights=NULL, normwt=F) {
 
 devs <- allyr.ww %>% filter(Year > 2013 & weight.norm > 1e-9) %>% group_by(ISO, mc) %>%
     mutate(total=ifelse(is.na(product.chg), totimpact - tradeloss - slrloss, product.chg)) %>%
-    summarize(stddev=sd(total, na.rm=T), weight=sum(weight.norm)) %>%
-    group_by(ISO) %>% summarize(stddev=wtd.median(stddev, weights=weight))
+    dplyr::summarize(stddev=sd(total, na.rm=T), weight=sum(weight.norm)) %>%
+    group_by(ISO) %>% dplyr::summarize(stddev=wtd.median(stddev, weights=weight))
 
 median(devs$stddev)

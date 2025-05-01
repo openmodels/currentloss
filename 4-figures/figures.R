@@ -10,7 +10,7 @@ source("~/projects/research-common/R/myPBSmapping.R")
 library(countrycode)
 
 persist = 0.36
-trade.method <- 'dd-mcr2all'
+trade.method <- 'dd'
 source("src/lib/utils2.R")
 source("src/lib/synth.R")
 
@@ -207,7 +207,7 @@ gp <- ggplot(sumbyiso, aes(ISO)) +
     geom_point(aes(y=total)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Change in GDP from Climate Change (%)") + xlab(NULL) + theme_bw()
-ggsave("figures/finalprod-byiso.pdf", width=6.5, height=26)
+ggsave(paste0("figures/finalprod-byiso-", persist, "-", trade.method, ".pdf"), width=6.5, height=26)
 
 sumcap$label <- ifelse(sumcap$variable == 'rencap.chg', "Renewable Capital", "Produced Capital")
 
@@ -217,7 +217,7 @@ gp <- ggplot(subset(sumbyiso, !is.na(allcap.chg)), aes(ISO)) +
     geom_errorbar(aes(ymin=cap25, ymax=cap75)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Cumulative change in Capital (%)") + xlab(NULL) + theme_bw()
-ggsave("figures/finalcap-byiso.pdf", width=6.5, height=15)
+ggsave(paste0("figures/finalcap-byiso-", persist, "-", trade.method, ".pdf"), width=6.5, height=15)
 
 ## NUMBERS FOR REPORT
 subset(sumbyiso, ISO == "USA")
@@ -281,33 +281,39 @@ allsums$Group[allsums$Group == 'Seven seas (open ocean)'] <- "Open Ocean"
 subset(allsums, Group == "Least developed region")
 subset(allsums, Group == "South-Eastern Asia")
 log2lev(allsums$total[allsums$Group == "South-Eastern Asia"])
-## -0.1139581
+## -0.09489656
+## RF: -0.1268648
 log2lev(allsums$prod25[allsums$Group == "South-Eastern Asia"])
-## -0.214318
+## -0.1309199
+## RF: -0.2409447
 log2lev(allsums$prod75[allsums$Group == "South-Eastern Asia"])
-## -0.03971981
+## -0.06699606
+## RF: -0.04811587
 subset(allsums, Group == "Western Africa")
 log2lev(allsums$total[allsums$Group == "Western Africa"])
 log2lev(allsums$prod25[allsums$Group == "Western Africa"])
 log2lev(allsums$prod75[allsums$Group == "Western Africa"])
 subset(allsums, Group == "Africa")
 log2lev(allsums$total[allsums$Group == "Africa"])
-## -0.06953691
+## -0.05897815
+## RF: -0.07041372
 log2lev(allsums$prod25[allsums$Group == "Africa"])
-## -0.130407
+## -0.09227726
+## RF: -0.1434991
 log2lev(allsums$prod75[allsums$Group == "Africa"])
-## -0.03127444
+## -0.03772441
+## RF: -0.03188625
 subset(allsums, Group == "Europe")
 log2lev(allsums$total[allsums$Group == "Europe"])
-## 0.02022758
+## 0.009160929
 log2lev(allsums$prod25[allsums$Group == "Europe"])
-## -0.0007376302
+## -0.005334459
 log2lev(allsums$prod75[allsums$Group == "Europe"])
-## 0.04630093
+## 0.0254213
 subset(allsums, Group == "Central Asia")
 subset(allsums, Group == "High income: OECD")
 log2lev(allsums$total[allsums$Group == "South America"])
-## -0.03776794
+## -0.01621529
 
 ## Drop sub-regions thar are continents
 allsums <- subset(allsums, panel != "Sub-region" | !(Group %in% unique(sumbycontinent$Group)))
@@ -330,7 +336,7 @@ gp <- ggplot(subset(allsums, panel == 'Economy'), aes(Group)) +
     geom_point(aes(y=total)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Change in GDP from Climate Change (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
-ggsave("figures/finalprod-byeco.pdf", width=5, height=2.7)
+ggsave(paste0("figures/finalprod-byeco-", persist, "-", trade.method, ".pdf"), width=5, height=2.7)
 
 gp <- ggplot(subset(allsums, panel == 'Income Group'), aes(Group)) +
     coord_flip() +
@@ -339,7 +345,7 @@ gp <- ggplot(subset(allsums, panel == 'Income Group'), aes(Group)) +
     geom_point(aes(y=total)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Change in GDP from Climate Change (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
-ggsave("figures/finalprod-byeco2.pdf", width=6.2, height=2.7)
+ggsave(paste0("figures/finalprod-byeco2-", persist, "-", trade.method, ".pdf"), width=6.2, height=2.7)
 
 gp <- ggplot(subset(allsums, panel %in% c('Continent', 'Sub-region')), aes(Group)) +
     coord_flip() +
@@ -349,7 +355,7 @@ gp <- ggplot(subset(allsums, panel %in% c('Continent', 'Sub-region')), aes(Group
     geom_point(aes(y=total)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Change in GDP from Climate Change (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
-ggsave("figures/finalprod-byreg.pdf", width=5, height=6)
+ggsave(paste0("figures/finalprod-byreg-", persist, "-", trade.method, ".pdf"), width=5, height=6)
 
 gp <- ggplot(subset(allsums, panel == 'Continent' & Group != 'Antarctica'), aes(Group)) +
     coord_flip() +
@@ -358,7 +364,7 @@ gp <- ggplot(subset(allsums, panel == 'Continent' & Group != 'Antarctica'), aes(
     geom_point(aes(y=total)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Change in GDP from Climate Change (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
-ggsave("figures/finalprod-bycon.pdf", width=4, height=2.7)
+ggsave(paste0("figures/finalprod-bycon-", persist, "-", trade.method, ".pdf"), width=4, height=2.7)
 
 allsumcap$label <- ifelse(allsumcap$variable == 'rencap.chg', "Renewable Capital", "Produced Capital")
 
@@ -368,7 +374,7 @@ gp <- ggplot(subset(allsums, !is.na(allcap.chg) & panel == 'Economy'), aes(Group
     geom_errorbar(aes(ymin=cap25, ymax=cap75)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Cumulative change in Capital (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
-ggsave("figures/finalcap-byeco.pdf", width=5, height=2.7)
+ggsave(paste0("figures/finalcap-byeco-", persist, "-", trade.method, ".pdf"), width=5, height=2.7)
 
 gp <- ggplot(subset(allsums, !is.na(allcap.chg) & panel %in% c('Continent', 'Sub-region')), aes(Group)) +
     coord_flip() +
@@ -377,7 +383,7 @@ gp <- ggplot(subset(allsums, !is.na(allcap.chg) & panel %in% c('Continent', 'Sub
     geom_errorbar(aes(ymin=cap25, ymax=cap75)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Cumulative change in Capital (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
-ggsave("figures/finalcap-byreg.pdf", width=5, height=6)
+ggsave(paste0("figures/finalcap-byreg-", persist, "-", trade.method, ".pdf"), width=5, height=6)
 
 ## Other groupings
 
@@ -404,7 +410,7 @@ gp <- ggplot(sumbygroup, aes(Group)) +
     geom_point(aes(y=total)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Change in GDP from Climate Change (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
-ggsave("figures/finalprod-bygrp.pdf", width=5, height=4)
+ggsave(paste0("figures/finalprod-bygrp-", persist, "-", trade.method, ".pdf"), width=5, height=4)
 
 sumbygroupcap$label <- ifelse(sumbygroupcap$variable == 'rencap.chg', "Renewable Capital", "Produced Capital")
 
@@ -414,7 +420,7 @@ gp <- ggplot(subset(sumbygroup, !is.na(allcap.chg)), aes(Group)) +
     geom_errorbar(aes(ymin=cap25, ymax=cap75)) +
     scale_y_continuous(labels=scales::percent) + scale_fill_discrete(NULL) +
     ylab("Cumulative change in Capital (%)") + xlab(NULL) + theme_bw() + theme(plot.margin = unit(c(5.5, 5.5, 5.5, 25), "pt"), legend.position="bottom")
-ggsave("figures/finalcap-bygrp.pdf", width=5, height=4)
+ggsave(paste0("figures/finalcap-bygrp-", persist, "-", trade.method, ".pdf"), width=5, height=4)
 
 ## NUMBERS FOR REPORT
 subset(sumbygroup, Group == "G77")
@@ -459,7 +465,7 @@ gg <- ggplot(shp2, aes(X, Y)) +
     scale_fill_gradient2("Change in GDP (%):", low = scales::muted("red"), high = scales::muted("blue"), labels=scales::percent, guide=guide_colorbar(barwidth=10, barheight=1)) +
     theme_bw() + theme(legend.position="bottom", legend.key.width=unit(10,"in"),
                        legend.key.height=unit(1,"in"))
-ggsave("figures/finalprod-map.pdf", width=10, height=5.5)
+ggsave(paste0("figures/finalprod-map-", persist, "-", trade.method, ".pdf"), width=10, height=5.5)
 
 gg <- ggplot(shp2, aes(X, Y)) +
     geom_polygon(data=shpl, aes(group=paste(PID, SID)), fill='#808080', colour=NA) +
@@ -470,4 +476,4 @@ gg <- ggplot(shp2, aes(X, Y)) +
     scale_fill_gradient2("Change in capital (%):", low = scales::muted("red"), high = scales::muted("blue"), labels=scales::percent, guide=guide_colorbar(barwidth=10, barheight=1)) +
     theme_bw() + theme(legend.position="bottom", legend.key.width=unit(10,"in"),
                        legend.key.height=unit(1,"in"))
-ggsave("figures/finalcap-map.pdf", width=10, height=4)
+ggsave(paste0("figures/finalcap-map-", persist, "-", trade.method, ".pdf"), width=10, height=4)

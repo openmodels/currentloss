@@ -2,6 +2,7 @@
 
 source("~/projects/research-common/R/myPBSmapping.R")
 library(dplyr)
+library(ggplot2)
 
 source("src/lib/loadutils.R")
 
@@ -37,7 +38,18 @@ allres3 <- allres2 %>% group_by(Year) %>% summarize(mu=median(mu, na.rm=T))
 
 allres2.smooth <- rbind(allres2 %>% group_by(paper, name) %>% mutate(mu=stats::filter(c(rep(0, 9), mu), rep(1/10, 10), method='conv')[5:(length(mu)+4)]))
 allres3.smooth <- allres3 %>% mutate(mu=stats::filter(c(rep(0, 9), mu), rep(1/10, 10), method='conv')[5:(length(mu)+4)])
-results2.smooth <- results2 %>% mutate(mu=stats::filter(c(rep(0, 9), mu), rep(1/10, 10), method='conv')[5:(length(mu)+4)])
+results2.smooth <- results2 %>% mutate(mu=stats::filter(c(rep(0, 9), mu), rep(1/10, 10), method='conv')[5:(length(mu)+4)],
+                                       ci25=stats::filter(c(rep(0, 9), ci25), rep(1/10, 10), method='conv')[5:(length(ci25)+4)],
+                                       ci75=stats::filter(c(rep(0, 9), ci75), rep(1/10, 10), method='conv')[5:(length(ci75)+4)])
+
+load.metaanal <- function(filebase) {
+    results <- read.metaanal(filebase)
+
+    results2 <- results %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
+        group_by(Year, mc) %>% filter(!is.na(dimpact)) %>% summarize(gloimpact=sum(dimpact * POP_EST) / sum(POP_EST)) %>%
+        group_by(Year) %>% summarize(mu=mean(gloimpact, na.rm=T), ci25=quantile(gloimpact, .25, na.rm=T), ci75=quantile(gloimpact, .75, na.rm=T))
+    results2
+}
 
 results2b <- load.metaanal(paste0("mcr2res-", persist, "-Total R2"))
 results2b.smooth <- results2b %>% mutate(mu=stats::filter(c(rep(0, 9), mu), rep(1/10, 10), method='conv')[5:(length(mu)+4)],
@@ -118,6 +130,22 @@ ggplot(allres2.smooth, aes(Year, mu)) +
     geom_line(aes(colour=paper, linetype=paper, group=paste(paper, name)), linewidth=.3) +
     geom_line(data=allres3.smooth, size=2, colour='black', alpha=.75) +
     geom_line(data=results2.smooth, size=2, colour='#b15928', alpha=.75) +
+    geom_ribbon(data=results2.smooth, aes(ymin=ci25, ymax=ci75), alpha=.5) +
+    geom_segment(data=labels[1:2,], aes(xend=xend, y=y, yend=yend)) +
+    geom_label(data=labels[1:2,], aes(x=xend, y=yend, label=label), vjust="center", hjust="center") +
+    theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
+    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(8, "Dark2"), 2)) +
+    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash'), each=8)) +
+    theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.5, 'lines'), legend.text=element_text(size=7)) +
+    guides(colour=guide_legend(ncol=2), linetype=guide_legend(ncol=2))
+ggsave(paste0("figures/allimpacts-withrf-", persist, "-ci.pdf"), width=6.5, height=4)
+
+ggplot(allres2.smooth, aes(Year, mu)) +
+    coord_cartesian(ylim=c(-.035, .005)) +
+    geom_line(aes(colour=paper, linetype=paper, group=paste(paper, name)), linewidth=.3) +
+    geom_line(data=allres3.smooth, size=2, colour='black', alpha=.75) +
+    geom_line(data=results2.smooth, size=2, colour='#b15928', alpha=.75) +
     geom_ribbon(data=results2b.smooth, aes(ymin=ci25, ymax=ci75), alpha=.5) +
     geom_line(data=results2b.smooth, size=2, colour='#ffed6f', alpha=.75) +
     geom_segment(data=labels, aes(xend=xend, y=y, yend=yend)) +
@@ -173,15 +201,6 @@ ggsave("figures/figure1a.pdf", width=5, height=3.5)
 ## -8.201719  0.1684971
 
 ## (b) All meta-analysis options
-load.metaanal <- function(filebase) {
-    results <- read.metaanal(filebase)
-
-    results2 <- results %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
-        group_by(Year, mc) %>% filter(!is.na(dimpact)) %>% summarize(gloimpact=sum(dimpact * POP_EST) / sum(POP_EST)) %>%
-        group_by(Year) %>% summarize(mu=mean(gloimpact, na.rm=T), ci25=quantile(gloimpact, .25, na.rm=T), ci75=quantile(gloimpact, .75, na.rm=T))
-    results2
-}
-
 allmeta <- data.frame()
 
 paperweight.names <- list("mainmed"="Median of main spec.", "main"="Monte Carlo over main spec.", "all"="Monte Carlo over all spec.")
@@ -227,7 +246,21 @@ ggplot(allmeta.smooth, aes(Year, mu)) +
     ggtitle("(b) Population-weighted mean of meta-analyses") +
     theme(legend.box="horizontal", legend.box.just="bottom") +
     guides(colour=guide_legend(order=1),linetype=guide_legend(order=2))
-ggsave("figures/figure1b.pdf", width=5, height=3.5)
+ggsave("figures/figure1b-r2.pdf", width=5, height=3.5)
+
+ggplot(allmeta.smooth, aes(Year, mu)) +
+    coord_cartesian(ylim=c(-.025, .001)) +
+    geom_line(aes(colour=name, linetype=ifelse(grepl("RF", name), "Random forest", ifelse(grepl("R²", name), "R²-based", "Resampling")))) +
+    geom_ribbon(data=subset(allmeta.smooth, name == "RF with all quality criteria"), aes(ymin=ci25, ymax=ci75), alpha=.25) +
+    theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
+    scale_colour_discrete("Meta-analysis:") +
+    scale_linetype_manual(name="Method:", breaks=c("Resampling", "Random forest", "R²-based"), values=c('dotted', 'dashed', 'F1')) +
+    theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.7, 'lines')) +
+    ggtitle("(b) Population-weighted mean of meta-analyses") +
+    theme(legend.box="horizontal", legend.box.just="bottom") +
+    guides(colour=guide_legend(order=1),linetype=guide_legend(order=2))
+ggsave("figures/figure1b-rf.pdf", width=5, height=3.5)
 
 ## Range for paper
 subset(allmeta.smooth, Year == 2023)

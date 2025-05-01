@@ -226,6 +226,7 @@ for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
             for (solow.conf in c('', '-prodonly')) { # '-noadd', , '-additive'
                 if (!file.exists(paste0("data/allyr-ww-", persist, "-", trade.method, trade.method.suffix, solow.conf, ".RData")))
                     next
+
                 load(paste0("data/allyr-ww-", persist, "-", trade.method, trade.method.suffix, solow.conf, ".RData"))
                 allyr.ww[allyr.ww$ISO == 'SDN', which(is.na(allyr.ww[allyr.ww$ISO == 'ABW', ][1, ]))] <- NA # country change affects
 
