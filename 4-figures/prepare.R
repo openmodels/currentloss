@@ -10,6 +10,7 @@ do.redo <- F
 persist <- "0.36"
 trade.method <- 'dd'
 solow.config <- '' #'' #'-prodonly' #'-additive'
+solow.data.dir <- "/mnt/LabShare/Current Losses v2"
 
 if (do.parallel) {
     cl <- makeCluster(detectCores())
@@ -29,7 +30,7 @@ for (persist in c("0.36", "0", "0.21", "0.47")) {
     for (trade.method.prefix in c('dd', 'fd', 'li')) {
         for (trade.method in paste0(trade.method.prefix, "-mcr2all")) { #c("", "-mcpaperall", "-mcr2all"))) {
             for (solow.config in c('')) { #, '-prodonly', '-noadd', '-additive')) {
-                if (!file.exists(paste0("data/solow-", persist, "-", trade.method, solow.config)))
+                if (!file.exists(paste0(solow.data.dir, "/solow-", persist, "-", trade.method, solow.config)))
                     next
                 if (!do.redo && file.exists(paste0("data/allyr-ww-", persist, "-", trade.method, solow.config, ".RData")))
                     next
@@ -84,7 +85,7 @@ for (mcii in 1:30) {
         stan.data <- make.stan.data(iso)
 
         success <- tryCatch({
-            load(paste0("data/solow-", persist, "-", trade.method, solow.config, "/v4-", iso, "-", mcii, ".RData"))
+            load(paste0(solow.data.dir, "/solow-", persist, "-", trade.method, solow.config, "/v4-", iso, "-", mcii, ".RData"))
             T
         }, error=function(e) {
             F

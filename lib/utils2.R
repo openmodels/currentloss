@@ -140,7 +140,7 @@ make.stan.data <- function(iso) {
 
 model.solow <- function(la, stan.data, withcc, rencaptrue=NULL) {
     if (!is.null(rencaptrue) && stan.data$T > dim(la$rencap_model)[2])
-        stan.data$T <- dim(la$rencap_model)[2] # Cah happen under different updates of data
+        stan.data$T <- dim(la$rencap_model)[2] # Can happen under different updates of data
 
     product <- matrix(0, 1000, stan.data$T-1)
     rencap_model <- matrix(NA, 1000, stan.data$T)
