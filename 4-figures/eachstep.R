@@ -227,8 +227,7 @@ for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
                 if (!file.exists(paste0("data/allyr-ww-", persist, "-", trade.method, trade.method.suffix, solow.conf, ".RData")))
                     next
 
-                load(paste0("data/allyr-ww-", persist, "-", trade.method, trade.method.suffix, solow.conf, ".RData"))
-                allyr.ww[allyr.ww$ISO == 'SDN', which(is.na(allyr.ww[allyr.ww$ISO == 'ABW', ][1, ]))] <- NA # country change affects
+                allyr.ww <- get.allyr.ww(persist, paste0(trade.method, trade.method.suffix, solow.conf))
 
                 allyr2 <- allyr.ww %>%
                     mutate(solow=ifelse(is.na(product.chg), NA, log2lev(product.chg - totimpact - -tradeloss - -slrloss)),
@@ -236,12 +235,13 @@ for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
 
                 allyr3 <- allyr2 %>%
                     filter(weight.norm > 1e-9 & !is.na(solow)) %>%
-                    group_by(Year, ISO) %>% reframe(mc=1:30, source=sample(1:length(weight.norm), 30, replace=T, prob=weight.norm),
-                                                    solow=solow[source], total=total[source], weight.norm=weight.norm[source]) %>%
+                    group_by(Year, ISO) %>%
                     left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
                     group_by(Year, mc) %>% dplyr::summarize(glosolow=sum(solow * POP_EST) / sum(POP_EST),
                                                             glototal=sum(total * POP_EST) / sum(POP_EST),
                                                             weight2=sum(weight.norm * POP_EST) / sum(POP_EST))
+
+                ## ggplot(allyr3, aes(Year, glosolow, group=mc)) + geom_line()
 
                 allyr4 <- allyr3 %>%
                     group_by(Year) %>% dplyr::summarize(mu=mean(glosolow), ci25=quantile(glosolow, .25), ci75=quantile(glosolow, .75))
@@ -262,14 +262,10 @@ for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
             }
 
             pdf$solow.conf <- factor(pdf$solow.conf, levels=c("None", "Prod.-only", "All capital", "Additive", "No Addition"))
-            pdf2 <- pdf %>% group_by(solow.conf) %>%
-                mutate(mu=stats::filter(c(rep(0, 9), mu), rep(1/10, 10), method='conv')[5:(length(mu)+4)],
-                       ci25=stats::filter(c(rep(0, 9), ci25), rep(1/10, 10), method='conv')[5:(length(ci25)+4)],
-                       ci75=stats::filter(c(rep(0, 9), ci75), rep(1/10, 10), method='conv')[5:(length(ci75)+4)])
 
-            ggplot(pdf2, aes(Year, mu, group=solow.conf)) +
+            ggplot(pdf, aes(Year, mu, group=solow.conf)) +
                 geom_line(aes(colour=solow.conf)) +
-                geom_ribbon(data=subset(pdf2, solow.conf == 'All capital'), aes(ymin=ci25, ymax=ci75), alpha=.5) +
+                geom_ribbon(data=subset(pdf, solow.conf == 'All capital'), aes(ymin=ci25, ymax=ci75), alpha=.5) +
                 theme_bw() + theme(legend.justification=c(0,0), legend.position=c(0.01,0.01)) +
                 scale_colour_discrete("Capital:") +
                 scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +

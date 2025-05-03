@@ -8,7 +8,7 @@ library(parallel)
 do.parallel <- T
 do.redo <- F
 persist <- "0.36"
-trade.method <- 'dd'
+trade.method <- 'dd-mcr2all'
 solow.config <- '' #'' #'-prodonly' #'-additive'
 solow.data.dir <- "/mnt/LabShare/Current Losses v2"
 

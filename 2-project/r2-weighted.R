@@ -28,9 +28,14 @@ isos <- unique(mcres$ISO)
 years <- unique(mcres$Year)
 nummc <- max(mcres$mc)
 
+## Exclude columns from Zhao et al. because of extreme (> 100%) single-year impacts
+mcres <- subset(mcres, paper != "Zhao et al. 2018" | !(name %in% c("Table 3, Col. 2", "Table 3, Col. 3", "Table 3, Col. 5", "Table 3, Col. 6", "Table 3, Col. 7")))
+for (persist in c("0.36", "0.21", "0.47", "0"))
+    decumul.bypersist[[persist]] <- subset(decumul.bypersist[[persist]], name != "With Linear Trends")
+
 for (persist in c("0.36", "0.21", "0.47", "0")) {
     allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[persist]])
-    
+
     ## Find rows for valid models that are NA (before some point in that model)
     allresfix <- allres %>% group_by(ISO, paper, name) %>% filter(!all(is.na(dimpact))) %>%
         mutate(dimpact=ifelse(is.na(dimpact), 0, dimpact))
@@ -38,13 +43,13 @@ for (persist in c("0.36", "0.21", "0.47", "0")) {
     allres2$dimpact <- ifelse(is.na(allres2$dimpact.ori), allres2$dimpact.fix, allres2$dimpact.ori)
 
     rm(allres, allresfix)
-    
+
     ## For the mainmed method
     allres2$papername <- paste(allres2$paper, allres2$name)
 
     for (r2col in c("Total R2", "Raw R2", r2cols[!(r2cols %in% c("Total R2", "Raw R2"))])) {
         print(c(r2col, persist))
-        
+
         for (mcii in 1:nummc) {
             print(c(persist, mcii))
 
@@ -54,10 +59,10 @@ for (persist in c("0.36", "0.21", "0.47", "0")) {
 
             allres3 <- subset(allres2, mc == mcii) %>% left_join(metadata2, by='papername')
             allres3$weights <- allres3[, r2col]
-            
+
             results <- allres3 %>%
                 group_by(mc, ISO, Year) %>% summarize(dimpact=sample(dimpact, 1, prob=weights))
-            
+
             save(results, file=outpath)
         }
     }

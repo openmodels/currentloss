@@ -10,7 +10,7 @@ source("~/projects/research-common/R/myPBSmapping.R")
 library(countrycode)
 
 persist = 0.36
-trade.method <- 'dd'
+trade.method <- 'dd-mcr2all'
 source("src/lib/utils2.R")
 source("src/lib/synth.R")
 
