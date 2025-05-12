@@ -10,7 +10,8 @@ library(rstan)
 library(parallel)
 
 do.mcs <- 1:30
-do.trade.suffix <- "-mcpaperall"
+do.trade.suffix <- "-mcr2all"
+do.cores <- detectCores() / 4
 
 ## persist <- "0.36"
 ## trade.method <- 'dd'
@@ -164,7 +165,7 @@ for (mcii in 1:30) {
     print(mcii)
     load.solowdata.mc(mcii)
 
-    cl <- makeCluster(detectCores())
+    cl <- makeCluster(do.cores)
     clusterEvalQ(cl, {
         library(rstan)
     })

@@ -12,6 +12,7 @@ library(rstan)
 library(parallel)
 
 do.parallel <- T
+do.cores <- detectCores() / 4
 
 if (length(args) == 1) {
   do.mcs <- as.numeric(args)
@@ -134,7 +135,7 @@ for (mcii in do.mcs) {
     load.solowdata.mc(mcii)
 
     if (do.parallel) {
-        cl <- makeCluster(detectCores())
+        cl <- makeCluster(do.cores)
     	clusterEvalQ(cl, {
             library(rstan)
         })

@@ -9,7 +9,7 @@ source("src/3-othereffects/trade-io.R")
 ## method <- 'dd'
 ## method.function <- calc.final.demand.method
 do.keep.incgrp <- NA
-do.outdir.suffix <- "" #"-mcpaperall" # "-mcr2all" # ""
+do.outdir.suffix <- "-mcr2all" #"-mcpaperall" # "-mcr2all" # ""
 
 method.function.map <- list('dd'=NULL, 'fd'=calc.final.demand.method, 'li'=calc.leontief.method)
 

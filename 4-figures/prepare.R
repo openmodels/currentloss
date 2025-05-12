@@ -6,7 +6,7 @@ library(PBSmapping)
 library(parallel)
 
 do.parallel <- T
-do.redo <- F
+do.redo <- T
 persist <- "0.36"
 trade.method <- 'dd-mcr2all'
 solow.config <- '' #'' #'-prodonly' #'-additive'
@@ -18,6 +18,7 @@ if (do.parallel) {
         library(Hmisc)
         library(PBSmapping)
     })
+    clusterExport(cl, "solow.data.dir")
     mylapply <- function(xx, func) {
         parLapply(cl, xx, func)
     }
@@ -29,7 +30,7 @@ configs <- list()
 for (persist in c("0.36", "0", "0.21", "0.47")) {
     for (trade.method.prefix in c('dd', 'fd', 'li')) {
         for (trade.method in paste0(trade.method.prefix, "-mcr2all")) { #c("", "-mcpaperall", "-mcr2all"))) {
-            for (solow.config in c('')) { #, '-prodonly', '-noadd', '-additive')) {
+            for (solow.config in c('', '-prodonly', '-noadd', '-additive')) {
                 if (!file.exists(paste0(solow.data.dir, "/solow-", persist, "-", trade.method, solow.config)))
                     next
                 if (!do.redo && file.exists(paste0("data/allyr-ww-", persist, "-", trade.method, solow.config, ".RData")))
@@ -39,6 +40,8 @@ for (persist in c("0.36", "0", "0.21", "0.47")) {
         }
     }
 }
+
+print(configs)
 
 mylapply(configs, function(config) {
     persist <<- config[1]
@@ -50,7 +53,7 @@ mylapply(configs, function(config) {
 source("src/lib/utils2.R")
 
 load.solowdata()
-solowsum <- load.solowsum(persist, trade.method, solow.config)
+solowsum <- load.solowsum(persist, trade.method, solow.config, solow.data.dir=solow.data.dir)
 
 df.gdp2.last <- df.gdp2 %>% group_by(`Country Code`) %>%
     dplyr::summarize(GDP.Year=ifelse(any(!is.na(GDP.2015)), Year[tail(which(!is.na(GDP.2015)), 1)], NA),
