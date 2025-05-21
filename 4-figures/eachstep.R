@@ -45,7 +45,7 @@ for (metaanal in c(paste0('mcpaperres-PERSIST-', c("mainmed", "main", "all")),
         results3 <- results2 %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
             filter(!is.na(totimpact)) %>% group_by(Year, mc) %>% dplyr::summarize(gloimpact=sum(totimpact * POP_EST) / sum(POP_EST))
         results4 <- results3 %>% group_by(Year) %>%
-            dplyr::summarize(mu=mean(gloimpact), ci25=quantile(gloimpact, .25), ci75=quantile(gloimpact, .75))
+            dplyr::summarize(mu=median(gloimpact), ci25=quantile(gloimpact, .25), ci75=quantile(gloimpact, .75))
 
         pdf <- rbind(pdf, cbind(persist=persist, results4))
 
@@ -114,7 +114,7 @@ for (slrconf in c('Market-only', 'All Damages', 'Optimal Adapt.', 'No Adaptation
             left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('Country Code'='ADM0_A3')) %>%
             group_by(Year, mc) %>% dplyr::summarize(gloimpact=-sum(slrfrac * POP_EST, na.rm=T) / sum(POP_EST, na.rm=T))
         slr4 <- slr3 %>% group_by(Year) %>%
-            dplyr::summarize(mu=mean(gloimpact), ci25=quantile(gloimpact, .25), ci75=quantile(gloimpact, .75))
+            dplyr::summarize(mu=median(gloimpact), ci25=quantile(gloimpact, .25), ci75=quantile(gloimpact, .75))
 
         ## slr3 <- slr2 %>%
         ##     group_by(year, mc) %>% dplyr::summarize(gloslrloss=sum(slrloss, na.rm=T))
@@ -171,27 +171,28 @@ for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
         pdf <- data.frame()
         for (trade.method in c('fd', 'dd', 'li')) {
             tradeloss <- load.tradeloss(paste0(trade.method, trade.method.suffix), persist)
-            tradeloss2 <- tradeloss %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
-                filter(!is.na(tradeloss)) %>% group_by(year, mc) %>% dplyr::summarize(gloloss=sum(tradeloss * POP_EST) / sum(POP_EST))
-            tradeloss3 <- tradeloss2 %>% group_by(year) %>%
-                dplyr::summarize(mu=mean(gloloss), ci25=quantile(gloloss, .25), ci75=quantile(gloloss, .75))
+            tradeloss.global <- tradeloss %>% group_by(year) %>% dplyr::summarize(tradeloss=mean(tradeloss, na.rm=T))
+
+            results3 <- results2 %>% dplyr::left_join(tradeloss, by=c('ISO', 'Year'='year', 'mc')) %>%
+                dplyr::left_join(tradeloss.global, by=c('Year'='year'), suffix=c('.local', '.global')) %>%
+                mutate(tradeloss=ifelse(is.na(tradeloss.local), tradeloss.global, tradeloss.local),
+                       total=totimpact - slrloss - tradeloss) %>%
+                filter(!is.na(tradeloss) & !is.na(dimpact)) %>%
+                dplyr::left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
+                group_by(Year, mc) %>%
+                dplyr::summarize(gloloss=sum(tradeloss * POP_EST) / sum(POP_EST),
+                                 glototal=sum(total * POP_EST, na.rm=T) / sum(POP_EST * !is.na(total)))
+
+            tradeloss3 <- results3 %>% group_by(Year) %>%
+                dplyr::summarize(year=Year[1], mu=median(gloloss), ci25=quantile(gloloss, .25), ci75=quantile(gloloss, .75))
 
             pdf <- rbind(pdf, cbind(trade.method=trade.names[[trade.method]], tradeloss3))
-
-            tradeloss.global <- tradeloss %>% group_by(year) %>% dplyr::summarize(tradeloss=mean(tradeloss, na.rm=T))
 
             alttable <- rbind(alttable, cbind(MetaAnalysis=trademethodsuffixtitle[[paste0("X", trade.method.suffix)]],
                                               Persistence=persist, SLR='Market-only',
                                               Trade=trade.names[[trade.method]],
                                               Growth='None',
-                                              results2 %>% filter(Year >= 2014) %>%
-                                              dplyr::left_join(tradeloss, by=c('ISO', 'Year'='year', 'mc')) %>%
-                                              dplyr::left_join(tradeloss.global, by=c('Year'='year'), suffix=c('.local', '.global')) %>%
-                                              mutate(tradeloss=ifelse(is.na(tradeloss.local), tradeloss.global, tradeloss.local),
-                                                     total=totimpact - slrloss - tradeloss) %>%
-                                              filter(!is.na(tradeloss) & !is.na(dimpact)) %>%
-                                              dplyr::left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
-                                              group_by(Year, mc) %>% dplyr::summarize(glototal=sum(total * POP_EST, na.rm=T) / sum(POP_EST * !is.na(total))) %>%
+                                              results3 %>% filter(Year >= 2014) %>%
                                               group_by(mc) %>% dplyr::summarize(glototal=mean(glototal, na.rm=T)) %>%
                                               dplyr::summarize(mu=mean(glototal, na.rm=T), ci25=quantile(glototal, .25, na.rm=T), ci75=quantile(glototal, .75, na.rm=T))))
 
@@ -221,9 +222,9 @@ wtd.median <- function(xx, weights=NULL, normwt=F) {
 
 for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
     for (persist in c(0.21, 0.36, 0.47)) {
-        for (trade.method in c('fd', 'dd', 'li')) {
+        for (trade.method in c('dd', 'fd', 'li')) {
             pdf <- data.frame(solow.conf='None', Year=1960:2022, mu=0, ci25=0, ci75=0)
-            for (solow.conf in c('', '-prodonly')) { # '-noadd', , '-additive'
+            for (solow.conf in c('', '-prodonly', '-additive')) { # '-noadd'
                 if (!file.exists(paste0("data/allyr-ww-", persist, "-", trade.method, trade.method.suffix, solow.conf, ".RData")))
                     next
 
@@ -244,7 +245,7 @@ for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
                 ## ggplot(allyr3, aes(Year, glosolow, group=mc)) + geom_line()
 
                 allyr4 <- allyr3 %>%
-                    group_by(Year) %>% dplyr::summarize(mu=mean(glosolow), ci25=quantile(glosolow, .25), ci75=quantile(glosolow, .75))
+                    group_by(Year) %>% dplyr::summarize(mu=median(glosolow), ci25=quantile(glosolow, .25), ci75=quantile(glosolow, .75))
                 ## group_by(Year) %>% dplyr::summarize(mu=mean(glototal), ci25=quantile(glototal, .25), ci75=quantile(glototal, .75))
 
                 pdf <- rbind(pdf, cbind(solow.conf=list('X'="All capital", 'X-additive'="Additive", 'X-prodonly'="Prod.-only", 'X-noadd'="No Addition")[[paste0('X', solow.conf)]], allyr4))
@@ -255,9 +256,9 @@ for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
                                                   Persistence=persist, SLR='Market-only',
                                                   Trade=trade.names[[trade.method]],
                                                   Growth=list('X'="All capital", 'X-additive'="Additive", 'X-prodonly'="Prod.-only", 'X-noadd'="No Addition")[[paste0('X', solow.conf)]],
-                                                  allyr3 %>% filter(Year >= 2014) %>%
-                                                  group_by(mc) %>% dplyr::summarize(glototal=mean(total, na.rm=T), weight2=mean(weight2)) %>%
-                                                  dplyr::summarize(mu=wtd.median(glototal, weights=weight2, normwt=T), ci25=wtd.quantile(glototal, .25, weights=weight2, normwt=T), ci75=wtd.quantile(glototal, .75, weights=weight2, normwt=T))))
+                                                  allyr3 %>% filter(Year == 2023) %>% # already 10-year smoothed
+                                                  ungroup() %>%
+                                                  dplyr::summarize(mu=wtd.median(total, weights=weight2, normwt=T), ci25=wtd.quantile(total, .25, weights=weight2, normwt=T), ci75=wtd.quantile(total, .75, weights=weight2, normwt=T))))
 
             }
 

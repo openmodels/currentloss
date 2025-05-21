@@ -7,7 +7,7 @@ library(PBSmapping)
 library(ggplot2)
 library(sf)
 
-do.for.subset <- "L+MIC" # "global" or "L+MIC"
+do.for.subset <- "global" # "global" or "L+MIC"
 
 persist <- "0.36"
 trade.method <- "dd-mcr2all"
@@ -21,15 +21,7 @@ df.gdp2.last <- df.gdp2 %>% group_by(`Country Code`) %>%
     dplyr::summarize(GDP.Year=ifelse(any(!is.na(GDP.2015)), Year[tail(which(!is.na(GDP.2015)), 1)], NA),
                      GDP.2015=ifelse(any(!is.na(GDP.2015)), GDP.2015[tail(which(!is.na(GDP.2015)), 1)], NA))
 
-load(paste0("data/allyr-ww-", persist, "-", trade.method, ".RData"))
-allyr.ww[allyr.ww$ISO == 'SDN', which(is.na(allyr.ww[allyr.ww$ISO == 'ABW', ][1, ]))] <- NA # country change affects
-for2023 <- subset(allyr.ww, Year == 2022)
-stopifnot(all(for2023$ISO == allyr.ww$ISO[allyr.ww$Year == 2023]))
-for2023[, 1:8] <- subset(allyr.ww, Year == 2023)[, 1:8]
-allyr.ww <- rbind(subset(allyr.ww, Year <= 2022), for2023)
-allyr.ww <- allyr.ww %>% group_by(ISO, mc) %>% arrange(Year) %>%
-    mutate(across(dimpact:weight.norm, ~ stats::filter(., rep(1 / 10, 10), sides=1)))
-# (cumsum(.) - c(rep(0, 10), cumsum(.)[1:(length(.)-10)])) / 10)) <-- fails when contains NA
+allyr.ww <- get.allyr.ww(persist, trade.method)
 
 ## TIMESERIES
 
@@ -166,17 +158,16 @@ ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step5-", persist, 
 ## Numbers for pres
 tail(allyr3.pop, 1)
 ##    Year   solow  prod25  prod75   total totimpact slrloss tradeloss
-## 1  2023 -0.0285 -0.0631 -0.0338 -0.0501   -0.0331 0.00107   0.00779
+##    2023 -0.0190 -0.0477 -0.0333 -0.0380   -0.0237 0.00112   0.00591
 ## RF:
 ##    Year   solow prod25  prod75   total totimpact slrloss tradeloss
 ## 1  2023 -0.0368 -0.107 -0.0252 -0.0751   -0.0447 0.00105    0.0131
 tail(allyr3.gdp, 1)
 ##    Year   solow  prod25  prod75   total totimpact  slrloss tradeloss
-## 1  2023 -0.0198 -0.0267 -0.0100 -0.0173  -0.00629 0.000392   0.00659
+##    2023 -0.0138 -0.0262 -0.0129 -0.0169   -0.0101 0.000406   0.00471
 ## RF:
 ##    Year   solow  prod25  prod75   total totimpact  slrloss tradeloss
 ## 1  2023 -0.0266 -0.0644 -0.0222 -0.0456   -0.0289 0.000375    0.0101
-
 
 ## Numbers for report
 allyr3.pop.mc <- get.weighted.mcts(allyr.ww, 'pop', do.for.subset)
@@ -187,10 +178,10 @@ allyr3.pop.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
               ci75=log2lev(wtd.quantile(total, .75, weights=weight2, normwt=T)))
 ## Global:
 ##        mu    ci25    ci75
-## 1 -0.0489 -0.0611 -0.0333
+## 1  -0.0373 -0.0466 -0.0327
 ## L+MIC:
 ##        mu    ci25    ci75
-## 1 -0.0593 -0.0990 -0.0265
+## 1 -0.0426 -0.0521 -0.0369
 ## RF:
 ## Global:
 ##        mu   ci25    ci75
@@ -207,10 +198,10 @@ allyr3.gdp.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
               ci75=log2lev(wtd.quantile(total, .75, weights=weight2, normwt=T)))
 ## Global:
 ##        mu    ci25    ci75
-## 1 -0.0171 -0.0263 -0.00995
+## 1 -0.0167 -0.0259 -0.0129
 ## L+MIC:
 ##        mu    ci25    ci75
-## 1 -0.0463 -0.0737 -0.0185
+## 1 -0.0347 -0.0406 -0.0239
 ## RF:
 ## Global:
 ##        mu    ci25    ci75
@@ -266,7 +257,7 @@ y_axis_label <- if (do.for.subset == "L+MIC") {
 
 ## Number for report
 sum(subset(pdf4, Year == 2023)$value)
-## -1864.735
+## -1609.793
 ## RF: -4067.772
 
 gp <- ggplot(subset(pdf4, Year >= 1960), aes(Year)) +

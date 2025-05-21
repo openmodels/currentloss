@@ -272,8 +272,11 @@ subset(allmeta.smooth, Year == 2023)
 ## 5  2023 -0.0119  -0.0167  -0.00568  RF with controls criteria
 ## 6  2023 -0.0168  -0.0383   0.00317  RF with nonlinearity criteria
 ## 7  2023 -0.00952 -0.0138  -0.00529  RF with dataset criteria
-## 8  2023 -0.0116  -0.0179  -0.00417  R² Filled
-## 9  2023 -0.0126  -0.0214  -0.00248  R² Unfilled
+## 8  2023 -0.0101  -0.0139  -0.00532  R² Filled
+## 9  2023 -0.0103  -0.0137  -0.00503  R² Unfilled
+
+library(xtable)
+xtable(subset(allmeta.smooth, Year == 2023))
 
 ## (c) Countries by reference
 polydata$gdppc <- 1e6 * polydata$GDP_MD / polydata$POP_EST

@@ -47,6 +47,9 @@ metadata2$paper <- metadata$Paper
 metadata2$name <- metadata$Name
 metadata2$main <- sapply(1:nrow(metadata2), function(ii) main.models[[metadata$Paper[ii]]] == metadata$Name[ii])
 
+## Drop Total R2 values for entries not used in R2 approach
+metadata2$`Total R2`[(metadata2$paper == "Zhao et al. 2018" & metadata2$name %in% c("Table 3, Col. 2", "Table 3, Col. 3", "Table 3, Col. 5", "Table 3, Col. 6", "Table 3, Col. 7")) | (metadata2$paper == "Kotz et al. 2022" & metadata2$name == "With Linear Trends")] <- 0
+
 metadata3 <- metadata2 %>% group_by(paper) %>% summarize(low=min(`Total R2`), high=max(`Total R2`), main=`Total R2`[main])
 
 allres4 <- allres3 %>% left_join(metadata3[, c('paper', 'low', 'high', 'main')], suffix=c('.rf', '.r2'), by='paper')

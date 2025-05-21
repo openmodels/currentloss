@@ -76,14 +76,25 @@ isotot <- levelprep %>%
 isotot2 <- isotot %>% filter(!is.na(total.usd)) %>% group_by(ISO) %>%
     dplyr::summarize(prod25=wtd.quantile(total.usd, .25, weights=weight.norm, normwt=T), prod75=wtd.quantile(total.usd, .75, weights=weight.norm, normwt=T), total.sum=wtd.median(total.usd, weights=weight.norm, normwt=T))
 
-caplevel <- levelprep %>% group_by(ISO, mc) %>%
+caplevelprep <- levelprep %>% group_by(ISO, mc) %>%
     dplyr::summarize(across(c(procapchg.usd, rencapchg.direct.usd, rencapchg.feedback.usd,
                               weight.norm), ~ ifelse(all(is.na(.)), NA, tail(.[!is.na(.)], 1)))) %>%
     group_by(ISO, mc) %>%
-    filter(is.na(weight.norm) | weight.norm > 1e-10) %>% group_by(ISO) %>%
+    filter(is.na(weight.norm) | weight.norm > 1e-10)
+caplevel <- caplevelprep %>% group_by(ISO) %>%
     dplyr::summarize(procapchg.usd=wtd.median(procapchg.usd, weights=weight.norm, normwt=T),
                      rencapchg.direct.usd=wtd.median(rencapchg.direct.usd, weights=weight.norm, normwt=T),
                      rencapchg.feedback.usd=wtd.median(rencapchg.feedback.usd, weights=weight.norm, normwt=T))
+
+## Get IQR for rich and poor
+isotot %>% left_join(polydata, by=c('ISO'='ADM0_A3')) %>% left_join(caplevelprep, by=c('ISO', 'mc'), suffix=c('', '.cap')) %>%
+    mutate(income.two=ifelse(INCOME_GRP %in% c('1. High income: OECD', '2. High income: nonOECD'), 'rich', 'poor'),
+           total.cap=ifelse(!is.na(procapchg.usd), procapchg.usd + rencapchg.direct.usd + rencapchg.feedback.usd, 0),
+           total.usd=total.usd / 1e9 + total.cap) %>%
+    group_by(mc, income.two) %>% dplyr::summarize(total.usd=sum(total.usd), weight.norm=mean(weight.norm)) %>%
+        group_by(income.two) %>% dplyr::summarize(total25=wtd.quantile(total.usd, .25, weights=weight.norm, normwt=T),
+                                                  total75=wtd.quantile(total.usd, .75, weights=weight.norm, normwt=T),
+                                                  total.sum=wtd.median(total.usd, weights=weight.norm, normwt=T))
 
 ## caplevel <- levelprep %>% filter(Year > 2013) %>% group_by(ISO, mc) %>%
 ##     dplyr::summarize(procapchg.usd=mean(procapchg.usd, na.rm=T), rencapchg.direct.usd=mean(rencapchg.direct.usd, na.rm=T),
@@ -281,13 +292,13 @@ allsums$Group[allsums$Group == 'Seven seas (open ocean)'] <- "Open Ocean"
 subset(allsums, Group == "Least developed region")
 subset(allsums, Group == "South-Eastern Asia")
 log2lev(allsums$total[allsums$Group == "South-Eastern Asia"])
-## -0.09489656
+## R2: -0.06952531
 ## RF: -0.1268648
 log2lev(allsums$prod25[allsums$Group == "South-Eastern Asia"])
-## -0.1309199
+## R2: -0.09916725
 ## RF: -0.2409447
 log2lev(allsums$prod75[allsums$Group == "South-Eastern Asia"])
-## -0.06699606
+## R2: -0.05789884
 ## RF: -0.04811587
 subset(allsums, Group == "Western Africa")
 log2lev(allsums$total[allsums$Group == "Western Africa"])
@@ -295,21 +306,21 @@ log2lev(allsums$prod25[allsums$Group == "Western Africa"])
 log2lev(allsums$prod75[allsums$Group == "Western Africa"])
 subset(allsums, Group == "Africa")
 log2lev(allsums$total[allsums$Group == "Africa"])
-## -0.05897815
+## R2: -0.04725157
 ## RF: -0.07041372
 log2lev(allsums$prod25[allsums$Group == "Africa"])
-## -0.09227726
+## R2: -0.06842237
 ## RF: -0.1434991
 log2lev(allsums$prod75[allsums$Group == "Africa"])
-## -0.03772441
+## R2: -0.03110547
 ## RF: -0.03188625
 subset(allsums, Group == "Europe")
 log2lev(allsums$total[allsums$Group == "Europe"])
-## 0.009160929
+## R2: 0.004132322
 log2lev(allsums$prod25[allsums$Group == "Europe"])
-## -0.005334459
+## R2: -0.009632618
 log2lev(allsums$prod75[allsums$Group == "Europe"])
-## 0.0254213
+## R2: 0.02179586
 subset(allsums, Group == "Central Asia")
 subset(allsums, Group == "High income: OECD")
 log2lev(allsums$total[allsums$Group == "South America"])
@@ -458,7 +469,7 @@ shpl <- importShapefile("data/regions/ne_10m_land/ne_10m_land.shp")
 
 gg <- ggplot(shp2, aes(X, Y)) +
     geom_polygon(data=shpl, aes(group=paste(PID, SID)), fill='#808080', colour=NA) +
-    geom_polygon(aes(fill=pmin(.1, pmax(-.25, log2lev(total))), group=paste(PID, SID))) +
+    geom_polygon(aes(fill=pmin(quantile(sumbyiso$total, .99), pmax(quantile(sumbyiso$total, .01), log2lev(total))), group=paste(PID, SID))) +
     geom_polygon(data=shpl, aes(group=paste(PID, SID)), fill=NA, colour='black', linewidth=.01) +
     geom_label(data=subset(centroids2, show), aes(label=round(log2lev(total) * 100)), size=3, label.padding=unit(0.1, "lines")) +
     xlab(NULL) + ylab(NULL) + coord_map(ylim=c(-50, 65)) +
