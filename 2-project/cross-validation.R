@@ -65,5 +65,8 @@ for (persist in c("0.36", "0", "0.21", "0.47")) {
     }
 }
 
+save(results, file="data/cross-validation.RData")
+
+## load("data/cross-validation.RData")
 results2 <- results %>% group_by(persist, papername) %>% summarize(rmse.pop=sum(rmse * pop) / sum(pop),
                                                                    rmse.gdp=sum(rmse * gdp) / sum(gdp))
