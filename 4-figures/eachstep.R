@@ -80,6 +80,7 @@ alttable <- data.frame()
 df.gdp3 <- load.gdp3()
 
 pdf <- data.frame()
+pdf.levels <- data.frame()
 for (slrconf in c('Market-only', 'All Damages', 'Optimal Adapt.', 'No Adaptation')) {
     if (slrconf == 'No SLR') {
         pdf <- rbind(pdf, data.frame(slrconf='No SLR', year=1960:2023, mu=0, ci25=0, ci75=0))
@@ -109,6 +110,14 @@ for (slrconf in c('Market-only', 'All Damages', 'Optimal Adapt.', 'No Adaptation
             slr2 <- slr %>% group_by(ISO, year) %>% reframe(mc=1:100, slrloss=rnorm(100, mu, ((q83 - q17) / diff(qnorm(c(.17, .83))))))
         }
 
+        ## Calculate levels result
+        slr3 <- slr2 %>%
+            group_by(year, mc) %>% dplyr::summarize(gloslrloss=sum(slrloss, na.rm=T))
+        slr4 <- slr3 %>% group_by(year) %>%
+            dplyr::summarize(mu=mean(gloslrloss), ci25=quantile(gloslrloss, .25), ci75=quantile(gloslrloss, .75))
+
+        pdf.levels <- rbind(pdf.levels, cbind(slrconf=slrconf, slr4))
+
         slr3 <- df.gdp3 %>% left_join(slr2, by=c('Year'='year', 'Country Code'='ISO')) %>%
             mutate(slrfrac=ifelse(is.na(slrloss), 0, slrloss) / GDP.2019.est) %>%
             left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('Country Code'='ADM0_A3')) %>%
@@ -116,10 +125,6 @@ for (slrconf in c('Market-only', 'All Damages', 'Optimal Adapt.', 'No Adaptation
         slr4 <- slr3 %>% group_by(Year) %>%
             dplyr::summarize(mu=median(gloimpact), ci25=quantile(gloimpact, .25), ci75=quantile(gloimpact, .75))
 
-        ## slr3 <- slr2 %>%
-        ##     group_by(year, mc) %>% dplyr::summarize(gloslrloss=sum(slrloss, na.rm=T))
-        ## slr4 <- slr3 %>% group_by(year) %>%
-        ##     dplyr::summarize(mu=mean(gloslrloss), ci25=quantile(gloslrloss, .25), ci75=quantile(gloslrloss, .75))
         pdf <- rbind(pdf, cbind(slrconf=slrconf, slr4))
 
         alttable <- rbind(alttable, cbind(MetaAnalysis='Any', Persistence='Any', SLR=slrconf, Trade='Any', Growth='Any',
@@ -128,6 +133,14 @@ for (slrconf in c('Market-only', 'All Damages', 'Optimal Adapt.', 'No Adaptation
                                           dplyr::summarize(mu=mean(gloimpact), ci25=quantile(gloimpact, .25), ci75=quantile(gloimpact, .75))))
     }
 }
+
+ggplot(pdf.levels, aes(year, mu / 1e9, group=factor(slrconf))) +
+    geom_line(aes(colour=factor(slrconf))) +
+    geom_ribbon(data=subset(pdf.levels, slrconf == 'Market-only'), aes(ymin=ci25 / 1e9, ymax=ci75 / 1e9), alpha=.5) +
+    theme_bw() + theme(legend.justification=c(0,1), legend.position=c(0.01,0.99)) +
+    scale_colour_discrete("Cost Assumptions:") + scale_y_continuous("SLR Impact (billion 2019 USD)") +
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023))
+ggsave("figures/eachstep-slr-levels-big.pdf", width=5.5, height=4.5)
 
 ggplot(pdf, aes(Year, mu, group=factor(slrconf))) +
     coord_cartesian(ylim=c(-.003, 0)) +

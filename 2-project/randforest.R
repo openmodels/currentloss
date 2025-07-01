@@ -3,7 +3,7 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 do.skip.existing <- F
-do.obsimport <- T
+do.obsimport <- F
 
 library(ranger)
 library(readxl)
@@ -13,6 +13,8 @@ source("~/projects/research-common/R/myPBSmapping.R")
 rf.approaches <- c("all", "controls", "nonlinear", "dataset")
 
 load("data/mcres.RData")
+
+rfstats <- data.frame()
 
 for (persist in c("0", "0.21", "0.36", "0.47")) {
 for (rf.approach in rf.approaches) {
@@ -100,6 +102,7 @@ for (mcii in 1:MCNUM) {
                 results <- rbind(results, data.frame(mc=mcii, Year=year, ISO=iso, paper=allres4$paper, name=allres4$name, usage=values$usage))
             }
 
+            rfstats <- rbind(rfstats, data.frame(persist, rf.approach, mc=mcii, Year=year, ISO=iso, mse=rfmod$prediction.error, r2=rfmod$r.squared))
         }
     }
 
@@ -112,3 +115,14 @@ for (mcii in 1:MCNUM) {
 
 }
 }
+
+rfstats2 <- rfstats %>% left_join(allres3 %>% group_by(ISO, Year, mc) %>% summarize(vary=var(dimpact)))
+hist(rfstats2$mse[!is.na(rfstats$r2)] / rfstats2$vary[!is.na(rfstats$r2)])
+
+mean(rfstats2$mse[!is.na(rfstats$r2)])
+quantile(rfstats2$mse[!is.na(rfstats$r2)])
+
+var(allres3$dimpact)
+mean(allres3$dimpact[allres3$dimpact != 0])
+
+## R2 = 1 - (y - yhat)^2 / (y - ybar)^2

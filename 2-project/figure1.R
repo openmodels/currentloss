@@ -458,4 +458,62 @@ ggplot(bothspans, aes(name, yy)) +
     guides(colour=guide_legend(ncol=2))
 ggsave("figures/figure1cd.pdf", width=5, height=8.15)
 
+## SI figure with panel for each paper
+## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
+
+source("~/projects/research-common/R/myPBSmapping.R")
+library(dplyr)
+library(ggplot2)
+source("src/lib/loadutils.R")
+
+persist <- 0.36
+polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
+
+load("data/mcres.RData")
+load("data/mcres-decumul.RData")
+
+allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[as.character(persist)]])
+
+allres2 <- allres %>% filter(!is.na(dimpact)) %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
+    group_by(paper, name, Year, mc) %>% summarize(gloimpact=sum(dimpact * POP_EST, na.rm=T) / sum(POP_EST)) %>%
+    group_by(paper, name, Year) %>% summarize(mu=mean(gloimpact), ci25=quantile(gloimpact, .25, na.rm=T), ci75=quantile(gloimpact, .75, na.rm=T))
+
+allres2.smooth <- allres2 %>% group_by(paper, name) %>% mutate(mu=stats::filter(c(rep(0, 9), mu), rep(1/10, 10), method='conv')[5:(length(mu)+4)],
+                                                               ci25=stats::filter(c(rep(0, 9), ci25), rep(1/10, 10), method='conv')[5:(length(ci25)+4)],
+                                                               ci75=stats::filter(c(rep(0, 9), ci75), rep(1/10, 10), method='conv')[5:(length(ci75)+4)])
+allres2.smooth.label <- allres2.smooth %>% group_by(paper, name) %>% summarize(mu=tail(mu, 1), ci25=tail(ci25, 1), ci75=tail(ci75, 1)) %>%
+    group_by(paper) %>% mutate(nnum=1:length(name)) %>% # grab the original order before reordering
+    arrange(mu) %>% group_by(paper) %>% mutate(paper.split=ifelse(rep(max(nnum) < 10, length(name)), paper, paste(paper, c('Group 1', 'Group 2')[1:max(nnum) %% 2 + 1]))) %>%
+    arrange(nnum) %>% group_by(paper.split) %>% mutate(nnum.split=1:length(name))
+
+max(allres2.smooth.label$nnum.split)
+median(allres2.smooth.label$nnum.split)
+
+allres2.smooth.label.dots <- allres2.smooth.label %>% group_by(paper.split, name) %>% reframe(paper=paper[1], nnum.split=nnum.split[1], Year=seq(1960, 2019, by=30) + 3 * (nnum.split * 4) %% 9 + 3) %>%
+    left_join(allres2.smooth)
+allres2.smooth2 <- allres2.smooth %>% left_join(allres2.smooth.label[, c('paper', 'name', 'paper.split')])
+
+gp <- ggplot(allres2.smooth2, aes(Year, mu)) +
+    facet_wrap(~ paper.split, scales='free_y', ncol=3) +
+    geom_line(aes(group=paste(paper, name))) +
+    geom_label(data=allres2.smooth.label.dots, aes(label=nnum.split), size=1.5) +
+    theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
+    scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023))
+ggsave("figures/figure1a-sibig.pdf", width=6.5, height=8)
+
+format.percent <- function(xx) {
+    ifelse(is.na(xx), NA, paste0(round(xx * 100, 2), "%"))
+}
+
+format.range <- function(x0, x1, ispercent=T) {
+    ifelse(is.na(x0), NA, paste0(floor(x0 * 1000) / 10, " - ", ceiling(x1 * 1000) / 10, "%"))
+}
+
+allres2.smooth.label2 <- allres2.smooth.label[, c('paper.split', 'nnum.split', 'name')] %>% arrange(paper.split)
+allres2.smooth.label2$mu <- format.percent(allres2.smooth.label$mu)
+allres2.smooth.label2$ci <- format.range(allres2.smooth.label$ci25, allres2.smooth.label$ci75)
+names(allres2.smooth.label2) <- c("Paper Panel", "Index", "Estimate Name", "2014 - 2023 Mean", "2014 - 2023 IQR")
+
+library(xtable)
+print(xtable(allres2.smooth.label2), include.rownames=F)
 

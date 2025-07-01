@@ -111,6 +111,12 @@ write.csv(pred2, paste0("data/slrbyadm0-final", suffix, ".csv"), row.names=F)
     }
 }
 
+## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
+
+library(dplyr)
+
+## Get total values
+
 ## Compare to GDP
 source("src/lib/loadutils.R")
 
