@@ -1,7 +1,3 @@
-## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
-setwd("~/research/currentloss")
-## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
-
 args = commandArgs(trailingOnly=TRUE)
 
 library(readxl)
@@ -11,22 +7,17 @@ library(countrycode)
 library(rstan)
 library(parallel)
 
-do.parallel <- T
-do.cores <- detectCores() / 4
+do.parallel <- F
 
 if (length(args) == 1) {
   do.mcs <- as.numeric(args)
 } else {
-  do.mcs <- 1:30
+  do.mcs <- 16:20 #1:30
 }
-persist <- "0.36"
-do.trade.suffix <- "-mcr2all"
+persist <- "0.21"
+trade.method <- 'dd'
 
-trade.methods <- paste0(c("dd", "fd", "li"), do.trade.suffix)
-for (trade.method in trade.methods) {
-print(c(persist, trade.method))
-
-source("src/lib/utils2.R")
+source("lib/utils2.R")
 
 load.solowdata()
 
@@ -126,21 +117,21 @@ model {
 
 mod <- stan_model(model_code=stan.model)
 
-dir.create(paste0("data/solow-", persist, "-", trade.method, "-prodonly"))
+dir.create(paste0("../data/solow-", persist, "-", trade.method, "-prodonly"))
 
 for (mcii in do.mcs) {
-    if (file.exists(paste0("data/solow-", persist, "-", trade.method, "-prodonly/solow-v4-", persist, "-", mcii, ".csv")))
+    if (file.exists(paste0("../data/solow-", persist, "-", trade.method, "-prodonly/solow-v4-", persist, "-", mcii, ".csv")))
         next
     print(mcii)
     load.solowdata.mc(mcii)
 
     if (do.parallel) {
-        cl <- makeCluster(do.cores)
+        cl <- makeCluster(4)
     	clusterEvalQ(cl, {
             library(rstan)
         })
 
-	clusterExport(cl, c("df", "df2", "mod", "mcii", "make.stan.data", "model.solow.prodonly", "persist", "tradeloss.global", "trade.method"))
+	clusterExport(cl, c("df", "df2", "mod", "mcii", "make.stan.data", "model.solow", "persist", "tradeloss.global", "trade.method"))
 	mylapply <- function(xx, func) {
 	  parLapply(cl, xx, func)
 	}
@@ -178,7 +169,7 @@ for (mcii in do.mcs) {
         row$product.chg <- 1 - row$product.end.nocc / row$product.end.true
         row$procap.chg <- 1 - row$procap.end.nocc / row$procap.end.true
 
-        save(la, file=paste0("data/solow-", persist, "-", trade.method, "-prodonly/v4-", iso, "-", mcii, ".RData"))
+        save(la, file=paste0("../data/solow-", persist, "-", trade.method, "-prodonly/v4-", iso, "-", mcii, ".RData"))
 
         row
     })
@@ -190,7 +181,5 @@ for (mcii in do.mcs) {
     for (ii in 1:length(allrows))
         sumbymc <- rbind(sumbymc, allrows[[ii]])
 
-    write.csv(sumbymc, paste0("data/solow-", persist, "-", trade.method, "-prodonly/solow-v4-", persist, "-", mcii, ".csv"), row.names=F)
-}
-
+    write.csv(sumbymc, paste0("../data/solow-", persist, "-", trade.method, "-prodonly/solow-v4-", persist, "-", mcii, ".csv"), row.names=F)
 }

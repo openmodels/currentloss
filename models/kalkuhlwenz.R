@@ -2,8 +2,8 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 if (F) {
-    source("src/2-project/driver.R")
-    source("src/lib/utils.R")
+    source("2-project/driver.R")
+    source("lib/utils.R")
 }
 
 get.funcs <- function(name) {

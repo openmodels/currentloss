@@ -1,5 +1,3 @@
-setwd("~/research/currentloss/search2")
-
 library(dplyr)
 
 alldf <- data.frame()

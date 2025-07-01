@@ -1,7 +1,4 @@
-## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
-## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
-
-datapath <- "data/I_O data/Eora26/Eora26_2015_bp"
+datapath <- "../data/I_O data/Eora26/Eora26_2015_bp"
 TT <- as.matrix(read.delim(file.path(datapath, "Eora26_2015_bp_T.txt"), sep='\t', header=F))
 VA <- as.matrix(read.delim(file.path(datapath, "Eora26_2015_bp_VA.txt"), sep='\t', header=F))
 FD <- as.matrix(read.delim(file.path(datapath, "Eora26_2015_bp_FD.txt"), sep='\t', header=F))

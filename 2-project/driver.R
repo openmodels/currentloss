@@ -1,23 +1,20 @@
-## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
-## setwd("~/jrising@udel.edu - Google Drive/My Drive/Research/Current Losses")
-
 library(dplyr)
 library(reshape2)
 
 MCNUM <- 3000
 
 
-era5 <- read.csv("data/era5-t2m-combo-adm0.csv")
+era5 <- read.csv("../data/era5-t2m-combo-adm0.csv")
 era5 <- era5 %>% arrange(ISO)
 
-era5.adm1 <- read.csv("data/era5-t2m-combo-adm1.csv")
+era5.adm1 <- read.csv("../data/era5-t2m-combo-adm1.csv")
 era5.adm1 <- era5.adm1 %>% arrange(ADM1_Code)
 
 years <- unique(era5$Year)
 years.base <- years[1:20]
 
 ## Add on GDPpcs
-gdppcs <- read.csv("data/socioeconomics/API_NY.GDP.PCAP.KD_DS2_en_csv_v2_3630804/API_NY.GDP.PCAP.KD_DS2_en_csv_v2_3630804.csv", skip=3)
+gdppcs <- read.csv("../data/socioeconomics/API_NY.GDP.PCAP.KD_DS2_en_csv_v2_3630804/API_NY.GDP.PCAP.KD_DS2_en_csv_v2_3630804.csv", skip=3)
 gdppcs2 <- melt(gdppcs, names(gdppcs)[1:4])
 gdppcs2$year <- sapply(gdppcs2$variable, function(ss) as.numeric(substring(ss, 2, 5)))
 gdppcs3 <- gdppcs2 %>% group_by(Country.Code) %>% reframe(year=year, gdppc=value, Lgdppc=lag(value, 1), growth=log(gdppc) - log(Lgdppc))
@@ -84,8 +81,8 @@ library(ggplot2)
 library(cowplot)
 library(grid)
 library(scales)
-source("~/projects/research-common/R/myPBSmapping.R")
-global.adm0 <- importShapefile("data/regions/ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp")
+library(PBSmapping)
+global.adm0 <- importShapefile("../data/regions/ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp")
 global.adm0.polydata <- attr(global.adm0, 'PolyData')
 
 make.map.proj <- function(outdir, prefix, results, scale.title="change in\nGDP p.c. (%)", loval=NULL, hival=NULL) {

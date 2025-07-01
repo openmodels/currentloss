@@ -1,20 +1,17 @@
-## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
-## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
-
 library(dplyr)
-source("~/projects/research-common/R/myPBSmapping.R")
+library(PBSmapping)
 library(ggplot2)
 
-source("src/lib/distance.R")
+source("lib/distance.R")
 
-load("data/mcres.RData")
-load("data/mcres-decumul.RData")
+load("../data/mcres.RData")
+load("../data/mcres-decumul.RData")
 
-mcres.final <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.36"]])
+mcres.final <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.08"]])
 
 df.imp2 <-
     mcres.final %>% group_by(paper, name, ISO, mc) %>%
-    mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - 0.36)^(0:30), sides=1)[-1:-30])
+    mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - 0.08)^(0:30), sides=1)[-1:-30])
 
 if (F) {
     mcres.kotz <- subset(mcres, paper == "Kotz et al. 2022")
@@ -23,7 +20,7 @@ if (F) {
     print(quantile(df.imp2.kotz$totimpact - mcres.kotz$dimpact))
 }
 
-shp <- importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp")
+shp <- importShapefile("../data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp")
 polydata <- attr(shp, 'PolyData')
 
 df.imp2pop <- df.imp2 %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
@@ -36,14 +33,14 @@ ggplot(df.imp2pop, aes(Year, totimpact.pop)) +
     geom_line(data=df.imp2popmed, size=2, colour='black') +
     theme_bw() + scale_y_continuous("Direct Impact (% change in GDP)", labels=scales::percent) + xlab(NULL) +
     scale_colour_discrete("Reference:") + scale_x_continuous(limits=c(1950, 2022), expand=c(0, 0))
-ggsave("figures/totimpacts-0.36.pdf", width=8, height=4)
+ggsave("../results/totimpacts-0.08.pdf", width=8, height=4)
 
-load("data/mcrfres-0.36.RData")
+load("../data/mcrfres-0.08.RData")
 
-polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
+polydata <- attr(importShapefile("../data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
 results2 <- results %>% group_by(ISO, mc) %>%
-    mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - 0.36)^(0:30), sides=1)[-1:-30]) %>%
+    mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - 0.08)^(0:30), sides=1)[-1:-30]) %>%
     left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
     group_by(Year, mc) %>% summarize(gloimpact=sum(totimpact * POP_EST) / sum(POP_EST)) %>%
     group_by(Year) %>% summarize(mu=mean(gloimpact),
@@ -64,7 +61,7 @@ ggplot(df.imp2pop, aes(Year, totimpact.pop)) +
     theme_bw() + scale_y_continuous("Direct Impact (% change in GDP)", labels=scales::percent) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1940, 2022)) +
     scale_colour_discrete("Reference:")
-ggsave("figures/totimpacts-withrf-0.36.pdf", width=8, height=4)
+ggsave("../results/totimpacts-withrf-0.08.pdf", width=8, height=4)
 
 ## Presentation Fig 1: Models only
 ggplot(df.imp2pop, aes(Year, totimpact.pop)) +
@@ -99,7 +96,7 @@ for (PID in order(polydata$POP_EST, decreasing=T)) {
 shp2 <- shp %>% left_join(polydata[, c('PID', 'ADM0_A3')]) %>% left_join(df.imp3, by=c('ADM0_A3'='ISO'))
 centroids2 <- centroids %>% left_join(polydata[, c('PID', 'ADM0_A3')]) %>% left_join(df.imp3, by=c('ADM0_A3'='ISO'))
 
-shpl <- importShapefile("data/regions/ne_10m_land/ne_10m_land.shp")
+shpl <- importShapefile("../data/regions/ne_10m_land/ne_10m_land.shp")
 
 ggplot(shp2, aes(X, Y)) +
     geom_polygon(aes(fill=mu, group=paste(PID, SID))) +
@@ -108,7 +105,7 @@ ggplot(shp2, aes(X, Y)) +
     coord_map(ylim=c(-50, 65)) + xlab(NULL) + ylab(NULL) +
     scale_fill_gradient2("GDP per capita\nchange (%)", labels=scales::percent) +
     theme_bw()
-ggsave("figures/cumul-product.pdf", width=8, height=4)
+ggsave("../results/cumul-product.pdf", width=8, height=4)
 
 ## write.csv(df.imp2, "totres.csv", row.names=F)
 #save(df.imp2, file="mctotres.Rdata")

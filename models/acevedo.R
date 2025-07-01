@@ -10,7 +10,7 @@ if (F) {
 library(readxl)
 
 get.funcs <- function(name) {
-    output <- read_excel("papers/models/Acevedo et al. 2020 SI/output/Table_1.xlsx", sheet=name)
+    output <- read_excel("../data/papers/Acevedo et al. 2020 SI/output/Table_1.xlsx", sheet=name)
 
     beta <- c(output$t_coef[output$period == 0], output$t2_coef[output$period == 0],
               output$t_coef[output$period == 7], output$t2_coef[output$period == 7])

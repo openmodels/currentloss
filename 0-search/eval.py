@@ -1,5 +1,3 @@
-# Run from ~/projects/arachne/venv
-
 import os, time
 import pandas as pd
 from chatwrap import gemini
@@ -16,7 +14,6 @@ else:
 
 results = []
 
-# index, row = next(df.iterrows())
 for index, row in df.iterrows():
     if known.EID.isin([row.EID]).any():
         continue

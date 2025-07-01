@@ -1,14 +1,12 @@
-## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
-
 library(dplyr)
 
 do.costtype <- 'market' # 'all'
-do.case.only <- '' #'' #'optimalfixed'
+do.case.only <- 'noAdaptation' #'' #'optimalfixed'
 
-for (do.costtype in c('all', 'market', 'inundation', 'stormCapital')) {
-    for (do.case.only in c('', 'noAdaptation', 'optimalfixed')) {
+for (do.costtype in c('inundation', 'stormCapital')) {
+    for (do.case.only in c('noAdaptation', 'optimalfixed')) {
 
-load("data/totalcosts.RData")
+load("../data/totalcosts.RData")
 
 if (do.case.only %in% unique(df$case)) {
     df <- subset(df, case == do.case.only)
@@ -103,18 +101,16 @@ ggplot(pdf, aes(year, mu - mu[year == 1960], group=source)) +
     ylab("Global Sea Level Damages (USD)")
 
 ## tosave <- rbind(cbind(source='Emulated', pred[pred$year < 2010,]), cbind(source='CIAM', ISO=df3.iso$adm0, df3.iso[, -1]))
-## write.csv(tosave, "data/slrbyadm0-final.csv", row.names=F)
+## write.csv(tosave, "../data/slrbyadm0-final.csv", row.names=F)
 
 pred2 <- pred %>% group_by(ISO) %>% mutate(q17=q17 - q17[year == 1960], mu=mu - mu[year == 1960], q83=q83 - q83[year == 1960])
-write.csv(pred2, paste0("data/slrbyadm0-final", suffix, ".csv"), row.names=F)
+write.csv(pred2, paste0("../data/slrbyadm0-final", suffix, ".csv"), row.names=F)
 
     }
 }
 
 ## Compare to GDP
-source("src/lib/loadutils.R")
-
-pred2 <- read.csv("data/slrbyadm0-final.csv")
+source("lib/loadutils.R")
 
 df.gdp3 <- load.gdp3()
 
@@ -132,4 +128,4 @@ gp <- ggplot(pred3, aes(year, mu.frac, group=ISO)) +
     geom_line(linewidth=.1) +
     geom_label(data=labels, aes(x=2025, y=round(mu.frac * 5e2) / 5e2, label=ISO), size=2) +
     theme_bw() + xlab(NULL) + scale_y_continuous("GDP lost to coastal impacts (%)", expand=c(0, 0), labels=scales::percent)
-ggsave("figures/si/slr-byiso.pdf", gp, width=6.5, height=4.5)
+ggsave("../results/slr-byiso.pdf", gp, width=6.5, height=4.5)

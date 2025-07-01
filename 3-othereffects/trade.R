@@ -1,27 +1,21 @@
-## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
-## setwd("~/research/currentloss")
-## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
-
 library(dplyr)
-source("src/lib/loadutils.R")
-source("src/3-othereffects/trade-io.R")
+source("lib/loadutils.R")
+source("3-othereffects/trade-io.R")
 
 ## method <- 'dd'
 ## method.function <- calc.final.demand.method
-do.keep.incgrp <- NA
-do.outdir.suffix <- "-mcr2all" #"-mcpaperall" # "-mcr2all" # ""
+do.keep.incgrp <- NULL
 
 method.function.map <- list('dd'=NULL, 'fd'=calc.final.demand.method, 'li'=calc.leontief.method)
 
 for (method in c('dd', 'fd', 'li')) {
     method.function <- method.function.map[[method]]
 
-for (do.keep.incgrp in c(NA, '1-2', '3-5')) {
+## for (do.keep.incgrp in c('1-2', '3-5')) {
 
-if (!is.na(do.keep.incgrp)) {
-    source("~/projects/research-common/R/myPBSmapping.R")
-
-    polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
+if (!is.null(do.keep.incgrp)) {
+    library(PBSmapping)
+    polydata <- attr(importShapefile("../data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
     if (do.keep.incgrp == '3-5')
         dropiso <- polydata$ADM0_A3[polydata$INCOME_GRP %in% c("2. High income: nonOECD", "1. High income: OECD")]
     else
@@ -32,17 +26,17 @@ if (!is.na(do.keep.incgrp)) {
     suffix <- ''
 }
 
-dir.create(paste0("data/tradeloss-", method, do.outdir.suffix))
+dir.create(paste0("../data/tradeloss-", method))
 
-comtrade <- rbind(read.csv("data/trade/uncomtrade-1992.csv"), read.csv("data/trade/uncomtrade-2002.csv"),
-                  read.csv("data/trade/uncomtrade-2012.csv"), read.csv("data/trade/uncomtrade-2022.csv"))
+comtrade <- rbind(read.csv("../data/trade/uncomtrade-1992.csv"), read.csv("../data/trade/uncomtrade-2002.csv"),
+                  read.csv("../data/trade/uncomtrade-2012.csv"), read.csv("../data/trade/uncomtrade-2022.csv"))
 
 ## Get all GDPs (for SLR fraction calc)
 df.gdp3 <- load.gdp3()
 slr2 <- load.slr2(df.gdp3)
 
-for (persist in c('0.36', '0', '0.21', '0.47')) {
-    results <- read.metaanal.trade(do.outdir.suffix, persist)
+for (persist in c('0.21', '0.08')) {
+    results <- read.metaanal(paste0("mcrfres-", persist))
 
     results2 <- results %>% group_by(ISO, mc) %>%
         mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - as.numeric(persist))^(0:30), sides=1)[-1:-30]) %>%
@@ -63,7 +57,7 @@ for (persist in c('0.36', '0', '0.21', '0.47')) {
 
                 tradeloss <- rbind(tradeloss, data.frame(ISO=results2.year$ISO, mc=mcii, year, tradeloss=losses))
             }
-            save(tradeloss, file=paste0("data/tradeloss-", method, do.outdir.suffix, "/tradeloss-", year, "-", persist, suffix, ".RData"))
+            save(tradeloss, file=paste0("../data/tradeloss-", method, "/tradeloss-", year, "-", persist, suffix, ".RData"))
         }
     } else {
         for (mcii in unique(results2$mc)) {
@@ -95,7 +89,7 @@ for (persist in c('0.36', '0', '0.21', '0.47')) {
                 for (ii in 1:length(allthisyear)) {
                     tradeloss <- rbind(tradeloss, data.frame(ISO=results2.year$ISO, mc=mcii, year=min(results2$Year) + ii - 1, tradeloss=NA))
                 }
-                save(tradeloss, file=paste0("data/tradeloss-", method, do.outdir.suffix, "/tradeloss-", mcii, "-", persist, suffix, ".RData"))
+                save(tradeloss, file=paste0("../data/tradeloss-", method, "/tradeloss-", mcii, "-", persist, suffix, ".RData"))
                 next
             }
 
@@ -107,10 +101,10 @@ for (persist in c('0.36', '0', '0.21', '0.47')) {
                 losses <- calc.domar.distribute.method2(smoothscalebys[ii], results2.year$ISO, allthisyear[[ii]])
                 tradeloss <- rbind(tradeloss, data.frame(ISO=results2.year$ISO, mc=mcii, year=min(results2$Year) + ii - 1, tradeloss=losses))
             }
-            save(tradeloss, file=paste0("data/tradeloss-", method, do.outdir.suffix, "/tradeloss-", mcii, "-", persist, suffix, ".RData"))
+            save(tradeloss, file=paste0("../data/tradeloss-", method, "/tradeloss-", mcii, "-", persist, suffix, ".RData"))
         }
     }
 }
 
-}
+## }
 }

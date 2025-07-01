@@ -1,9 +1,9 @@
 library(dplyr)
 library(countrycode)
-source("src/lib/loadutils.R")
+source("lib/loadutils.R")
 
 ## Grab pre-Solow results for countries without capital info
-results <- read.metaanal.trade(trade.method, persist)
+results <- read.metaanal(paste0("mcrfres-", persist))
 results2 <- results %>% group_by(ISO, mc) %>%
     mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - as.numeric(persist))^(0:30), sides=1)[-1:-30])
 
@@ -22,25 +22,25 @@ read.iw <- function(filepath, value.name) {
 }
 
 load.solowdata <- function() {
-    df.gdp2 <- read.wb("data/capital/API_NY.GDP.MKTP.KD_DS2_en_excel_v2_5871893.xls", 'GDP.2015')
+    df.gdp2 <- read.wb("../data/capital/API_NY.GDP.MKTP.KD_DS2_en_excel_v2_5871893.xls", 'GDP.2015')
     df.gdp2$GDP.2005 <- df.gdp2$GDP.2015 * 83.6 / 100
-    df.lab2 <- read.wb("data/capital/API_SL.TLF.TOTL.IN_DS2_en_excel_v2_5871833.xls", 'Labor')
-    df.pop2 <- read.wb("data/capital/API_SP.POP.TOTL_DS2_en_excel_v2_5871620.xls", 'Population')
+    df.lab2 <- read.wb("../data/capital/API_SL.TLF.TOTL.IN_DS2_en_excel_v2_5871833.xls", 'Labor')
+    df.pop2 <- read.wb("../data/capital/API_SP.POP.TOTL_DS2_en_excel_v2_5871620.xls", 'Population')
     df.pop2.last <- subset(df.pop2, Year == 2022)
     df.pop2.last$Year <- 2023
     df.pop2 <- rbind(df.pop2, df.pop2.last)
-    df.sav2 <- read.wb("data/capital/API_NY.GNS.ICTR.ZS_DS2_en_excel_v2_5871648.xls", 'SavingRate')
-    df.nat2 <- read.wb("data/capital/API_NV.AGR.TOTL.ZS_DS2_en_excel_v2_5871737.xls", 'NaturalGDP')
+    df.sav2 <- read.wb("../data/capital/API_NY.GNS.ICTR.ZS_DS2_en_excel_v2_5871648.xls", 'SavingRate')
+    df.nat2 <- read.wb("../data/capital/API_NV.AGR.TOTL.ZS_DS2_en_excel_v2_5871737.xls", 'NaturalGDP')
 
-    df.pro <- read.csv("data/capital/tabula-C-produced.csv")
+    df.pro <- read.csv("../data/capital/tabula-C-produced.csv")
     df.pro$ISO <- factor(countryname(df.pro$Country, 'iso3c'))
-    df.pro2 <- read.iw("data/capital/tabula-C-produced.csv", 'Produced Capital')
-    df.hum2 <- read.iw("data/capital/tabula-B-human.csv", 'Human Capital')
-    df.non2 <- read.iw("data/capital/tabula-A1-nonrenewable.csv", 'Nonrenewable Capital')
-    df.ren2 <- read.iw("data/capital/tabula-A2-renewable.csv", 'Renewable Capital')
+    df.pro2 <- read.iw("../data/capital/tabula-C-produced.csv", 'Produced Capital')
+    df.hum2 <- read.iw("../data/capital/tabula-B-human.csv", 'Human Capital')
+    df.non2 <- read.iw("../data/capital/tabula-A1-nonrenewable.csv", 'Nonrenewable Capital')
+    df.ren2 <- read.iw("../data/capital/tabula-A2-renewable.csv", 'Renewable Capital')
 
-    era5 <- read.csv("data/era5-t2m-combo-adm0.csv")
-    era5b <- era5 %>% left_join(subset(era5, Year < 1960) %>% group_by(ISO) %>% summarize(t2m=mean(t2m)), by='ISO', suffix=c('', '.hist'))
+    era5 <- read.csv("../data/era5-t2m-combo-adm0.csv")
+    era5b <- era5 %>% left_join(subset(era5, Year < 1960) %>% group_by(ISO) %>% dplyr::summarize(t2m=mean(t2m)), by='ISO', suffix=c('', '.hist'))
     era5b$warming <- era5b$t2m - era5b$t2m.hist
 
     assign("df.gdp2", df.gdp2, envir = .GlobalEnv)
@@ -140,7 +140,7 @@ make.stan.data <- function(iso) {
 
 model.solow <- function(la, stan.data, withcc, rencaptrue=NULL) {
     if (!is.null(rencaptrue) && stan.data$T > dim(la$rencap_model)[2])
-        stan.data$T <- dim(la$rencap_model)[2] # Can happen under different updates of data
+        stan.data$T <- dim(la$rencap_model)[2] # Cah happen under different updates of data
 
     product <- matrix(0, 1000, stan.data$T-1)
     rencap_model <- matrix(NA, 1000, stan.data$T)

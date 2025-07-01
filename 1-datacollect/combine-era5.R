@@ -1,5 +1,3 @@
-setwd("~/research/currentloss")
-
 library(dplyr)
 library(ggplot2)
 

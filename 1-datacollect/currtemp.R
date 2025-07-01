@@ -1,6 +1,4 @@
-setwd("~/Dropbox/UK Economic Risks/climate/gsat")
-
-df <- read.csv("ssps_26_70_ukproject_allmembers.csv")
+df <- read.csv("../data/ssps_26_70_ukproject_allmembers.csv")
 library(dplyr)
 ## Get baseline
 df0 <- df %>% group_by(run_id) %>% summarize(baseline=mean(value[year >= 1995 & year <= 2014]))

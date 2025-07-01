@@ -1,59 +1,13 @@
-## setwd("~/research/currentloss")
-## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
-
 library(Hmisc)
 library(PBSmapping)
-library(parallel)
 
-do.parallel <- T
-do.redo <- T
-persist <- "0.36"
-trade.method <- 'dd-mcr2all'
+persist <- "0.08"
+trade.method <- 'fd'
 solow.config <- '' #'' #'-prodonly' #'-additive'
-solow.data.dir <- "/mnt/LabShare/Current Losses v2"
-
-if (do.parallel) {
-    cl <- makeCluster(detectCores())
-    clusterEvalQ(cl, {
-        library(Hmisc)
-        library(PBSmapping)
-    })
-    clusterExport(cl, "solow.data.dir")
-    mylapply <- function(xx, func) {
-        parLapply(cl, xx, func)
-    }
-} else {
-    mylapply <- lapply
-}
-
-configs <- list()
-for (persist in c("0.36", "0", "0.21", "0.47")) {
-    for (trade.method.prefix in c('dd', 'fd', 'li')) {
-        for (trade.method in paste0(trade.method.prefix, "-mcr2all")) { #c("", "-mcpaperall", "-mcr2all"))) {
-            for (solow.config in c('', '-prodonly', '-noadd', '-additive')) {
-                if (!file.exists(paste0(solow.data.dir, "/solow-", persist, "-", trade.method, solow.config)))
-                    next
-                if (!do.redo && file.exists(paste0("data/allyr-ww-", persist, "-", trade.method, solow.config, ".RData")))
-                    next
-                configs[[length(configs)+1]] <- c(persist, trade.method, solow.config)
-            }
-        }
-    }
-}
-
-print(configs)
-
-mylapply(configs, function(config) {
-    persist <<- config[1]
-    trade.method <<- config[2]
-    solow.config <<- config[3]
-
-    print(c(persist, trade.method, solow.config))
-
-source("src/lib/utils2.R")
+source("lib/utils2.R")
 
 load.solowdata()
-solowsum <- load.solowsum(persist, trade.method, solow.config, solow.data.dir=solow.data.dir)
+solowsum <- load.solowsum(persist, trade.method, solow.config)
 
 df.gdp2.last <- df.gdp2 %>% group_by(`Country Code`) %>%
     dplyr::summarize(GDP.Year=ifelse(any(!is.na(GDP.2015)), Year[tail(which(!is.na(GDP.2015)), 1)], NA),
@@ -88,7 +42,7 @@ for (mcii in 1:30) {
         stan.data <- make.stan.data(iso)
 
         success <- tryCatch({
-            load(paste0(solow.data.dir, "/solow-", persist, "-", trade.method, solow.config, "/v4-", iso, "-", mcii, ".RData"))
+            load(paste0("../data/solow-", persist, "-", trade.method, solow.config, "/v4-", iso, "-", mcii, ".RData"))
             T
         }, error=function(e) {
             F
@@ -97,9 +51,6 @@ for (mcii in 1:30) {
             failures <- c(failures, paste(mcii, iso))
             next
         }
-
-        if (is.null(la$cumulpart) && solow.config == '-noadd')
-            la$cumulpart <- rep(1, stan.data$T)
 
         denom <- df2$denom[df2$ISO == iso][1]
         if (solow.config != '-prodonly') {
@@ -157,6 +108,4 @@ allyr.ww <- allyr %>% left_join(solowsum3, by=c('ISO', 'mc'), suffix=c('', '.sol
                is.na(weight) ~ 0,
                TRUE ~ weight / sum(weight, na.rm=T)))
 
-save(allyr.ww, file=paste0("data/allyr-ww-", persist, "-", trade.method, solow.config, ".RData"))
-
-})
+save(allyr.ww, file=paste0("../data/allyr-ww-", persist, "-", trade.method, solow.config, ".RData"))

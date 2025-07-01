@@ -39,6 +39,21 @@ directory.
 Each of the steps below specifies a given subdirectory of the code in
 the section header, where its code files are stored.
 
+## 0. Perform the AI-assisted literature search (0-search)
+
+Optional: To perform the literature search, run `eval.py`, which
+queries Gemini, and `openai_batch.py`, which queries OpenAI GPT-4o. In
+each case, first run these with line 6 as `source = 'websci'` and then
+with `source = 'scopus'`.
+
+This will produce four files: `websci-gemini.csv`,
+`scopus-gemini.csv`, `websci-openai.csv`, `scopus-openai.csv`.
+
+Then run `postprocess.R`, which produces
+`further-consideration-websci.csv` and
+`further-consideration-scopus.csv`. These are all abstracts that need
+to be considered by hand.
+
 ## 1. Collect weather data (1-datacollect)
 
 Run collect-era5.py, which generates year-specific ERA5 files, and
@@ -73,6 +88,8 @@ takes a very long time to run (weeks on a low-powered desktop), since
 it runs for each country under each Monte Carlo draw. Parallel
 computing is used to increase the speed on machines with multiple
 cores.
+
+The trade Eora data is not stored in the Code Ocean, and needs to be downloaded separately. This should be saved to the `data/I_O data` directory as a "Eora26" directory, containing folders following the naming pattern `Eora26_YYYY_bp` where YYYY is a year.
 
 ## 4. Generate result outputs (4-figures)
 

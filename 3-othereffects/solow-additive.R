@@ -1,7 +1,3 @@
-## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
-setwd("~/research/currentloss")
-## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
-
 library(readxl)
 library(dplyr)
 library(reshape2)
@@ -10,15 +6,10 @@ library(rstan)
 library(parallel)
 
 do.mcs <- 1:30
-persist <- "0.36"
-do.trade.suffix <- "-mcr2all"
-do.cores <- detectCores() / 4
+persist <- "0.21"
+trade.method <- 'dd'
 
-trade.methods <- paste0(c("dd", "fd", "li"), do.trade.suffix)
-for (trade.method in trade.methods) {
-print(c(persist, trade.method))
-
-source("src/lib/utils2.R")
+source("lib/utils2.R")
 
 load.solowdata()
 
@@ -138,15 +129,15 @@ model {
 
 mod <- stan_model(model_code=stan.model)
 
-dir.create(paste0("data/solow-", persist, "-", trade.method, '-additive'))
+dir.create(paste0("../data/solow-", persist, "-", trade.method, '-additive'))
 
 for (mcii in 1:30) {
-    if (file.exists(paste0("data/solow-", persist, "-", trade.method, "-additive/solow-v4-", persist, "-", mcii, ".csv")))
+    if (file.exists(paste0("../data/solow-", persist, "-", trade.method, "-additive/solow-v4-", persist, "-", mcii, ".csv")))
         next
     print(mcii)
     load.solowdata.mc(mcii)
 
-    cl <- makeCluster(do.cores)
+    cl <- makeCluster(detectCores())
     clusterEvalQ(cl, {
         library(rstan)
     })
@@ -187,7 +178,7 @@ for (mcii in 1:30) {
         row$procap.chg <- 1 - row$procap.end.nocc / row$procap.end.true
         row$humcap.chg <- 1 - row$humcap.end.nocc / row$humcap.end.true
 
-        save(la, file=paste0("data/solow-", persist, "-", trade.method, "-additive/v4-", iso, "-", mcii, ".RData"))
+        save(la, file=paste0("../data/solow-", persist, "-", trade.method, "-additive/v4-", iso, "-", mcii, ".RData"))
 
         row
     })
@@ -198,7 +189,5 @@ for (mcii in 1:30) {
     for (ii in 1:length(allrows))
         sumbymc <- rbind(sumbymc, allrows[[ii]])
 
-    write.csv(sumbymc, paste0("data/solow-", persist, "-", trade.method, "-additive/solow-v4-", persist, "-", mcii, ".csv"), row.names=F)
-}
-
+    write.csv(sumbymc, paste0("../data/solow-", persist, "-", trade.method, "-additive/solow-v4-", persist, "-", mcii, ".csv"), row.names=F)
 }

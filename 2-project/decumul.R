@@ -1,6 +1,3 @@
-## setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
-## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
-
 if (F) {
     ## Testing the method
     dimpact <- rnorm(40)
@@ -19,12 +16,12 @@ if (F) {
     dimpact - reconstructed_dimpact
 }
 
-load("data/mcres.RData")
+load("../data/mcres.RData")
 
 ## Construct decumulated value for Kotz et al.
 
 decumul.bypersist <- list()
-for (persist in c(0, 0.21, 0.36, 0.47)) {
+for (persist in c(0.08, 0.21)) {
     mcres.kotz <- subset(mcres, paper == "Kotz et al. 2022")
     decay <- (1 - persist)^(0:30)
     revdeca <- rev(decay[-1])
@@ -49,8 +46,8 @@ for (persist in c(0, 0.21, 0.36, 0.47)) {
     decumul.bypersist[[as.character(persist)]] <- mcres.kotz
 }
 
-save(decumul.bypersist, file="data/mcres-decumul.RData")
-## load("data/mcres-decumul.RData")
+save(decumul.bypersist, file="../data/mcres-decumul.RData")
+## load("../data/mcres-decumul.RData")
 
 library(dplyr)
 
@@ -64,12 +61,12 @@ if (F) {
     }
 }
 
-mcres.final <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.36"]])
+mcres.final <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.21"]])
 
 results <- mcres.final %>% group_by(Year, ISO, name, paper) %>% summarize(dimpact=mean(dimpact))
 
-source("~/projects/research-common/R/myPBSmapping.R")
-polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
+library(PBSmapping)
+polydata <- attr(importShapefile("../data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 results2 <- results %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
     group_by(Year, name, paper) %>% summarize(dimpact.pop=sum(dimpact * POP_EST, na.rm=T) / sum(POP_EST[!is.na(dimpact)]))
 results2$paper[results2$paper == "Kotz et al. 2022"] <- "Kotz et al. 2022 (*)"
@@ -81,5 +78,5 @@ gp <- ggplot(results2, aes(Year, dimpact.pop)) +
     coord_cartesian(ylim=c(-0.05, 0.02)) +
     geom_line(aes(colour=paper, group=paste(paper, name)), linewidth=.3) +
     geom_line(data=results3, size=2, colour='black') +
-    theme_bw() + ylab("Impact (change in growth rate)") + scale_colour_discrete(NULL)
+    theme_bw() + ylab("Impact (change in growth rate)")
 ggsave("figures/allimpacts.pdf", width=8, height=4)

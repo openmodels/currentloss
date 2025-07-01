@@ -8,9 +8,6 @@ df.openai <- read.csv(paste0("data/search/", source, "-openai.csv")) %>% select(
 if (source == 'scopus')
     df.gemini$EID <- 0:(nrow(df.gemini)-1)
 
-## df.gemini2 <- df.gemini %>% filter(Verdict %in% c('Somewhat', 'Likely', 'Unlikely'))
-## df.openai2 <- df.openai %>% filter(Verdict %in% c('Somewhat', 'Likely', 'Unlikely')) %>% select('EID', 'Verdict', 'Comments')
-
 if (source == 'scopus') {
     df.source <- read.csv("data/search/scopus.csv")
 } else {

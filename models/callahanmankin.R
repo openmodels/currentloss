@@ -11,7 +11,7 @@ callahanmankin.bootstraps <- list("Main"=c("Attribution_Coefficients_Bootstrap_B
                                   "Differentiated"=c("Attribution_Coefficients_Bootstrap_BHMRP.csv", "coef_t_poor","coef_t2_poor","coef_t_rich","coef_t2_rich"))
 
 get.funcs <- function(name) {
-    coeffs <- read.csv(file.path("papers", "models",  "Callahan & Mankin 2022", callahanmankin.bootstraps[[name]][1]))
+    coeffs <- read.csv(file.path("../data/papers/Callahan & Mankin 2022", callahanmankin.bootstraps[[name]][1]))
 
     if (length(callahanmankin.bootstraps[[name]]) == 3) {
         setup <- function(mcii) {

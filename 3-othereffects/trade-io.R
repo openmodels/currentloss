@@ -1,10 +1,8 @@
-## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
-
 library(raster)
 library(dplyr)
 
-comtrade <- rbind(read.csv("data/trade/uncomtrade-1992.csv"), read.csv("data/trade/uncomtrade-2002.csv"),
-                  read.csv("data/trade/uncomtrade-2012.csv"), read.csv("data/trade/uncomtrade-2022.csv"))
+comtrade <- rbind(read.csv("../data/trade/uncomtrade-1992.csv"), read.csv("../data/trade/uncomtrade-2002.csv"),
+                  read.csv("../data/trade/uncomtrade-2012.csv"), read.csv("../data/trade/uncomtrade-2022.csv"))
 
 io.byyear <- list() # "YEAR"=list("TT"=matrix, labels=data.frame)
 fd.byyear <- list() # "YEAR"=list("FD"=matrix, labels=data.frame)
@@ -19,7 +17,7 @@ load.fd <- function(year) {
     if (yearstr %in% names(fd.byyear))
         return(fd.byyear[[yearstr]])
 
-    datapath <- paste0("data/I_O data/Eora26/Eora26_", year, "_bp")
+    datapath <- paste0("../data/I_O data/Eora26/Eora26_", year, "_bp")
     VA <- as.matrix(read.delim(file.path(datapath, paste0("Eora26_", year, "_bp_VA.txt")), sep='\t', header=F))
     FD <- as.matrix(read.delim(file.path(datapath, paste0("Eora26_", year, "_bp_FD.txt")), sep='\t', header=F))
 
@@ -53,7 +51,7 @@ load.io <- function(year) {
     fd.data <- load.fd(year)
     labels2 <- fd.data$labels
 
-    datapath <- paste0("data/I_O data/Eora26/Eora26_", year, "_bp")
+    datapath <- paste0("../data/I_O data/Eora26/Eora26_", year, "_bp")
     TT <- as.matrix(read.delim(file.path(datapath, paste0("Eora26_", year, "_bp_T.txt")), sep='\t', header=F))
 
     rTT <- raster(TT)
@@ -102,6 +100,7 @@ calc.domar.distribute.method1 <- function(year, isos, dimpact) {
         comtrade.iso <- subset(comtrade, ReporterISO == iso & PartnerISO != 'W00')
         if (nrow(comtrade.iso) == 0)
             next
+        results2.iso <- subset(results2, ISO == iso)
 
         maxgrow <- max(0, dimpact[isos == iso])
 
@@ -215,7 +214,7 @@ calc.leontief.method <- function(year, isos, dimpact) {
 
 if (F) {
     ## Test
-    load("data/mcrfres-0.08.RData")
+    load("../data/mcrfres-0.08.RData")
     losses <- subset(results, mc == 1 & Year == 2015)
     isos <- losses$ISO
     dimpact <- losses$dimpact

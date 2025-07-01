@@ -1,8 +1,6 @@
-## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
-
 persist <- "0.21"
 trade.method <- "dd"
-source("src/lib/utils2.R")
+source("lib/utils2.R")
 
 solowdone <- load.solowsum(persist, trade.method)
 
@@ -17,7 +15,7 @@ for (mcii in 1:30) {
             next
         print(c(mcii, iso))
 
-        load(paste0("data/solow-", persist, "-", trade.method, "/v4-", iso, "-", mcii, ".RData"))
+        load(paste0("../data/solow-", persist, "-", trade.method, "/v4-", iso, "-", mcii, ".RData"))
 
         rows <- sample(1000, 10)
         const.draw <- rbind(data.frame(param='tfp', value=la$tfp[rows]),
