@@ -59,6 +59,10 @@ allres5$usage <- allres5$usage / sum(allres5$usage)
 allres5$`Total R2` <- allres5$`Total R2` / sum(allres5$`Total R2`)
 allres5$main <- allres5$main.r2 / sum(allres5$main.r2)
 
+## mean(allres5$usage[allres5$paper == "Kotz et al. 2022"])
+## sum(allres5$usage[allres5$paper == "Kotz et al. 2022"])
+## allres5 %>% group_by(paper) %>% summarize(usage=sum(usage))
+
 newnames <- c(rbind(paste(allres5$paper, 1:nrow(allres5)), paste("white", 1:nrow(allres5))))
 newnames <- factor(newnames, levels=newnames)
 
