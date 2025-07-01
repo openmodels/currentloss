@@ -7,10 +7,10 @@ library(PBSmapping)
 library(ggplot2)
 library(sf)
 
-do.for.subset <- "global" # "global" or "L+MIC"
+do.for.subset <- "L+MIC" # "global" or "L+MIC"
 
-persist <- "0.21"
-trade.method <- "dd"
+persist <- "0.36"
+trade.method <- "dd-mcr2all"
 source("src/lib/utils2.R")
 source("src/lib/synth.R")
 
@@ -59,6 +59,12 @@ pdf2 %>% filter(Year > 1993) %>% group_by(mc) %>%
                          totalandcap.usd.mu=wtd.median(totalandcap.usd, weights=weight2, normwt=T),
                          totalandcap.usd.ci25=wtd.quantile(totalandcap.usd, .25, weights=weight2, normwt=T),
                          totalandcap.usd.ci75=wtd.quantile(totalandcap.usd, .75, weights=weight2, normwt=T))
+## R2-Total:
+## L+MIC:
+##   totimpact.usd.mu totimpact.usd.ci25 totimpact.usd.ci75 totalandcap.usd.mu totalandcap.usd.ci25 totalandcap.usd.ci75
+## 1           -9710.            -12319.             -6325.            -16918.              -20180.              -11528.
+
+## Random Forest:
 ## Global:
 ##   totimpact.usd.mu totimpact.usd.ci25 totimpact.usd.ci75 totalandcap.usd.mu totalandcap.usd.ci25 totalandcap.usd.ci75
 ## 1          -36976.            -53605.            -18994.            -55282.              -77724.              -34295.
@@ -79,10 +85,32 @@ levelprep %>% group_by(Year, mc) %>%
         dplyr::summarize(totalandcap.usd=mean(totalandcap.usd, na.rm=T), weight2=mean(weight2)) %>%
         dplyr::summarize(ci25=wtd.quantile(totalandcap.usd, .25, weights=weight2, normwt=T),
                          ci75=wtd.quantile(totalandcap.usd, .75, weights=weight2, normwt=T), totalandcap.usd=wtd.mean(totalandcap.usd, weights=weight2, normwt=T))
+## R2-Total:
+## L+MIC:
+##    ci25  ci75 totalandcap.usd
+## 1 -1215. -665.          -1131.
+
+## Random Forest:
 ## Global:
-# A tibble: 1 × 3
 ##     ci25   ci75 totalandcap.usd
 ## 1 -4175. -1583.          -3410.
 ## L+MIC:
 ##     ci25  ci75 totalandcap.usd
 ## 1 -2704. -882.          -1932.
+
+## Calculate a total of produce capital, as a comparison
+
+df.pro2 <- read.iw("data/capital/tabula-C-produced.csv", 'Produced Capital')
+isos <- unique(levelprep$ISO)
+sum(df.pro2$`Produced Capital`[df.pro2$ISO %in% isos & df.pro2$Year == 2014], na.rm=T) # Billion 2005 USD
+
+df.prowb <- read_excel("data/capital/World Bank Produced.xlsx", 1)
+sum(df.prowb$`2020 [YR2020]`[df.prowb$`Country Code` %in% isos]) / 1e9
+
+## R2-Total:
+## L+MIC:
+## 16918 / 52233.76
+
+## Rich countries
+sum(df.prowb$`2020 [YR2020]`[!(df.prowb$`Country Code` %in% isos)], na.rm=T) / 1e9
+##

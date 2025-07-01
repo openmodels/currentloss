@@ -1,6 +1,20 @@
 library(readxl)
 library(reshape2)
 
+read.metaanal.trade <- function(trade.method, persist) {
+    if (grepl("-mcpaperall", trade.method)) {
+        print("Loading Monte Carlo over all spec.")
+        metaanal <- "mcpaperres-PERSIST-all"
+    } else if (grepl("-mcr2all", trade.method)) {
+        print("Loading R² Filled")
+        metaanal <- "mcr2res-PERSIST-Total R2"
+    } else {
+        print("Loading RF with all quality criteria")
+        metaanal <- "mcrfres-PERSIST"
+    }
+    read.metaanal(sub("PERSIST", persist, metaanal))
+}
+
 read.metaanal <- function(filebase) {
     allres <- data.frame()
     for (mc in 1:30) {
@@ -43,7 +57,7 @@ load.slr2 <- function(df.gdp3) {
 }
 
 load.tradeloss <- function(method, persist) {
-    if (method != 'dd') {
+    if (substring(method, 1, 2) != 'dd') {
         tradeloss.all <- data.frame()
         for (year in 1940:2023) {
             load(paste0(paste0("data/tradeloss-", method, "/tradeloss-", year, "-", persist, ".RData")))
@@ -60,10 +74,10 @@ load.tradeloss <- function(method, persist) {
     tradeloss.all
 }
 
-load.solowsum <- function(persist, trade.method, solow.config='') {
+load.solowsum <- function(persist, trade.method, solow.config='', solow.data.dir='data') {
     solowsum <- data.frame()
     for (mc in 1:30) {
-        filepath <- paste0("data/solow-", persist, "-", trade.method, solow.config, "/solow-v4-", persist, "-", mc, ".csv")
+        filepath <- file.path(solow.data.dir, paste0("solow-", persist, "-", trade.method, solow.config, "/solow-v4-", persist, "-", mc, ".csv"))
         if (file.exists(filepath))
             solowsum <- rbind(solowsum, read.csv(filepath))
     }

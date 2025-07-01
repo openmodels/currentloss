@@ -102,7 +102,6 @@ calc.domar.distribute.method1 <- function(year, isos, dimpact) {
         comtrade.iso <- subset(comtrade, ReporterISO == iso & PartnerISO != 'W00')
         if (nrow(comtrade.iso) == 0)
             next
-        results2.iso <- subset(results2, ISO == iso)
 
         maxgrow <- max(0, dimpact[isos == iso])
 

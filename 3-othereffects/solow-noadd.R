@@ -9,6 +9,8 @@ library(countrycode)
 library(rstan)
 library(parallel)
 
+## Equivalent to cumulpart = 1; so asked to exactly match total impact
+
 do.mcs <- 1:30
 persist <- "0.36"
 do.trade.suffix <- "-mcr2all"
@@ -51,7 +53,6 @@ data {
 
   real<lower=0, upper=1> deprrate_prior;
 
-  vector[T] gdpgrowshock_contemp; // instantaneous shock
   vector[T] gdpgrowshock_cumul; // cumulative shock
   vector[T] warming;
 }
@@ -84,7 +85,6 @@ parameters {
   simplex[4] shares0; // ren, pro, hum, pop
   simplex[4] sharesT; // ren, pro, hum, pop
   real<lower=0> shares_error;
-  vector<lower=0, upper=1>[T-1] cumulpart;
 
   real<lower=0> gdp_error;
 }
@@ -94,16 +94,28 @@ transformed parameters {
   vector<lower=0>[T] procap_model;
   vector<lower=0>[T] humcap_univ;
 
+  vector<lower=0>[T-1] product_nocc; // calculates year 1 product for year 2 capital
+  vector<lower=0>[T] rencap_nocc;
+  vector<lower=0>[T] procap_nocc;
+
   rencap_model[1] = rencap0part * maxrencap0;
   procap_model[1] = procap0part * maxprocap0;
   humcap_univ[1] = humcap0part * maxhumcap0;
 
+  rencap_nocc[1] = rencap0part * maxrencap0;
+  procap_nocc[1] = procap0part * maxprocap0;
+
   for (tt in 2:T) {
     // Y = TFP * GDPLoss * R^alpha * K^beta * H^gamma * L^(1 - alpha - beta - gamma)
-    product[tt-1] = (tfp + dtfpdt * (tt-1)) * (1 - (gdpgrowshock_contemp[tt-1] + cumulpart[tt-1] * (gdpgrowshock_cumul[tt-1] - gdpgrowshock_contemp[tt-1]))) * pow(rencap_model[tt-1], (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2))) * pow(procap_model[tt-1], (shares0[2] + (tt-2) * (sharesT[2] - shares0[2]) / (T-2))) * pow(humcap_univ[tt-1], (shares0[3] + (tt-2) * (sharesT[3] - shares0[3]) / (T-2))) * pow(pop[tt-1], (shares0[4] + (tt-2) * (sharesT[4] - shares0[4]) / (T-2)));
+    product[tt-1] = (tfp + dtfpdt * (tt-1)) * (1 - gdpgrowshock_cumul[tt-1]) * pow(rencap_model[tt-1], (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2))) * pow(procap_model[tt-1], (shares0[2] + (tt-2) * (sharesT[2] - shares0[2]) / (T-2))) * pow(humcap_univ[tt-1], (shares0[3] + (tt-2) * (sharesT[3] - shares0[3]) / (T-2))) * pow(pop[tt-1], (shares0[4] + (tt-2) * (sharesT[4] - shares0[4]) / (T-2)));
     rencap_model[tt] = rencap_model[tt-1] * (1 + (1 - renwarmeffect * warming[tt-1]) * rickerr * exp(-rickerb * rencap_model[tt-1] / maxrencap0)) - (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2)) * product[tt-1] / (1 + (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2)) * product[tt-1] / rencap_model[tt-1]);
     procap_model[tt] = procap_model[tt-1] + (saverate0 + dsaveratedt * (tt-2)) * product[tt-1] - deprrate * procap_model[tt-1];
     humcap_univ[tt] = humcap_univ[tt-1] * (1 + dloghumcapdt);
+
+    // Same calculations, but without climate change effect
+    product_nocc[tt-1] = (tfp + dtfpdt * (tt-1)) * pow(rencap_nocc[tt-1], (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2))) * pow(procap_nocc[tt-1], (shares0[2] + (tt-2) * (sharesT[2] - shares0[2]) / (T-2))) * pow(humcap_univ[tt-1], (shares0[3] + (tt-2) * (sharesT[3] - shares0[3]) / (T-2))) * pow(pop[tt-1], (shares0[4] + (tt-2) * (sharesT[4] - shares0[4]) / (T-2)));
+    rencap_nocc[tt] = rencap_nocc[tt-1] * (1 + rickerr * exp(-rickerb * rencap_nocc[tt-1] / maxrencap0)) - (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2)) * product_nocc[tt-1] / (1 + (shares0[1] + (tt-2) * (sharesT[1] - shares0[1]) / (T-2)) * product_nocc[tt-1] / rencap_nocc[tt-1]);
+    procap_nocc[tt] = procap_nocc[tt-1] + (saverate0 + dsaveratedt * (tt-2)) * product_nocc[tt-1] - deprrate * procap_nocc[tt-1];
   }
 }
 model {
@@ -124,6 +136,8 @@ model {
     sav[ii] ~ normal(saverate0 + dsaveratedt * (sav_year[ii]-2), sav_error);
   }
 
+  gdpgrowshock_cumul[2:T] ~ normal(-(log(product) - log(product_nocc)), gdp_error); // gdpgrowshock is a log quantity, so gdp_error can apply to both
+
   // Model logic
   dsaveratedt ~ normal(0, sav_error);
 
@@ -138,10 +152,10 @@ model {
 
 mod <- stan_model(model_code=stan.model)
 
-dir.create(paste0("data/solow-", persist, "-", trade.method, '-additive'))
+dir.create(paste0("data/solow-", persist, "-", trade.method, "-noadd"))
 
 for (mcii in 1:30) {
-    if (file.exists(paste0("data/solow-", persist, "-", trade.method, "-additive/solow-v4-", persist, "-", mcii, ".csv")))
+    if (file.exists(paste0("data/solow-", persist, "-", trade.method, "-noadd/solow-v4-", persist, "-", mcii, ".csv")))
         next
     print(mcii)
     load.solowdata.mc(mcii)
@@ -187,7 +201,7 @@ for (mcii in 1:30) {
         row$procap.chg <- 1 - row$procap.end.nocc / row$procap.end.true
         row$humcap.chg <- 1 - row$humcap.end.nocc / row$humcap.end.true
 
-        save(la, file=paste0("data/solow-", persist, "-", trade.method, "-additive/v4-", iso, "-", mcii, ".RData"))
+        save(la, file=paste0("data/solow-", persist, "-", trade.method, "-noadd/v4-", iso, "-", mcii, ".RData"))
 
         row
     })
@@ -198,7 +212,7 @@ for (mcii in 1:30) {
     for (ii in 1:length(allrows))
         sumbymc <- rbind(sumbymc, allrows[[ii]])
 
-    write.csv(sumbymc, paste0("data/solow-", persist, "-", trade.method, "-additive/solow-v4-", persist, "-", mcii, ".csv"), row.names=F)
+    write.csv(sumbymc, paste0("data/solow-", persist, "-", trade.method, "-noadd/solow-v4-", persist, "-", mcii, ".csv"), row.names=F)
 }
 
 }

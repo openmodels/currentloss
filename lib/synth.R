@@ -16,22 +16,31 @@ get.weighted.mcts <- function(allyr.ww, iso.weight, do.for.subset) {
         left_join(df.pop3, by = c('ISO' = 'Country Code')) %>%
         left_join(polydata, by = c('ISO' = 'ADM0_A3'))
 
-    if (do.for.subset == "L+MIC") {
-        allyr2 <- allyr2 %>%
-            filter(INCOME_GRP %in% c("5. Low income", "4. Lower middle income", "3. Upper middle income"))
-    }
-
     if (iso.weight == 'pop')
         allyr2$iso.weight <- allyr2$POP
     else
         allyr2$iso.weight <- allyr2$GDP.2015
 
-    allyr3 <- allyr2 %>% group_by(mc, Year) %>%
-        dplyr::summarize(totimpact = wtd.mean(totimpact, weights = iso.weight, normwt = T),
+    ## Solow value to use for missing countries
+    ## total = totimpact - tradeloss - slrloss + solow
+    solow.global <- allyr2 %>% group_by(mc, Year) %>%
+        dplyr::summarize(known2total.global = ifelse(all(is.na(product.chg)), NA, wtd.median(product.chg / (totimpact - tradeloss - slrloss), weights = iso.weight, normwt = T)))
+
+    if (do.for.subset == "L+MIC") {
+        allyr2 <- allyr2 %>%
+            filter(INCOME_GRP %in% c("5. Low income", "4. Lower middle income", "3. Upper middle income"))
+    }
+
+    allyr3 <- allyr2 %>% left_join(solow.global, by=c('mc', 'Year')) %>%
+        ## Fill in missing total values
+        mutate(product.chg = ifelse(is.na(product.chg), known2total.global * (totimpact - tradeloss - slrloss), product.chg)) %>% group_by(mc, Year) %>%
+        dplyr::summarize(solow.lev = ifelse(all(is.na(product.chg)), NA, wtd.mean(log2lev(product.chg - (totimpact - tradeloss - slrloss)), weights = iso.weight, normwt = T)),
+                         solow = ifelse(all(is.na(product.chg)), NA, wtd.mean(product.chg - (totimpact - tradeloss - slrloss), weights = iso.weight, normwt = T)),
+                         total.lev = ifelse(all(is.na(product.chg)), wtd.mean(totimpact - tradeloss - slrloss, weights = iso.weight, normwt = T), wtd.mean(log2lev(product.chg), weights = iso.weight, normwt = T)),
+                         total = ifelse(all(is.na(product.chg)), wtd.mean(totimpact - tradeloss - slrloss, weights = iso.weight, normwt = T), wtd.mean(product.chg, weights = iso.weight, normwt = T)),
+                         totimpact = wtd.mean(totimpact, weights = iso.weight, normwt = T),
                          slrloss = wtd.mean(slrloss, weights = iso.weight, normwt = T),
                          tradeloss = wtd.mean(tradeloss, weights = iso.weight, normwt = T),
-                         solow = ifelse(all(is.na(product.chg)), NA, wtd.mean(product.chg - totimpact - tradeloss - slrloss, weights = iso.weight, normwt = T)),
-                         total = ifelse(all(is.na(product.chg)), wtd.mean(totimpact - tradeloss - slrloss, weights = iso.weight, normwt = T), wtd.mean(product.chg, weights = iso.weight, normwt = T)),
                          weight2 = wtd.mean(weight.norm, weights = iso.weight))
 
     allyr3
@@ -94,10 +103,12 @@ prep.levels.allyr.ww <- function(allyr.ww) {
 get.allyr.ww <- function(persist, trade.method) {
     load(paste0("data/allyr-ww-", persist, "-", trade.method, ".RData"))
     allyr.ww[allyr.ww$ISO == 'SDN', which(is.na(allyr.ww[allyr.ww$ISO == 'ABW', ][1, ]))] <- NA # country change affects
+
+    ## Duplicate final values only for NA capitals
     for2023 <- subset(allyr.ww, Year == 2022)
+    columns <- c('product.true', 'product.nocc', 'allcap.true', 'allcap.nocc', 'rencap.true', 'rencap.nocc', 'rencap.ccpc', 'product.chg', 'rencap.chg.ccpc')
     stopifnot(all(for2023$ISO == allyr.ww$ISO[allyr.ww$Year == 2023]))
-    for2023[, 1:8] <- subset(allyr.ww, Year == 2023)[, 1:8]
-    allyr.ww <- rbind(subset(allyr.ww, Year <= 2022), for2023)
+    allyr.ww[allyr.ww$Year == 2023, columns] <- for2023[, columns]
     allyr.ww <- allyr.ww %>% group_by(ISO, mc) %>% arrange(Year) %>%
         mutate(across(dimpact:weight.norm, ~ stats::filter(., rep(1 / 10, 10), sides=1)))
 

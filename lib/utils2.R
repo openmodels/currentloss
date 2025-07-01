@@ -3,7 +3,7 @@ library(countrycode)
 source("src/lib/loadutils.R")
 
 ## Grab pre-Solow results for countries without capital info
-results <- read.metaanal(paste0("mcrfres-", persist))
+results <- read.metaanal.trade(trade.method, persist)
 results2 <- results %>% group_by(ISO, mc) %>%
     mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - as.numeric(persist))^(0:30), sides=1)[-1:-30])
 
@@ -140,7 +140,7 @@ make.stan.data <- function(iso) {
 
 model.solow <- function(la, stan.data, withcc, rencaptrue=NULL) {
     if (!is.null(rencaptrue) && stan.data$T > dim(la$rencap_model)[2])
-        stan.data$T <- dim(la$rencap_model)[2] # Cah happen under different updates of data
+        stan.data$T <- dim(la$rencap_model)[2] # Can happen under different updates of data
 
     product <- matrix(0, 1000, stan.data$T-1)
     rencap_model <- matrix(NA, 1000, stan.data$T)

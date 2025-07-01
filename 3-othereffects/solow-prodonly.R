@@ -11,15 +11,20 @@ library(countrycode)
 library(rstan)
 library(parallel)
 
-do.parallel <- F
+do.parallel <- T
+do.cores <- detectCores() / 4
 
 if (length(args) == 1) {
   do.mcs <- as.numeric(args)
 } else {
-  do.mcs <- 16:20 #1:30
+  do.mcs <- 1:30
 }
-persist <- "0.21"
-trade.method <- 'dd'
+persist <- "0.36"
+do.trade.suffix <- "-mcr2all"
+
+trade.methods <- paste0(c("dd", "fd", "li"), do.trade.suffix)
+for (trade.method in trade.methods) {
+print(c(persist, trade.method))
 
 source("src/lib/utils2.R")
 
@@ -130,12 +135,12 @@ for (mcii in do.mcs) {
     load.solowdata.mc(mcii)
 
     if (do.parallel) {
-        cl <- makeCluster(4)
+        cl <- makeCluster(do.cores)
     	clusterEvalQ(cl, {
             library(rstan)
         })
 
-	clusterExport(cl, c("df", "df2", "mod", "mcii", "make.stan.data", "model.solow", "persist", "tradeloss.global", "trade.method"))
+	clusterExport(cl, c("df", "df2", "mod", "mcii", "make.stan.data", "model.solow.prodonly", "persist", "tradeloss.global", "trade.method"))
 	mylapply <- function(xx, func) {
 	  parLapply(cl, xx, func)
 	}
@@ -186,4 +191,6 @@ for (mcii in do.mcs) {
         sumbymc <- rbind(sumbymc, allrows[[ii]])
 
     write.csv(sumbymc, paste0("data/solow-", persist, "-", trade.method, "-prodonly/solow-v4-", persist, "-", mcii, ".csv"), row.names=F)
+}
+
 }
