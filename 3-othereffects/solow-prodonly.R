@@ -19,7 +19,7 @@ if (length(args) == 1) {
 } else {
   do.mcs <- 1:30
 }
-persist <- "0.36"
+persist <- "0.46"
 do.trade.suffix <- "-mcr2all"
 
 trade.methods <- paste0(c("dd", "fd", "li"), do.trade.suffix)

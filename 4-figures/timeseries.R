@@ -9,7 +9,7 @@ library(sf)
 
 do.for.subset <- "global" # "global" or "L+MIC"
 
-persist <- "0.36"
+persist <- "0.46"
 trade.method <- "dd-mcr2all"
 source("src/lib/utils2.R")
 source("src/lib/synth.R")

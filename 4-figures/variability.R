@@ -7,7 +7,7 @@ library(PBSmapping)
 library(ggplot2)
 library(sf)
 
-persist <- "0.36"
+persist <- "0.46"
 trade.method <- "dd"
 source("src/lib/utils2.R")
 source("src/lib/synth.R")

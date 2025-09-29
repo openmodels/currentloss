@@ -1,6 +1,6 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
-persist <- "0.21"
+persist <- "0.31"
 trade.method <- "dd"
 source("src/lib/utils2.R")
 

@@ -5,7 +5,7 @@ library(dplyr)
 library(ggplot2)
 source("~/projects/research-common/R/myPBSmapping.R")
 
-persist <- 0.36
+persist <- 0.46
 load("data/mcres.RData")
 load("data/mcres-decumul.RData")
 

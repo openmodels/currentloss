@@ -6,8 +6,8 @@ library(ggplot2)
 
 source("src/lib/loadutils.R")
 
-persist <- 0.36
-results <- read.metaanal("mcrfres-0.36")
+persist <- 0.46
+results <- read.metaanal("mcrfres-0.46")
 
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
@@ -166,7 +166,7 @@ library(dplyr)
 library(ggplot2)
 source("src/lib/loadutils.R")
 
-persist <- 0.36
+persist <- 0.46
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
 load("data/mcres.RData")
@@ -466,7 +466,7 @@ library(dplyr)
 library(ggplot2)
 source("src/lib/loadutils.R")
 
-persist <- 0.36
+persist <- 0.46
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
 load("data/mcres.RData")

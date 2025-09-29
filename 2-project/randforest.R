@@ -16,9 +16,9 @@ load("data/mcres.RData")
 
 rfstats <- data.frame()
 
-for (persist in c("0", "0.21", "0.36", "0.47")) {
+for (persist in c("0", "0.31", "0.46", "0.78")) {
 for (rf.approach in rf.approaches) {
-    if (do.obsimport && (persist != "0.36" || rf.approach != "all"))
+    if (do.obsimport && (persist != "0.46" || rf.approach != "all"))
       next
 
     if (rf.approach == 'all') {
