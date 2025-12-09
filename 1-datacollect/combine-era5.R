@@ -19,10 +19,16 @@ for (year in available.years) {
                                                t2mavgmin=min(t2mavg), t2mavgmax=max(t2mavg),
                                                t2mavgvar=var(t2mavg), t2mvaravg=mean(t2mvar))
     stopifnot(all(df2a$ADM0_A3 == df2b$ADM0_A3))
+    df2c <- df %>% group_by(ADMIN, ADM0_A3) %>% mutate(by5=ceiling((1:n()) / 5)) %>%
+        group_by(by5, ADMIN, ADM0_A3) %>% summarize(t2max=mean(t2mmax)) %>%
+        group_by(ADMIN, ADM0_A3) %>% summarize(t2mmax5day=max(t2max))
+    stopifnot(all(df2a$ADM0_A3 == df2c$ADM0_A3))
+
     df3 <- data.frame(Year=year, Country=df2a$ADMIN, ISO=df2a$ADM0_A3, t2m=df2a$t2m,
                       t2mminavg=df2b$t2mminavg, t2mmaxavg=df2b$t2mmaxavg,
                       t2mavgmin=df2b$t2mavgmin, t2mavgmax=df2b$t2mavgmax,
-                      t2mavgvar=df2b$t2mavgvar, t2mvaravg=df2b$t2mvaravg)
+                      t2mavgvar=df2b$t2mavgvar, t2mvaravg=df2b$t2mvaravg,
+                      t2mmax5day=df2c$t2mmax5day)
 
     combo <- rbind(combo, df3)
 }
@@ -49,10 +55,16 @@ for (year in available.years) {
                                                	    t2mavgmin=min(t2mavg), t2mavgmax=max(t2mavg),
                                                	    t2mavgvar=var(t2mavg), t2mvaravg=mean(t2mvar))
         stopifnot(all(df2a$name == df2b$name))
+        df2c <- df %>% group_by(admin, adm0_a3, name, diss_me) %>% mutate(by5=ceiling((1:n()) / 5)) %>%
+            group_by(by5, admin, adm0_a3, name, diss_me) %>% summarize(t2max=mean(t2mmax)) %>%
+            group_by(admin, adm0_a3, name, diss_me) %>% summarize(t2mmax5day=max(t2max))
+        stopifnot(all(df2a$name == df2c$name))
+
         df3 <- data.frame(Year=year, Country=df2a$admin, ISO=df2a$adm0_a3, ADM1=df2a$name, ADM1_Code=df2a$diss_me, t2m=df2a$t2m,
                           t2mminavg=df2b$t2mminavg, t2mmaxavg=df2b$t2mmaxavg,
                           t2mavgmin=df2b$t2mavgmin, t2mavgmax=df2b$t2mavgmax,
-                          t2mavgvar=df2b$t2mavgvar, t2mvaravg=df2b$t2mvaravg)
+                          t2mavgvar=df2b$t2mavgvar, t2mvaravg=df2b$t2mvaravg,
+                          t2mmax5day=df2c$t2mmax5day)
 
         combo <- rbind(combo, df3)
     }
