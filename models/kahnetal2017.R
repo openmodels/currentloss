@@ -16,11 +16,11 @@ get.funcs <- function(name) {
 
     coeffs <- matrix(NA, MCNUM, length(beta))
     for (cc in 1:length(beta))
-        coeffs[, cc] <- rnorm(MCNUM, beta[cc], se[cc])
+        coeffs[, cc] <- rnorm(MCNUM, beta[cc] / 100, se[cc] / 100)
 
     setup <- function(mcii) {
         if (is.null(mcii))
-            return(beta)
+            return(beta / 100)
         as.numeric(coeffs[mcii,])
     }
 

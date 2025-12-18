@@ -27,7 +27,19 @@ papers <- list("Dell et al. 2012" = "src/models/djo.R",
                "Henseler & Schumacher 2019" = "src/models/henselerschumacher.R",
                "Burke et al. 2018" = "src/models/burkeetal2018.R",
                "De Vos & Everaert 2021" = "src/models/devoseveraert.R",
-               "Yang et al. 2023" = "src/models/yangetal.R")
+               "Yang et al. 2023" = "src/models/yangetal.R",
+               "Bareille et al. 2024"="bareilleetal.R",
+               "Zhang et al. 2024"="zhangetal.R",
+               "Meierrieks & Stadelmann 2024"="meierrieksstadelmann.R",
+               "Apergis & Rehman 2024"="apergisrehman.R",
+               "Brown et al. 2013"="brownetal.R",
+               "Kahn et al. 2017"="kahnetal2017.R",
+               "Liu et al. 2023"="liuetal.R",
+               "Yang et al. 2025"="yangetal2025.R",
+               "Gupta et al. 2024"="guptaetal.R",
+               "Jiao et al. 2024"="jiaoetal.R",
+               "Benhamed et al. 2023"="benhamedetal.R",
+               "Desbordes & Eberhardt 2024"="desbordeseberhardt.R")
 
 results <- data.frame()
 allres <- data.frame()
