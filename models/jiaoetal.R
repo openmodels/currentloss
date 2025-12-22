@@ -1,9 +1,9 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
+library(tidyr)
 
 if (F) {
     source("src/2-project/driver.R")
     source("src/lib/utils.R")
-    library(tidyr)
 }
 
 get.funcs <- function(name) {

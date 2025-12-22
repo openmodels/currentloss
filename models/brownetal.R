@@ -22,12 +22,12 @@ get.funcs <- function(name) {
 
         if (is.null(mcii))
             return(beta)
-        as.numeric(coeffs[mcii,])
+        as.numeric(coeffs[mcii])
     }
 
     simulate <- function(coeffs, year, subera5, contemp.only=F) {
         dimpact <- 0
-        if (contemp.only && name == "Table 5, T2W") {
+        if (name == "Table 5, T2W" && (contemp.only || length(subera5.lags) == 0)) {
             dimpact <- subera5$t2m * NA
         } else if (name == "Table 2, T2W") {
             dimpact <- dimpact + (subera5$t2m - 273.15) * coeffs
