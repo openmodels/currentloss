@@ -22,7 +22,7 @@ get.funcs <- function(name) {
 
         if (is.null(mcii))
             return(beta)
-        as.numeric(coeffs[mcii,])
+        as.numeric(coeffs[mcii])
     }
 
     simulate <- function(coeffs, year, subera5, contemp.only=F) {

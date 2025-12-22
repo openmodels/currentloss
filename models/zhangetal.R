@@ -7,7 +7,7 @@ if (F) {
 
 get.funcs <- function(name) {
     stopifnot(name == "Table A3")
-    beta <- c(-0.0955, 0.0468, -0.9606, 0.8505) / 100
+    beta <- c(-0.0955, 0.0468, -0.9606, -0.8505) / 100
     se <- c(0.0191, 0.0438, 0.1123, 0.0978) / 100
 
     coeffs <- matrix(NA, MCNUM, length(beta))
@@ -21,8 +21,6 @@ get.funcs <- function(name) {
     }
 
     simulate <- function(coeffs, year, subera5, contemp.only=F) {
-        stopifnot(!is.na(subera5$t2mmax5day)) # Did I generate new weather data?
-        stopifnot(F) # Once I regenerate it, need to test this!
         (subera5$t2mmax5day - 273.15) * (coeffs[1] + (subera5$t2m - 273.15) * coeffs[2]) + (subera5$t2m - 273.15) * coeffs[3] +
             sqrt(subera5$t2mvaravg) * coeffs[4] # average across months of sd within month
     }

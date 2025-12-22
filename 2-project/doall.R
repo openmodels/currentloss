@@ -28,18 +28,18 @@ papers <- list("Dell et al. 2012" = "src/models/djo.R",
                "Burke et al. 2018" = "src/models/burkeetal2018.R",
                "De Vos & Everaert 2021" = "src/models/devoseveraert.R",
                "Yang et al. 2023" = "src/models/yangetal.R",
-               "Bareille et al. 2024"="bareilleetal.R",
-               "Zhang et al. 2024"="zhangetal.R",
-               "Meierrieks & Stadelmann 2024"="meierrieksstadelmann.R",
-               "Apergis & Rehman 2024"="apergisrehman.R",
-               "Brown et al. 2013"="brownetal.R",
-               "Kahn et al. 2017"="kahnetal2017.R",
-               "Liu et al. 2023"="liuetal.R",
-               "Yang et al. 2025"="yangetal2025.R",
-               "Gupta et al. 2024"="guptaetal.R",
-               "Jiao et al. 2024"="jiaoetal.R",
-               "Benhamed et al. 2023"="benhamedetal.R",
-               "Desbordes & Eberhardt 2024"="desbordeseberhardt.R")
+               "Bareille et al. 2024" = "src/models/bareilleetal.R",
+               "Zhang et al. 2024" = "src/models/zhangetal.R",
+               "Meierrieks & Stadelmann 2024" = "src/models/meierrieksstadelmann.R",
+               "Apergis & Rehman 2024" = "src/models/apergisrehman.R",
+               "Brown et al. 2013" = "src/models/brownetal.R",
+               "Kahn et al. 2017" = "src/models/kahnetal2017.R",
+               "Liu et al. 2023" = "src/models/liuetal.R",
+               "Yang et al. 2025" = "src/models/yangetal2025.R",
+               "Gupta et al. 2024" = "src/models/guptaetal.R",
+               "Jiao et al. 2024" = "src/models/jiaoetal.R",
+               "Benhamed et al. 2023" = "src/models/benhamedetal.R",
+               "Desbordes & Eberhardt 2024" = "src/models/desbordeseberhardt.R")
 
 results <- data.frame()
 allres <- data.frame()
@@ -53,7 +53,7 @@ for (paper in names(papers)) {
             funcs <- get.funcs(name)
             if (is.null(funcs))
                 next
-            oneres <- project.single(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper %in% c("Kotz et al. 2022", "Kalkuhl & Wenz 2020", "Damania et al. 2020", "Zhao et al. 2018"), 1, 0))
+            oneres <- project.single(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper %in% c("Kotz et al. 2022", "Kalkuhl & Wenz 2020", "Damania et al. 2020", "Zhao et al. 2018", "Bareille et al. 2024", "Kahn et al. 2017", "Meierrieks & Stadelmann 2024", "Zhang et al. 2024"), 1, 0))
             if (contemp.only == F)
                 oneres.not.contemp.only <- oneres
             else {
