@@ -44,7 +44,7 @@ metadata$Q.Temp <- ifelse(metadata$Temp == "VarT, DT, LDT, DT:T, LDT:LT", 1 - ((
 		   ifelse(metadata$Temp == "Cubic", 1 - .5^2,
                    ifelse(metadata$Temp == "10 Lags", 1 - (1 - 0.25)^9,
 		   ifelse(metadata$Temp == "T1, LT1, T2, LT2", 1 - .5*(.75^2),
-                   ifelse(metadata$Temp %in% c("Linear", "Z-score", "FD", "Average 1986-2000 -  Average 1970-1985", "Symmetric Spline", "Deviations"), 0., NA)))))))))))
+                   ifelse(metadata$Temp %in% c("Linear", "Z-score", "FD", "Average 1986-2000 -  Average 1970-1985", "Symmetric Spline", "Deviations"), 0., NA))))))))))))))
 metadata$Q.Prec <- ifelse(metadata$Prec. %in% c("DP, LDP, DP:P, LDP:P, P", "DP, LDP, DP:P, LDP:P, LP"), 1 - ((1 - .25)*(1 - .5)*(1 - .25)*(1 - .5)),
                    ifelse(metadata$Prec. %in% c("DP, LDP, DP:P, LDP:P, P, P2", "DP, LDP, DP:P, LDP:P, LP, LP2"), 1 - ((1 - .25)*(1 - .5)*(1 - .25)*(1 - .5)*(1 - .5)),
                    ifelse(metadata$Prec. == "Indicatators", 1 - (1 - 0.5)*(1 - 0.5)^2*(1 - 0.5)^2*(1 - 0.5)^2,
@@ -57,7 +57,7 @@ metadata$Q.Prec <- ifelse(metadata$Prec. %in% c("DP, LDP, DP:P, LDP:P, P", "DP, 
                    ifelse(metadata$Prec. %in% c("1 Lag", "DT, LDT"), 1 - (1 - 0.25),
                    ifelse(metadata$Prec. == "10 Lags", 1 - (1 - 0.25)^9,
                    ifelse(metadata$Prec. %in% c("Linear", "Z-score", "FD", "Average 1986-2000 -  Average 1970-1985", "Symmetric Spline"), 0,
-                   ifelse(metadata$Prec. %in% c("NA", "No"), -1, NA)))))))))
+                   ifelse(metadata$Prec. %in% c("NA", "No"), -1, NA)))))))))))))
 metadata$Q.YearFE <- ifelse(metadata$`Year FE` == "By Region", 1,
                      ifelse(metadata$`Year FE` == "By Continent", 0.75,
                      ifelse(metadata$`Year FE` == "Yes", 0.5, 0)))
