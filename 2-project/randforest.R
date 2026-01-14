@@ -54,16 +54,17 @@ for (rf.approach in rf.approaches) {
         group_by(paper, name) %>% summarize(status=max(status, na.rm=T))
     allres2 <- allres %>% group_by(ISO, paper, name) %>% filter(!all(is.na(dimpact))) %>%
         mutate(dimpact=ifelse(is.na(dimpact), 0, dimpact))
+
+    MCNUM <- max(allres$mc)
+    isos <- unique(allres$ISO)
+    years <- unique(allres$Year)
+
     rm(allres)
 
     allstat2 <- allres2 %>% group_by(ISO, paper, name) %>% summarize(status=ifelse(all(is.na(dimpact)), NA, max(Year[is.na(dimpact) & Year < 2000]))) %>%
       group_by(paper, name) %>% summarize(status=max(status, na.rm=T))
 
 source("src/lib/loadmetadata.R")
-
-MCNUM <- max(allres$mc)
-isos <- unique(allres$ISO)
-years <- unique(allres$Year)
 
 for (mcii in 1:MCNUM) {
     if (do.skip.existing && file.exists(savepath(mcii)))
