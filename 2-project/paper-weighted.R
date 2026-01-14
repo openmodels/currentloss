@@ -8,6 +8,8 @@ library(PBSmapping)
 
 sample.approaches <- c("mainmed", "main", "all")
 
+mem.maxVSize(Inf)
+
 load("data/mcres.RData")
 load("data/mcres-decumul.RData")
 
@@ -22,7 +24,19 @@ main.models <- list("Dell et al. 2012"="Main 2.3", "Burke et al. 2015"="Main", "
 		    "Henseler & Schumacher 2019"="Main spec.",
 		    "Burke et al. 2018"="Main spec.",
 		    "De Vos & Everaert 2021"="Table 5, CCEPbc",
-		    "Yang et al. 2023"="Table 6, FE-NLS, 6")
+		    "Yang et al. 2023"="Table 6, FE-NLS, 6",
+                    "Bareille et al. 2024" = "Table 3, Model 4",
+                    "Zhang et al. 2024" = "Table A3",
+                    "Meierrieks & Stadelmann 2024" = "Table 2, Column 6",
+                    "Apergis & Rehman 2024" = "Table 2",
+                    "Brown et al. 2013" = "Table 2, T2W",
+                    "Kahn et al. 2017" = "Table 3, 1a",
+                    "Liu et al. 2023" = "Table S1, Lag 1",
+                    "Yang et al. 2025" = "Panel B, Covariate-dependent threshold",
+                    "Gupta et al. 2024" = "Table 1, Split",
+                    "Jiao et al. 2024" = "Adaptation IIS",
+                    "Benhamed et al. 2023" = "Table 4, LMI/HI, Contiguity",
+                    "Desbordes & Eberhardt 2024" = "Table 3, CCE3, Col 6")
 model.order <- rev(names(main.models))
 
 for (sample.approach in sample.approaches) {
