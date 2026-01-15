@@ -10,9 +10,9 @@ library(readxl)
 library(dplyr)
 source("~/projects/research-common/R/myPBSmapping.R")
 
-rf.approaches <- c("all", "controls", "nonlinear", "dataset")
+mem.maxVSize(Inf)
 
-load("data/mcres.RData")
+rf.approaches <- c("all", "controls", "nonlinear", "dataset")
 
 rfstats <- data.frame()
 
@@ -39,10 +39,15 @@ for (rf.approach in rf.approaches) {
             next
     }
 
+    load("data/mcres.RData")
+    mcres <- subset(mcres, paper != "Kotz et al. 2022")
+
     load("data/mcres-decumul.RData")
     kotzreplace <- decumul.bypersist[[persist]]
     rm('decumul.bypersist')
-    allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), kotzreplace)
+    allres <- rbind(mcres, kotzreplace)
+    rm('kotzreplace')
+    rm('mcres')
 
     ## Find rows for valid models that are NA (before some point in that model)
     allstat <- allres %>% group_by(ISO, paper, name) %>% summarize(status=ifelse(all(is.na(dimpact)), NA, max(Year[is.na(dimpact) & Year < 2000]))) %>%
@@ -50,28 +55,29 @@ for (rf.approach in rf.approaches) {
     allres2 <- allres %>% group_by(ISO, paper, name) %>% filter(!all(is.na(dimpact))) %>%
         mutate(dimpact=ifelse(is.na(dimpact), 0, dimpact))
 
+    MCNUM <- max(allres$mc)
+    isos <- unique(allres$ISO)
+    years <- unique(allres$Year)
+
+    rm(allres)
+
     allstat2 <- allres2 %>% group_by(ISO, paper, name) %>% summarize(status=ifelse(all(is.na(dimpact)), NA, max(Year[is.na(dimpact) & Year < 2000]))) %>%
       group_by(paper, name) %>% summarize(status=max(status, na.rm=T))
 
 source("src/lib/loadmetadata.R")
-
-MCNUM <- max(allres$mc)
-isos <- unique(allres$ISO)
-years <- unique(allres$Year)
 
 for (mcii in 1:MCNUM) {
     if (do.skip.existing && file.exists(savepath(mcii)))
         next
     print(savepath(mcii))
 
-    allres3 <- subset(allres2, mc == mcii)
     results <- data.frame()
 
     for (iso in isos) {
         for (year in years) {
             print(c(rf.approach, persist, mcii, iso, year))
 
-            allres4 <- subset(allres3, !is.na(dimpact) & Year == year & ISO == iso) %>% left_join(metadata, by=c('paper'='Paper', 'name'='Name'))
+            allres4 <- subset(subset(allres2, mc == mcii), !is.na(dimpact) & Year == year & ISO == iso) %>% left_join(metadata, by=c('paper'='Paper', 'name'='Name'))
 
             if (rf.approach == 'all') {
                 values <- allres4[, c('dimpact', 'Q.Weather', 'Q.Poverty', 'Q.Temp', 'Q.Prec', 'Q.YearFE', 'Q.Trends',
