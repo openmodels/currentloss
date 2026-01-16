@@ -6,6 +6,7 @@ library(readxl)
 library(dplyr)
 library(PBSmapping)
 
+do.skip.existing <- T
 sample.approaches <- c("mainmed", "main", "all")
 
 mem.maxVSize(Inf)
@@ -57,7 +58,7 @@ for (sample.approach in sample.approaches) {
             print(c(persist, mcii))
 
             outpath <- paste0("data/metaanal/mcpaperres-", persist, "-", sample.approach, "-", mcii, ".RData")
-            if (file.exists(outpath))
+            if (file.exists(outpath) && do.skip.existing)
                 next
 
             results <- data.frame()

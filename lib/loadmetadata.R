@@ -1,7 +1,11 @@
 library(readxl)
 
 metadata <- read_xlsx("data/Current Losses Estimate Metadata.xlsx")
-metadata <- subset(metadata, !is.na(Paper) & Include == "Included")
+if (exists("do.include.all") && do.include.all) {
+    metadata <- subset(metadata, !is.na(Paper))
+} else {
+    metadata <- subset(metadata, !is.na(Paper) & Include == "Included")
+}
 
 metadata$Name[is.na(metadata$Name)] <- "NA"
 metadata$Dependent[is.na(metadata$Dependent)] <- "NA"
