@@ -41,7 +41,7 @@ main.models <- list("Dell et al. 2012"="Main 2.3", "Burke et al. 2015"="Main", "
 model.order <- rev(names(main.models))
 
 for (sample.approach in sample.approaches) {
-    for (persist in c("0", "0.31", "0.46", "0.78")) {
+    for (persist in c("0", "0.36", "0.60", "0.78")) {
         allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[persist]])
 
         ## Find rows for valid models that are NA (before some point in that model)

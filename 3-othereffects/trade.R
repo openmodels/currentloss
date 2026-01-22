@@ -41,7 +41,7 @@ comtrade <- rbind(read.csv("data/trade/uncomtrade-1992.csv"), read.csv("data/tra
 df.gdp3 <- load.gdp3()
 slr2 <- load.slr2(df.gdp3)
 
-for (persist in c('0.46', '0', '0.31', '0.78')) {
+for (persist in c('0.60', '0', '0.36', '0.78')) {
     results <- read.metaanal.trade(do.outdir.suffix, persist)
 
     results2 <- results %>% group_by(ISO, mc) %>%

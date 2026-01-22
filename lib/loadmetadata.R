@@ -29,6 +29,10 @@ metadata$first.year <- sapply(metadata$`Year Coverage`, function(yys) as.numeric
 metadata$first.year[is.na(metadata$first.year)] <- 1950 # Varying 1901
 metadata$first.year[metadata$`Year Coverage` == "1990, 1995, 2000, 2005"] <- 1990
 metadata$last.year[metadata$`Year Coverage` == "1990, 1995, 2000, 2005"] <- 2005
+metadata$first.year[metadata$`Year Coverage` == "85-94 vs. 05-14"] <- 1990
+metadata$last.year[metadata$`Year Coverage` == "85-94 vs. 05-14"] <- 2010
+metadata$first.year[metadata$`Year Coverage` == "95-04 vs. 05-14"] <- 2000
+metadata$last.year[metadata$`Year Coverage` == "95-04 vs. 05-14"] <- 2010
 metadata$`Climate`[is.na(metadata$`Climate`)] <- "NA"
 
 metadata$Q.Weather <- 1 * (metadata$`Weather weight` == "Pop. weight")
@@ -41,27 +45,28 @@ metadata$Q.Temp <- ifelse(metadata$Temp == "VarT, DT, LDT, DT:T, LDT:LT", 1 - ((
                    ifelse(metadata$Temp == "DT, LDT", 1 - (1 - .25),
                    ifelse(metadata$Temp == "1 Lag", 1 - (1 - 0.25),
                    ifelse(metadata$Temp == "5 Lags", 1 - (1 - 0.25)^4,
-                   ifelse(metadata$Temp == "Tx, Tx T, T, Tvar", 1 - (1 - 0.5)^3,
+                   ifelse(metadata$Temp %in% c("Tx, Tx T, T, Tvar", "DT, DT:T, T, T2"), 1 - (1 - 0.5)^3,
                    ifelse(metadata$Temp == "Quad, 1 Lag", 1 - (1 - .5)*(1 - .25),
                    ifelse(metadata$Temp == "Linear by country, Lag by country", 1 - (1 - .5)^2 * (1 - .25)^2,
-                   ifelse(metadata$Temp %in% c("Quad", "Interacted with average", "Linear Spline", "LT, DT"), .5,
+                   ifelse(metadata$Temp %in% c("Quad", "Interacted with average", "Linear Spline", "LT, DT", "Quad of Historical Differences"), .5,
 		   ifelse(metadata$Temp == "Cubic", 1 - .5^2,
                    ifelse(metadata$Temp == "10 Lags", 1 - (1 - 0.25)^9,
 		   ifelse(metadata$Temp == "T1, LT1, T2, LT2", 1 - .5*(.75^2),
-                   ifelse(metadata$Temp %in% c("Linear", "Z-score", "FD", "Average 1986-2000 -  Average 1970-1985", "Symmetric Spline", "Deviations"), 0., NA))))))))))))))
+                   ifelse(metadata$Temp %in% c("Linear", "Z-score", "FD", "Average 1986-2000 -  Average 1970-1985", "Symmetric Spline", "Deviations", "DT"), 0., NA))))))))))))))
 metadata$Q.Prec <- ifelse(metadata$Prec. %in% c("DP, LDP, DP:P, LDP:P, P", "DP, LDP, DP:P, LDP:P, LP"), 1 - ((1 - .25)*(1 - .5)*(1 - .25)*(1 - .5)),
                    ifelse(metadata$Prec. %in% c("DP, LDP, DP:P, LDP:P, P, P2", "DP, LDP, DP:P, LDP:P, LP, LP2"), 1 - ((1 - .25)*(1 - .5)*(1 - .25)*(1 - .5)*(1 - .5)),
-                   ifelse(metadata$Prec. == "Indicatators", 1 - (1 - 0.5)*(1 - 0.5)^2*(1 - 0.5)^2*(1 - 0.5)^2,
+                   ifelse(metadata$Prec. %in% c("Indicatators", "Segmented"), 1 - (1 - 0.5)*(1 - 0.5)^2*(1 - 0.5)^2*(1 - 0.5)^2,
                    ifelse(metadata$Prec. == "5 Lags", 1 - (1 - 0.25)^4,
                    ifelse(metadata$Prec. == "Quad, 1 Lag", 1 - (1 - .5)*(1 - .25),
                    ifelse(metadata$Prec. == "Linear by country, Lag by country", 1 - (1 - .5)^2 * (1 - .25)^2,
                    ifelse(metadata$Prec. %in% c("Quad x 2", "Quad + Access x 2"), 1 - (1 - 0.5)^3,
+                   ifelse(metadata$Prec. == "DP, DP:P, P, P2", 1 - (1 - 0.5)^3,
                    ifelse(metadata$Prec. == "Quad x 2 + Access x 4", 1 - (1 - 0.5)^5,
                    ifelse(metadata$Prec. %in% c("Quad", "Interacted with average", "Linear Spline", "LP, DP"), .5,
                    ifelse(metadata$Prec. %in% c("1 Lag", "DT, LDT"), 1 - (1 - 0.25),
                    ifelse(metadata$Prec. == "10 Lags", 1 - (1 - 0.25)^9,
-                   ifelse(metadata$Prec. %in% c("Linear", "Z-score", "FD", "Average 1986-2000 -  Average 1970-1985", "Symmetric Spline"), 0,
-                   ifelse(metadata$Prec. %in% c("NA", "No"), -1, NA)))))))))))))
+                   ifelse(metadata$Prec. %in% c("Linear", "Z-score", "FD", "Average 1986-2000 -  Average 1970-1985", "Symmetric Spline", "DP"), 0,
+                   ifelse(metadata$Prec. %in% c("NA", "No"), -1, NA))))))))))))))
 metadata$Q.YearFE <- ifelse(metadata$`Year FE` == "By Region", 1,
                      ifelse(metadata$`Year FE` == "By Continent", 0.75,
                      ifelse(metadata$`Year FE` == "Yes", 0.5, 0)))

@@ -28,9 +28,9 @@ for (metaanal in c(paste0('mcpaperres-PERSIST-', c("mainmed", "main", "all")),
                    'mcrfres-PERSIST', paste0('mcrfres-PERSIST-', c("controls", "nonlinear", "dataset")))) {
 
     pdf <- data.frame()
-    for (persist in c(0, 0.31, 0.46, 0.78, 1)) {
+    for (persist in c(0, 0.36, 0.60, 0.78, 1)) {
         if (persist == 1) {
-            results2 <- read.metaanal(gsub("PERSIST", "0.46", metaanal))
+            results2 <- read.metaanal(gsub("PERSIST", "0.60", metaanal))
             results2$totimpact <- results2$dimpact
         } else if (persist == 0) {
             results <- read.metaanal(gsub("PERSIST", "0", metaanal))
@@ -60,7 +60,7 @@ for (metaanal in c(paste0('mcpaperres-PERSIST-', c("mainmed", "main", "all")),
                                                  ci75=stats::filter(c(rep(0, 9), ci75), rep(1/10, 10), method='conv')[5:(length(ci75)+4)])
     ggplot(pdf2, aes(Year, mu, group=factor(persist))) +
         geom_line(aes(colour=factor(persist))) +
-        geom_ribbon(data=subset(pdf2, persist == 0.46), aes(ymin=ci25, ymax=ci75), alpha=.5) +
+        geom_ribbon(data=subset(pdf2, persist == 0.60), aes(ymin=ci25, ymax=ci75), alpha=.5) +
         theme_bw() + theme(legend.justification=c(0,0), legend.position=c(0.01,0.01)) +
         scale_colour_discrete(expression(omega~':')) +
         scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
@@ -172,7 +172,7 @@ df.gdp3 <- load.gdp3()
 slr2 <- load.slr2(df.gdp3)
 
 for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
-    for (persist in c(0.31, 0.78, 0.46)) {
+    for (persist in c(0.36, 0.78, 0.60)) {
         ## Load for alttable
         results <- read.metaanal.trade(trade.method.suffix, persist)
 
@@ -234,7 +234,7 @@ wtd.median <- function(xx, weights=NULL, normwt=F) {
 }
 
 for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
-    for (persist in c(0.31, 0.46, 0.78)) {
+    for (persist in c(0.36, 0.60, 0.78)) {
         for (trade.method in c('dd', 'fd', 'li')) {
             pdf <- data.frame(solow.conf='None', Year=1960:2022, mu=0, ci25=0, ci75=0)
             for (solow.conf in c('', '-prodonly', '-additive')) { # '-noadd'
