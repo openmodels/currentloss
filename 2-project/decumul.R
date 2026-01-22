@@ -64,7 +64,7 @@ if (F) {
     }
 }
 
-mcres.final <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.60"]])
+mcres.final <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.6"]])
 
 results <- mcres.final %>% group_by(Year, ISO, name, paper) %>% summarize(dimpact=mean(dimpact))
 

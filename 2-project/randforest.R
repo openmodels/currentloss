@@ -16,9 +16,9 @@ rf.approaches <- c("all", "controls", "nonlinear", "dataset")
 
 rfstats <- data.frame()
 
-for (persist in c("0", "0.36", "0.60", "0.78")) {
+for (persist in c("0", "0.36", "0.6", "0.78")) {
 for (rf.approach in rf.approaches) {
-    if (do.obsimport && (persist != "0.60" || rf.approach != "all"))
+    if (do.obsimport && (persist != "0.6" || rf.approach != "all"))
       next
 
     if (rf.approach == 'all') {

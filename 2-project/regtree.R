@@ -9,7 +9,7 @@ library(rpart.plot)
 load("data/mcres.RData")
 load("data/mcres-decumul.RData")
 
-persist <- '0.60'
+persist <- '0.6'
 
 allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[persist]])
 

@@ -16,7 +16,7 @@ do.cores <- detectCores() / 4
 ## persist <- "0.46"
 ## trade.method <- 'dd'
 
-for (persist in c("0.60", "0", "0.36", "0.78")) {
+for (persist in c("0.6", "0", "0.36", "0.78")) {
 trade.methods <- paste0(c("dd", "fd", "li"), do.trade.suffix)
 
 for (trade.method in trade.methods) {

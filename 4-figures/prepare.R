@@ -7,7 +7,7 @@ library(parallel)
 
 do.parallel <- T
 do.redo <- T
-persist <- "0.46"
+persist <- "0.6"
 trade.method <- 'dd-mcr2all'
 solow.config <- '' #'' #'-prodonly' #'-additive'
 solow.data.dir <- "/mnt/LabShare/Current Losses v2"
@@ -27,7 +27,7 @@ if (do.parallel) {
 }
 
 configs <- list()
-for (persist in c("0.60", "0", "0.36", "0.78")) {
+for (persist in c("0.6", "0", "0.36", "0.78")) {
     for (trade.method.prefix in c('dd', 'fd', 'li')) {
         for (trade.method in paste0(trade.method.prefix, "-mcr2all")) { #c("", "-mcpaperall", "-mcr2all"))) {
             for (solow.config in c('', '-prodonly', '-noadd', '-additive')) {
