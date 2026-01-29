@@ -6,8 +6,8 @@ library(ggplot2)
 
 source("src/lib/loadutils.R")
 
-persist <- 0.46
-results <- read.metaanal("mcrfres-0.46")
+persist <- 0.6
+results <- read.metaanal("mcrfres-0.6")
 
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
@@ -29,6 +29,7 @@ load("data/mcres.RData")
 load("data/mcres-decumul.RData")
 
 allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[as.character(persist)]])
+rm(mcres, decumul.bypersist)
 
 allres2 <- allres %>% filter(!is.na(dimpact)) %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
     group_by(paper, name, Year, mc) %>% summarize(gloimpact=sum(dimpact * POP_EST, na.rm=T) / sum(POP_EST)) %>%
@@ -66,8 +67,8 @@ ggplot(allres2, aes(Year, mu)) +
     geom_line(aes(colour=paper, linetype=paper, group=paste(paper, name)), linewidth=.3) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
     theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
-    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(8, "Dark2"), 2)) +
-    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash'), each=8)) +
+    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(9, "Set1"), 3)) +
+    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash', 'dotted'), each=9)) +
     theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.5, 'lines'), legend.text=element_text(size=7)) +
     guides(colour=guide_legend(ncol=2), linetype=guide_legend(ncol=2))
 ggsave(paste0("figures/allimpacts-nosmooth-", persist, ".pdf"), width=6.5, height=4)
@@ -77,8 +78,8 @@ ggplot(allres2.smooth, aes(Year, mu)) +
     geom_line(aes(colour=paper, linetype=paper, group=paste(paper, name)), linewidth=.3) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
     theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
-    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(8, "Dark2"), 2)) +
-    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash'), each=8)) +
+    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(9, "Set1"), 3)) +
+    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash', 'dotted'), each=9)) +
     theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.5, 'lines'), legend.text=element_text(size=7)) +
     guides(colour=guide_legend(ncol=2), linetype=guide_legend(ncol=2))
 ggsave(paste0("figures/allimpacts-", persist, ".pdf"), width=6.5, height=4)
@@ -104,8 +105,8 @@ ggplot(allres2.smooth, aes(Year, mu)) +
     geom_label(data=labels[2,], aes(x=xend, y=yend, label=label), vjust="center", hjust="center") +
     theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
-    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(8, "Dark2"), 2)) +
-    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash'), each=8)) +
+    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(9, "Set1"), 3)) +
+    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash', 'dotted'), each=9)) +
     theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.5, 'lines'), legend.text=element_text(size=7)) +
     guides(colour=guide_legend(ncol=2), linetype=guide_legend(ncol=2))
 ggsave(paste0("figures/allimpacts-withmed-", persist, ".pdf"), width=6.5, height=4)
@@ -119,8 +120,8 @@ ggplot(allres2.smooth, aes(Year, mu)) +
     geom_label(data=labels[1:2,], aes(x=xend, y=yend, label=label), vjust="center", hjust="center") +
     theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
-    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(8, "Dark2"), 2)) +
-    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash'), each=8)) +
+    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(9, "Set1"), 3)) +
+    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash', 'dotted'), each=9)) +
     theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.5, 'lines'), legend.text=element_text(size=7)) +
     guides(colour=guide_legend(ncol=2), linetype=guide_legend(ncol=2))
 ggsave(paste0("figures/allimpacts-withrf-", persist, ".pdf"), width=6.5, height=4)
@@ -135,8 +136,8 @@ ggplot(allres2.smooth, aes(Year, mu)) +
     geom_label(data=labels[1:2,], aes(x=xend, y=yend, label=label), vjust="center", hjust="center") +
     theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
-    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(8, "Dark2"), 2)) +
-    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash'), each=8)) +
+    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(9, "Set1"), 3)) +
+    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash', 'dotted'), each=9)) +
     theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.5, 'lines'), legend.text=element_text(size=7)) +
     guides(colour=guide_legend(ncol=2), linetype=guide_legend(ncol=2))
 ggsave(paste0("figures/allimpacts-withrf-", persist, "-ci.pdf"), width=6.5, height=4)
@@ -152,8 +153,8 @@ ggplot(allres2.smooth, aes(Year, mu)) +
     geom_label(data=labels, aes(x=xend, y=yend, label=label), vjust="center", hjust="center") +
     theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
-    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(8, "Dark2"), 2)) +
-    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash'), each=8)) +
+    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(9, "Set1"), 3)) +
+    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash', 'dotted'), each=9)) +
     theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.5, 'lines'), legend.text=element_text(size=7)) +
     guides(colour=guide_legend(ncol=2), linetype=guide_legend(ncol=2))
 ggsave(paste0("figures/allimpacts-withall-", persist, ".pdf"), width=6.5, height=4)
@@ -166,13 +167,14 @@ library(dplyr)
 library(ggplot2)
 source("src/lib/loadutils.R")
 
-persist <- 0.46
+persist <- 0.6
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
 load("data/mcres.RData")
 load("data/mcres-decumul.RData")
 
 allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[as.character(persist)]])
+rm(mcres, decumul.bypersist)
 
 allres2 <- allres %>% filter(!is.na(dimpact)) %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
     group_by(paper, name, Year, mc) %>% summarize(gloimpact=sum(dimpact * POP_EST, na.rm=T) / sum(POP_EST)) %>%
@@ -189,8 +191,8 @@ ggplot(allres2.smooth, aes(Year, mu)) +
     geom_line(aes(colour=paper, linetype=paper, group=paste(paper, name)), linewidth=.3) +
     theme_bw() + scale_y_continuous("Direct Impact (change in growth rate)", labels=scales::percent) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
-    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(8, "Dark2"), 2)) +
-    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash'), each=8)) +
+    scale_colour_manual("Reference:", values=rep(RColorBrewer::brewer.pal(9, "Set1"), 3)) +
+    scale_linetype_manual("Reference:", values=rep(c('solid', 'twodash', 'dotted'), each=9)) +
     theme(legend.justification=c(0,0), legend.position=c(.01,.01), legend.key.size=unit(0.5, 'lines'), legend.text=element_text(size=7)) +
     ggtitle("(a) Population-weighted mean of model projections") +
     guides(colour=guide_legend(ncol=2), linetype=guide_legend(ncol=2))
@@ -466,13 +468,14 @@ library(dplyr)
 library(ggplot2)
 source("src/lib/loadutils.R")
 
-persist <- 0.46
+persist <- 0.6
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
 load("data/mcres.RData")
 load("data/mcres-decumul.RData")
 
 allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[as.character(persist)]])
+rm(mcres, decumul.bypersist)
 
 allres2 <- allres %>% filter(!is.na(dimpact)) %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
     group_by(paper, name, Year, mc) %>% summarize(gloimpact=sum(dimpact * POP_EST, na.rm=T) / sum(POP_EST)) %>%

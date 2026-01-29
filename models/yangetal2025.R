@@ -75,22 +75,22 @@ get.funcs <- function(name) {
         threshold <- coeffs[5] + coeffs[6] * (subera5$ISO %in% poors)
         dimpact <- (subera5$t2m - 273.15) * ifelse(subera5$t2m - 273.15 < threshold, coeffs[1], coeffs[3])
 
-
         if (!contemp.only) {
             dimpact <- dimpact + (subera5.lag$t2m - 273.15) * ifelse(subera5$t2m - 273.15 < threshold, coeffs[2], coeffs[4])
         }
 
         subera5.lag <<- subera5
 
-        dimpact
+        dimpact / 100
     }
 
     return(list(setup=setup, simulate=simulate))
 }
 
 if (F) {
-    funcs <- get.funcs("Panel C, Covariate-dependent threshold")
+    funcs <- get.funcs("Panel A, Linear MIDAS")
     oneres <- project.single(funcs$setup, funcs$simulate)
     plot((oneres %>% filter(ISO == 'THA'))$dimpact)
     lines((oneres %>% filter(ISO == 'NOR'))$dimpact)
+    lines(c(0, 100), c(0, 0), col=2)
 }

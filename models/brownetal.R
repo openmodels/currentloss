@@ -37,7 +37,7 @@ get.funcs <- function(name) {
 
         subera5.lags[[as.character(year)]] <<- subera5
 
-        dimpact
+        dimpact / 100
     }
 
     return(list(setup=setup, simulate=simulate))
