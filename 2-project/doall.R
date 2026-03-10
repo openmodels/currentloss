@@ -119,6 +119,13 @@ ggsave("figures/lagimpacts.pdf", width=8, height=4)
 MCNUM <- 30 # Have lots of models
 rm(allres, allres2)
 
+## ## Drop specific models for regeneration
+## for (impose.contemp.only in c(F, T)) {
+##     load(paste0("data/mcres", ifelse(impose.contemp.only, "-contemp", ""), ".RData"))
+##     mcres <- subset(mcres, !(paper %in% c("Brown et al. 2013", "Yang et al. 2025")))
+##     save(mcres, file=paste0("data/mcres", ifelse(impose.contemp.only, "-contemp", ""), ".RData"))
+## }
+
 for (impose.contemp.only in c(F, T)) {
     if (file.exists(paste0("data/mcres", ifelse(impose.contemp.only, "-contemp", ""), ".RData"))) {
         load(paste0("data/mcres", ifelse(impose.contemp.only, "-contemp", ""), ".RData"))

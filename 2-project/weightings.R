@@ -11,7 +11,7 @@ polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_a
 
 allres <- data.frame()
 for (mc in 1:30) {
-    filepath <- paste0("data/metaanal/mcrfres-0.46-", mc, "-obs.RData")
+    filepath <- paste0("data/metaanal/mcrfres-0.6-", mc, "-obs.RData")
     if (!file.exists(filepath)) {
         print(paste("Missing after", mc))
         break

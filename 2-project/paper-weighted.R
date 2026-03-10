@@ -6,7 +6,7 @@ library(readxl)
 library(dplyr)
 library(PBSmapping)
 
-do.skip.existing <- T
+do.skip.existing <- F
 sample.approaches <- c("mainmed", "main", "all")
 
 mem.maxVSize(Inf)
@@ -31,7 +31,7 @@ main.models <- list("Dell et al. 2012"="Main 2.3", "Burke et al. 2015"="Main", "
                     "Meierrieks & Stadelmann 2024" = "Table 2, Column 6",
                     "Apergis & Rehman 2024" = "Table 2",
                     "Brown et al. 2013" = "Table 2, T2W",
-                    "Kahn et al. 2017" = "Table 3, 1a",
+                    #"Kahn et al. 2017" = NULL, # Preferred in model 3, with no temperature
                     "Liu et al. 2023" = "Table S1, Lag 1",
                     "Yang et al. 2025" = "Panel B, Covariate-dependent threshold",
                     "Gupta et al. 2024" = "Table 1, Split",
