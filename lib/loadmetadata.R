@@ -35,7 +35,8 @@ metadata$first.year[metadata$`Year Coverage` == "95-04 vs. 05-14"] <- 2000
 metadata$last.year[metadata$`Year Coverage` == "95-04 vs. 05-14"] <- 2010
 metadata$`Climate`[is.na(metadata$`Climate`)] <- "NA"
 
-metadata$Q.Weather <- 1 * (metadata$`Weather weight` == "Pop. weight")
+metadata$Q.Weather <- ifelse(metadata$`Weather weight` == "Pop. weight", 1,
+                      ifelse(metadata$`Weather weight` == "Area weight", 0.5, 0))
 metadata$Q.Poverty <- ifelse(metadata$`Rich/Poor` == "Interact", 0.5,
                       ifelse(metadata$`Rich/Poor` == "Subsetted", 1.0, 0.))
 
@@ -67,19 +68,23 @@ metadata$Q.Prec <- ifelse(metadata$Prec. %in% c("DP, LDP, DP:P, LDP:P, P", "DP, 
                    ifelse(metadata$Prec. == "10 Lags", 1 - (1 - 0.25)^9,
                    ifelse(metadata$Prec. %in% c("Linear", "Z-score", "FD", "Average 1986-2000 -  Average 1970-1985", "Symmetric Spline", "DP"), 0,
                    ifelse(metadata$Prec. %in% c("NA", "No"), -1, NA))))))))))))))
-metadata$Q.YearFE <- ifelse(metadata$`Year FE` == "By Region", 1,
-                     ifelse(metadata$`Year FE` == "By Continent", 0.75,
-                     ifelse(metadata$`Year FE` == "Yes", 0.5, 0)))
+metadata$Q.YearFE <- ifelse(metadata$`Year FE` == "By Country", 1,
+                     ifelse(metadata$`Year FE` == "By Region", 0.75,
+                     ifelse(metadata$`Year FE` == "By Continent", 0.5,
+                     ifelse(metadata$`Year FE` == "Yes", 0.25, 0))))
 metadata$Q.Trends <- ifelse(metadata$`Trends` == "Quad, by Unit", 1,
                      ifelse(metadata$`Trends` == "Linear, by Unit", 0.5,
                      ifelse(metadata$`Trends` == "Global", 0.25, 0)))
-metadata$Q.OtherFE <- ifelse(metadata$`Other FE` == "IIS", 1,
-                      ifelse(metadata$`Other FE` == "Poor x Year", .75,
-                      ifelse(metadata$`Other FE` == "HPJ-FE", 0.5,
-                      ifelse(metadata$`Other FE` == "Poor", 0.25, 0))))
-metadata$Q.Control <- ifelse(metadata$`Other Controls` == "Lag GDP, Lag capital, Pesaran controls", 1,
-                      ifelse(metadata$`Other Controls` == "Lag Weather, Disaster", 0.75,
-                      ifelse(metadata$`Other Controls` == "Lag Weather", 0.5, 0)))
+metadata$Q.OtherFE <- ifelse(metadata$`Other FE` == "Country x Year", 1,
+                      ifelse(metadata$`Other FE` == "IIS", 0.8,
+                      ifelse(metadata$`Other FE` == "Poor x Year", 0.6,
+                      ifelse(metadata$`Other FE` == "HPJ-FE", 0.4,
+                      ifelse(metadata$`Other FE` == "Poor", 0.2, 0)))))
+metadata$Q.Control <- ifelse(metadata$`Other Controls` == "LGDP, GOV, HC, TRADE, FDI, POP", 1 - 0.75^6,
+                      ifelse(metadata$`Other Controls` %in% c("FDI, Gov, CR, TROP, HC", "Runoff, WASP x 2, WASR x 2"), 1 - .75^5,
+                      ifelse(metadata$`Other Controls` %in% c("Lag GDP, Lag capital, Pesaran controls", "Runoff, WASR x 2", "Mean Growth, Temp, Precip."), 1 - .75^3,
+                      ifelse(metadata$`Other Controls` %in% c("Lag Weather, Disaster", "WASP x 2", "ENSO x 2"), 1 - .75^2,
+                      ifelse(metadata$`Other Controls` %in% c("Lag Weather", "Pop Growth", "Mean Growth"), 0.25, 0)))))
 metadata$Q.GLags <- as.numeric(metadata$`Growth Lags`) / 4
 metadata$Q.YearLate <- 5 / (2015 - metadata$last.year + 5)
 metadata$Q.YearSpan <- (metadata$last.year - metadata$first.year) / 65
