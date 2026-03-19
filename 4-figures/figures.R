@@ -6,7 +6,7 @@ library(dplyr)
 library(reshape2)
 library(ggplot2)
 library(Hmisc)
-source("~/projects/research-common/R/myPBSmapping.R")
+source("src/lib/myPBSmapping.R")
 library(countrycode)
 
 persist = 0.46

@@ -1,6 +1,6 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
-source("~/projects/research-common/R/myPBSmapping.R")
+source("src/lib/myPBSmapping.R")
 library(dplyr)
 library(ggplot2)
 
@@ -165,7 +165,7 @@ ggsave(paste0("figures/allimpacts-withall-", persist, ".pdf"), width=6.5, height
 ### Figure 1 elements
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
-source("~/projects/research-common/R/myPBSmapping.R")
+source("src/lib/myPBSmapping.R")
 library(dplyr)
 library(ggplot2)
 source("src/lib/loadutils.R")
@@ -480,7 +480,7 @@ ggsave("figures/figure1cd.pdf", width=5, height=8.15)
 ## SI figure with panel for each paper
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
-source("~/projects/research-common/R/myPBSmapping.R")
+source("src/lib/myPBSmapping.R")
 library(dplyr)
 library(ggplot2)
 source("src/lib/loadutils.R")

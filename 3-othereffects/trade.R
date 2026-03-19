@@ -19,7 +19,7 @@ for (method in c('dd', 'fd', 'li')) {
 for (do.keep.incgrp in c(NA, '1-2', '3-5')) {
 
 if (!is.na(do.keep.incgrp)) {
-    source("~/projects/research-common/R/myPBSmapping.R")
+    source("src/lib/myPBSmapping.R")
 
     polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
     if (do.keep.incgrp == '3-5')

@@ -2,7 +2,7 @@
 
 library(dplyr)
 library(ggplot2)
-source("~/projects/research-common/R/myPBSmapping.R")
+source("src/lib/myPBSmapping.R")
 
 source("src/lib/synth.R")
 source("src/lib/loadutils.R")

@@ -5,7 +5,7 @@ library(readxl)
 library(PBSmapping)
 library(MASS)
 
-source("~/projects/research-common/R/myPBSmapping.R")
+source("src/lib/myPBSmapping.R")
 source("src/2-project/driver.R")
 source("src/lib/utils.R")
 

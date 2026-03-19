@@ -8,7 +8,7 @@ do.obsimport <- F
 library(ranger)
 library(readxl)
 library(dplyr)
-source("~/projects/research-common/R/myPBSmapping.R")
+source("src/lib/myPBSmapping.R")
 
 mem.maxVSize(Inf)
 

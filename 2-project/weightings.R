@@ -4,7 +4,7 @@ library(dplyr)
 library(mice)
 library(ggplot2)
 
-source("~/projects/research-common/R/myPBSmapping.R")
+source("src/lib/myPBSmapping.R")
 source("src/lib/loadmetadata.R")
 
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
