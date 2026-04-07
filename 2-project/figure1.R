@@ -3,7 +3,6 @@
 source("src/lib/myPBSmapping.R")
 library(dplyr)
 library(ggplot2)
-
 source("src/lib/loadutils.R")
 
 persist <- 0.6
@@ -25,14 +24,7 @@ ggplot(results2, aes(Year, mu)) +
 ggsave(paste0("figures/randforest-", persist, ".pdf"), width=6.5, height=5)
 
 ## Combined figure
-load("data/mcres.RData")
-load("data/mcres-decumul.RData")
-
-mcres <- subset(mcres, paper != "Kotz et al. 2022")
-toadd = decumul.bypersist[[as.character(persist)]]
-rm(decumul.bypersist)
-allres <- rbind(mcres, toadd)
-rm(mcres, toadd)
+allres <- load.allres(persist)
 
 allres2 <- allres %>% filter(!is.na(dimpact)) %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
     group_by(paper, name, Year, mc) %>% summarize(gloimpact=sum(dimpact * POP_EST, na.rm=T) / sum(POP_EST)) %>%
@@ -173,14 +165,7 @@ source("src/lib/loadutils.R")
 persist <- 0.6
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
-load("data/mcres.RData")
-load("data/mcres-decumul.RData")
-
-mcres <- subset(mcres, paper != "Kotz et al. 2022")
-toadd = decumul.bypersist[[as.character(persist)]]
-rm(decumul.bypersist)
-allres <- rbind(mcres, toadd)
-rm(mcres, toadd)
+allres <- load.allres(persist)
 
 allres2 <- allres %>% filter(!is.na(dimpact)) %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
     group_by(paper, name, Year, mc) %>% summarize(gloimpact=sum(dimpact * POP_EST, na.rm=T) / sum(POP_EST)) %>%
@@ -488,14 +473,7 @@ source("src/lib/loadutils.R")
 persist <- 0.6
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
-load("data/mcres.RData")
-load("data/mcres-decumul.RData")
-
-mcres <- subset(mcres, paper != "Kotz et al. 2022")
-toadd = decumul.bypersist[[as.character(persist)]]
-rm(decumul.bypersist)
-allres <- rbind(mcres, toadd)
-rm(mcres, toadd)
+allres <- load.allres(persist)
 
 allres2 <- allres %>% filter(!is.na(dimpact)) %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
     group_by(paper, name, Year, mc) %>% summarize(gloimpact=sum(dimpact * POP_EST, na.rm=T) / sum(POP_EST)) %>%

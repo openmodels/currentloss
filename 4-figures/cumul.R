@@ -4,13 +4,11 @@
 library(dplyr)
 source("src/lib/myPBSmapping.R")
 library(ggplot2)
-
 source("src/lib/distance.R")
+source("src/lib/loadutils.R")
 
-load("data/mcres.RData")
-load("data/mcres-decumul.RData")
-
-mcres.final <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.46"]])
+persist <- 0.6
+mcres.final <- load.allres(persist)
 
 df.imp2 <-
     mcres.final %>% group_by(paper, name, ISO, mc) %>%

@@ -4,16 +4,10 @@ library(readxl)
 library(dplyr)
 library(ggplot2)
 source("src/lib/myPBSmapping.R")
+source("src/lib/loadutils.R")
 
 persist <- 0.6
-load("data/mcres.RData")
-load("data/mcres-decumul.RData")
-
-mcres <- subset(mcres, paper != "Kotz et al. 2022")
-toadd = decumul.bypersist[[as.character(persist)]]
-rm(decumul.bypersist)
-allres <- rbind(mcres, toadd)
-rm(mcres, toadd)
+allres <- load.allres(persist)
 
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 

@@ -3,17 +3,10 @@
 library(dplyr)
 library(rpart)
 library(rpart.plot)
-
-load("data/mcres.RData")
-load("data/mcres-decumul.RData")
+source("src/lib/loadutils.R")
 
 persist <- '0.6'
-
-mcres <- subset(mcres, paper != "Kotz et al. 2022")
-toadd = decumul.bypersist[[as.character(persist)]]
-rm(decumul.bypersist)
-allres <- rbind(mcres, toadd)
-rm(mcres, toadd)
+allres <- load.allres(persist)
 
 ### COPIED FROM randforest.R
 
