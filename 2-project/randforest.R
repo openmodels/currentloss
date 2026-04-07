@@ -2,8 +2,8 @@
 ## setwd("~/research/currentloss")
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
-do.skip.existing <- F
-do.obsimport <- F
+do.skip.existing <- T
+do.obsimport <- T
 
 library(ranger)
 library(readxl)
@@ -16,7 +16,7 @@ rf.approaches <- c("all", "controls", "nonlinear", "dataset")
 
 rfstats <- data.frame()
 
-for (persist in c("0", "0.36", "0.6", "0.78")) {
+for (persist in c("0.6", "0", "0.36", "0.78")) {
 for (rf.approach in rf.approaches) {
     if (do.obsimport && (persist != "0.6" || rf.approach != "all"))
       next
@@ -26,6 +26,8 @@ for (rf.approach in rf.approaches) {
     } else {
         savepath <- function(mcii) paste0("data/metaanal/mcrfres-", persist, "-", rf.approach, "-", mcii, ifelse(do.obsimport, "-obs", ""), ".RData")
     }
+
+    load("data/mcres.RData")
 
     if (do.skip.existing) {
         foundall <- T
@@ -39,7 +41,6 @@ for (rf.approach in rf.approaches) {
             next
     }
 
-    load("data/mcres.RData")
     mcres <- subset(mcres, paper != "Kotz et al. 2022")
 
     load("data/mcres-decumul.RData")

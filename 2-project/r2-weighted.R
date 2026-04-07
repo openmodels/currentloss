@@ -6,6 +6,8 @@ library(readxl)
 library(dplyr)
 library(mice)
 
+mem.maxVSize(Inf)
+
 load("data/mcres.RData")
 load("data/mcres-decumul.RData")
 

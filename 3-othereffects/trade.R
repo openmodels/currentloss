@@ -9,14 +9,14 @@ source("src/3-othereffects/trade-io.R")
 ## method <- 'dd'
 ## method.function <- calc.final.demand.method
 do.keep.incgrp <- NA
-do.outdir.suffix <- "-mcr2all" #"-mcpaperall" # "-mcr2all" # ""
+for (do.keep.incgrp in c(NA, '1-2', '3-5')) {
+
+for (do.outdir.suffix in c("-mcr2all", "-mcpaperall", "")) {
 
 method.function.map <- list('dd'=NULL, 'fd'=calc.final.demand.method, 'li'=calc.leontief.method)
 
 for (method in c('dd', 'fd', 'li')) {
     method.function <- method.function.map[[method]]
-
-for (do.keep.incgrp in c(NA, '1-2', '3-5')) {
 
 if (!is.na(do.keep.incgrp)) {
     source("src/lib/myPBSmapping.R")
@@ -112,5 +112,6 @@ for (persist in c('0.6', '0', '0.36', '0.78')) {
     }
 }
 
+}
 }
 }
