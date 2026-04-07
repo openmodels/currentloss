@@ -12,7 +12,8 @@ mcres.final <- load.allres(persist)
 
 df.imp2 <-
     mcres.final %>% group_by(paper, name, ISO, mc) %>%
-    mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - 0.46)^(0:30), sides=1)[-1:-30])
+    mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - 0.6)^(0:30), sides=1)[-1:-30])
+rm(mcres.final)
 
 if (F) {
     mcres.kotz <- subset(mcres, paper == "Kotz et al. 2022")
@@ -34,14 +35,14 @@ ggplot(df.imp2pop, aes(Year, totimpact.pop)) +
     geom_line(data=df.imp2popmed, size=2, colour='black') +
     theme_bw() + scale_y_continuous("Direct Impact (% change in GDP)", labels=scales::percent) + xlab(NULL) +
     scale_colour_discrete("Reference:") + scale_x_continuous(limits=c(1950, 2022), expand=c(0, 0))
-ggsave("figures/totimpacts-0.46.pdf", width=8, height=4)
+ggsave("figures/totimpacts-0.6.pdf", width=8, height=4)
 
-load("data/mcrfres-0.46.RData")
+load("data/mcrfres-0.6.RData")
 
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
 results2 <- results %>% group_by(ISO, mc) %>%
-    mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - 0.46)^(0:30), sides=1)[-1:-30]) %>%
+    mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - 0.6)^(0:30), sides=1)[-1:-30]) %>%
     left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
     group_by(Year, mc) %>% summarize(gloimpact=sum(totimpact * POP_EST) / sum(POP_EST)) %>%
     group_by(Year) %>% summarize(mu=mean(gloimpact),
@@ -62,7 +63,7 @@ ggplot(df.imp2pop, aes(Year, totimpact.pop)) +
     theme_bw() + scale_y_continuous("Direct Impact (% change in GDP)", labels=scales::percent) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1940, 2022)) +
     scale_colour_discrete("Reference:")
-ggsave("figures/totimpacts-withrf-0.46.pdf", width=8, height=4)
+ggsave("figures/totimpacts-withrf-0.6.pdf", width=8, height=4)
 
 ## Presentation Fig 1: Models only
 ggplot(df.imp2pop, aes(Year, totimpact.pop)) +
