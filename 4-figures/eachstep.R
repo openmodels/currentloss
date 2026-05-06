@@ -34,10 +34,14 @@ for (metaanal in c(paste0('mcpaperres-PERSIST-', c("mainmed", "main", "all")),
             results2$totimpact <- results2$dimpact
         } else if (persist == 0) {
             results <- read.metaanal(gsub("PERSIST", "0", metaanal))
+            if (nrow(results) == 0)
+                next
             results2 <- results %>% group_by(ISO, mc) %>%
                 mutate(totimpact=cumsum(dimpact))
         } else {
             results <- read.metaanal(gsub("PERSIST", persist, metaanal))
+            if (nrow(results) == 0)
+                next
             results2 <- results %>% group_by(ISO, mc) %>%
                 mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - persist)^(0:30), sides=1)[-1:-30])
         }
@@ -62,7 +66,7 @@ for (metaanal in c(paste0('mcpaperres-PERSIST-', c("mainmed", "main", "all")),
         geom_line(aes(colour=factor(persist))) +
         geom_ribbon(data=subset(pdf2, persist == 0.6), aes(ymin=ci25, ymax=ci75), alpha=.5) +
         theme_bw() + theme(legend.justification=c(0,0), legend.position=c(0.01,0.01)) +
-        scale_colour_discrete(expression(omega~':')) +
+        scale_colour_discrete(name=expression(omega~':')) +
         scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
         scale_y_continuous("Direct Impact (% GDP)", labels=scales::percent)
     ggsave(paste0("figures/eachstep-cumul-", metaanal, ".pdf"), width=2.5, height=2.5)
@@ -138,7 +142,7 @@ ggplot(pdf.levels, aes(year, mu / 1e9, group=factor(slrconf))) +
     geom_line(aes(colour=factor(slrconf))) +
     geom_ribbon(data=subset(pdf.levels, slrconf == 'Market-only'), aes(ymin=ci25 / 1e9, ymax=ci75 / 1e9), alpha=.5) +
     theme_bw() + theme(legend.justification=c(0,1), legend.position=c(0.01,0.99)) +
-    scale_colour_discrete("Cost Assumptions:") + scale_y_continuous("SLR Impact (billion 2019 USD)") +
+    scale_colour_discrete(name="Cost Assumptions:") + scale_y_continuous("SLR Impact (billion 2019 USD)") +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023))
 ggsave("figures/eachstep-slr-levels-big.pdf", width=5.5, height=4.5)
 
@@ -147,7 +151,7 @@ ggplot(pdf, aes(Year, mu, group=factor(slrconf))) +
     geom_line(aes(colour=factor(slrconf))) +
     geom_ribbon(data=subset(pdf, slrconf == 'Market-only'), aes(ymin=ci25, ymax=ci75), alpha=.5) +
     theme_bw() + theme(legend.justification=c(0,0), legend.position=c(0.01,0.01)) +
-    scale_colour_discrete("SLR:") + scale_y_continuous("SLR Impact (% GDP)", labels=scales::percent) +
+    scale_colour_discrete(name="SLR:") + scale_y_continuous("SLR Impact (% GDP)", labels=scales::percent) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023))
 ggsave("figures/eachstep-slr-big.pdf", width=5.5, height=5.5)
 
@@ -160,7 +164,7 @@ ggplot(subset(pdf, !is.na(slrconf2)), aes(Year, mu, group=factor(slrconf2))) +
     geom_line(aes(colour=factor(slrconf2))) +
     geom_ribbon(data=subset(pdf, slrconf == 'Market-only'), aes(ymin=ci25, ymax=ci75), alpha=.5) +
     theme_bw() + theme(legend.justification=c(0,0), legend.position=c(0.01,0.01)) +
-    scale_colour_discrete("SLR:") + scale_y_continuous("SLR Impact (% GDP)", labels=scales::percent) +
+    scale_colour_discrete(name="SLR:") + scale_y_continuous("SLR Impact (% GDP)", labels=scales::percent) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023))
 ggsave("figures/eachstep-slr.pdf", width=2.5, height=2.5)
 
@@ -175,6 +179,8 @@ for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
     for (persist in c(0.36, 0.78, 0.6)) {
         ## Load for alttable
         results <- read.metaanal.trade(trade.method.suffix, persist)
+        if (nrow(results) == 0)
+            next
 
         results2 <- results %>% group_by(ISO, mc) %>%
             mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - as.numeric(persist))^(0:30), sides=1)[-1:-30]) %>%
@@ -183,7 +189,13 @@ for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
 
         pdf <- data.frame()
         for (trade.method in c('fd', 'dd', 'li')) {
-            tradeloss <- load.tradeloss(paste0(trade.method, trade.method.suffix), persist)
+            tradeloss <- tryCatch({
+                load.tradeloss(paste0(trade.method, trade.method.suffix), persist)
+            }, error=function(e) {
+                NULL
+            })
+            if (is.null(tradeloss))
+                next
             tradeloss.global <- tradeloss %>% group_by(year) %>% dplyr::summarize(tradeloss=mean(tradeloss, na.rm=T))
 
             results3 <- results2 %>% dplyr::left_join(tradeloss, by=c('ISO', 'Year'='year', 'mc')) %>%
@@ -220,7 +232,7 @@ for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
             geom_line(aes(colour=trade.method)) +
             geom_ribbon(data=subset(pdf2, trade.method == ifelse(persist == 0.08, 'Final demand', 'Domar dist.')), aes(ymin=-ci25, ymax=-ci75), alpha=.5) +
             theme_bw() + theme(legend.justification=c(0,0), legend.position=c(0.01,0.01)) +
-            scale_colour_discrete("Method") +
+            scale_colour_discrete(name="Method") +
             scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
             scale_y_continuous("Spill-over Impact (% GDP)", labels=scales::percent)
         ggsave(paste0("figures/eachstep-trade-", persist, "-", trade.method.suffix, ".pdf"), width=2.5, height=2.5)
@@ -281,7 +293,7 @@ for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
                 geom_line(aes(colour=solow.conf)) +
                 geom_ribbon(data=subset(pdf, solow.conf == 'All capital'), aes(ymin=ci25, ymax=ci75), alpha=.5) +
                 theme_bw() + theme(legend.justification=c(0,0), legend.position=c(0.01,0.01)) +
-                scale_colour_discrete("Capital:") +
+                scale_colour_discrete(name="Capital:") +
                 scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
                 scale_y_continuous("Capital-based impact (% GDP)", labels=scales::percent)
             ggsave(paste0("figures/eachstep-solow-", persist, "-", trade.method, trade.method.suffix, ".pdf"), width=2.5, height=2.5)

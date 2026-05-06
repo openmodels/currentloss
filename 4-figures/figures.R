@@ -9,7 +9,7 @@ library(Hmisc)
 source("src/lib/myPBSmapping.R")
 library(countrycode)
 
-persist = 0.46
+persist = 0.6
 trade.method <- 'dd-mcr2all'
 source("src/lib/utils2.R")
 source("src/lib/synth.R")

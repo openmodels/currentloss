@@ -1,7 +1,7 @@
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
-persist <- "0.36"
-trade.method <- "dd"
+persist <- "0.6"
+trade.method <- "dd-mcr2all"
 source("src/lib/utils2.R")
 
 solowdone <- load.solowsum(persist, trade.method)
