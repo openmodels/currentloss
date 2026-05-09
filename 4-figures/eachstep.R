@@ -249,7 +249,7 @@ for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
     for (persist in c(0.36, 0.6, 0.78)) {
         for (trade.method in c('dd', 'fd', 'li')) {
             pdf <- data.frame(solow.conf='None', Year=1960:2022, mu=0, ci25=0, ci75=0)
-            for (solow.conf in c('', '-prodonly', '-additive')) { # '-noadd'
+            for (solow.conf in c('', '-prodonly', '-additive', '-noadd')) {
                 if (!file.exists(paste0("data/allyr-ww-", persist, "-", trade.method, trade.method.suffix, solow.conf, ".RData")))
                     next
 

@@ -12,6 +12,7 @@ library(parallel)
 do.mcs <- 1:30
 do.trade.suffix <- "-mcr2all"
 do.cores <- detectCores() / 4
+do.suffix <- '-pass2'
 
 ## persist <- "0.46"
 ## trade.method <- 'dd'
