@@ -102,6 +102,23 @@ prep.levels.allyr.ww <- function(allyr.ww) {
 
 get.allyr.ww <- function(persist, trade.method) {
     load(paste0("data/allyr-ww-", persist, "-", trade.method, ".RData"))
+    if (file.exists(paste0("data/allyr-ww-", persist, "-", trade.method, "-pass2.RData"))) {
+        allyr.ww.pass1 <- allyr.ww
+        load(paste0("data/allyr-ww-", persist, "-", trade.method, "-pass2.RData"))
+        allyr.ww.pass2 <- allyr.ww
+        scores <- rbind(cbind(pass='pass1', allyr.ww.pass1 %>% group_by(ISO, mc) %>% dplyr::summarize(weight=mean(ess * lp, na.rm=T))),
+                        cbind(pass='pass2', allyr.ww.pass2 %>% group_by(ISO, mc) %>% dplyr::summarize(weight=mean(ess * lp, na.rm=T)))) %>%
+            mutate(weight=ifelse(is.na(weight), 0, weight)) %>%
+            group_by(ISO, mc) %>% dplyr::summarize(pass=pass[which.max(weight)])
+        allyr.ww <- data.frame()
+        for (ii in 1:nrow(scores)) {
+            if (scores$pass[ii] == 'pass1') {
+                allyr.ww <- rbind(allyr.ww, subset(allyr.ww.pass1, ISO == scores$ISO[ii] & mc == scores$mc[ii]))
+            } else {
+                allyr.ww <- rbind(allyr.ww, subset(allyr.ww.pass2, ISO == scores$ISO[ii] & mc == scores$mc[ii]))
+            }
+        }
+    }
     allyr.ww[allyr.ww$ISO == 'SDN', which(is.na(allyr.ww[allyr.ww$ISO == 'ABW', ][1, ]))] <- NA # country change affects
 
     ## Duplicate final values only for NA capitals
