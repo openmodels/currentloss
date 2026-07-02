@@ -1,4 +1,5 @@
 library(sf)
+library(dplyr)
 
 get.weighted.mcts <- function(allyr.ww, iso.weight, do.for.subset) {
     df.gdp2 <- read.wb("data/capital/API_NY.GDP.MKTP.KD_DS2_en_excel_v2_5871893.xls", 'GDP.2015')

@@ -228,7 +228,7 @@ for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
                    ci25=stats::filter(c(rep(0, 9), ci25), rep(1/10, 10), method='conv')[5:(length(ci25)+4)],
                    ci75=stats::filter(c(rep(0, 9), ci75), rep(1/10, 10), method='conv')[5:(length(ci75)+4)])
         ggplot(pdf2, aes(year, -mu, group=trade.method)) +
-            coord_cartesian(ylim=c(-.1, 0)) +
+            coord_cartesian(ylim=c(-.025, .005)) +
             geom_line(aes(colour=trade.method)) +
             geom_ribbon(data=subset(pdf2, trade.method == ifelse(persist == 0.08, 'Final demand', 'Domar dist.')), aes(ymin=-ci25, ymax=-ci75), alpha=.5) +
             theme_bw() + theme(legend.justification=c(0,0), legend.position=c(0.01,0.01)) +
@@ -249,7 +249,7 @@ for (trade.method.suffix in c('', '-mcr2all', '-mcpaperall')) {
     for (persist in c(0.36, 0.6, 0.78)) {
         for (trade.method in c('dd', 'fd', 'li')) {
             pdf <- data.frame(solow.conf='None', Year=1960:2022, mu=0, ci25=0, ci75=0)
-            for (solow.conf in c('', '-prodonly', '-additive', '-noadd')) {
+            for (solow.conf in c('', '-prodonly', '-additive')) { # '-noadd'
                 if (!file.exists(paste0("data/allyr-ww-", persist, "-", trade.method, trade.method.suffix, solow.conf, ".RData")))
                     next
 

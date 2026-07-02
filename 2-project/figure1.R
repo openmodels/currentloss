@@ -257,18 +257,19 @@ ggsave("figures/figure1b-rf.pdf", width=5, height=3.5)
 
 ## Range for paper
 subset(allmeta.smooth, Year == 2023)
-##    Year       mu     ci25     ci75 name
-## 1  2023 -0.00338 -0.00394 -0.00257 Median of main spec.
-## 2  2023 -0.00654 -0.00720  0.00319 Monte Carlo over main spec.
-## 3  2023 -0.00481 -0.00918  0.00151 Monte Carlo over all spec.
-## 4  2023 -0.0141  -0.0214  -0.00667 RF with all quality criteria
-## 5  2023 -0.0143  -0.0187  -0.00991 RF with controls criteria
-## 6  2023 -0.00883 -0.0129  -0.00454 RF with nonlinearity criteria
-## 7  2023 -0.00621 -0.00911 -0.00240 R² Filled
-## 8  2023 -0.00810 -0.0114  -0.00414 R² Unfilled
+##    Year       mu     ci25      ci75 name
+## 1  2023 -0.00338 -0.00394 -0.00257  Median of main spec.
+## 2  2023 -0.00654 -0.00720  0.00319  Monte Carlo over main spec.
+## 3  2023 -0.00481 -0.00918  0.00151  Monte Carlo over all spec.
+## 4  2023 -0.0141  -0.0214  -0.00667  RF with all quality criteria
+## 5  2023 -0.0143  -0.0187  -0.00991  RF with controls criteria
+## 6  2023 -0.00776 -0.0125  -0.00305  RF with nonlinearity criteria
+## 7  2023 -0.0116  -0.0160  -0.00744  RF with dataset criteria
+## 8  2023 -0.00319 -0.00780  0.000286 R² Filled
+## 9  2023 -0.00821 -0.0121  -0.00409  R² Unfilled
 
 library(xtable)
-xtable(subset(allmeta.smooth, Year == 2023))
+print(xtable(subset(allmeta.smooth, Year == 2023)[, c('name', 'mu', 'ci25', 'ci75')], digits=3), include.rownames=F)
 
 ## (c) Countries by reference
 polydata$gdppc <- 1e6 * polydata$GDP_MD / polydata$POP_EST
