@@ -443,29 +443,12 @@ subset(sumbygroup, Group == "LDCs")
 
 ## Maps
 
-cents <- calcCentroid(shp, rollup=2)
-areas <- calcArea(shp, rollup=2)
-centroids <- cents %>% left_join(areas, by=c('PID', 'SID')) %>% group_by(PID) %>%
-    dplyr::summarize(X=X[which.max(area)], Y=Y[which.max(area)])
-
-source("src/lib/distance.R")
-centroids$show <- F
-for (PID in order(polydata$POP_EST, decreasing=T)) {
-    dists <- gcd.slc(centroids$X[PID], centroids$Y[PID], centroids$X[centroids$show], centroids$Y[centroids$show])
-    if (all(dists > 600))
-        centroids$show[PID] <- T
-}
-centroids$show[centroids$X < -176] <- F
-centroids$show[centroids$X > 176] <- F
-centroids$show[centroids$Y < -50] <- F
-centroids$show[centroids$Y > 65] <- F
+source("src/lib/loadmaps.R")
 
 sumbyiso$ISO %in% polydata$ADM0_A3
 
 shp2 <- shp %>% left_join(polydata[, c('PID', 'ADM0_A3')]) %>% left_join(sumbyiso, by=c('ADM0_A3'='ISO'))
 centroids2 <- centroids %>% left_join(polydata[, c('PID', 'ADM0_A3')]) %>% left_join(sumbyiso, by=c('ADM0_A3'='ISO'))
-
-shpl <- importShapefile("data/regions/ne_10m_land/ne_10m_land.shp")
 
 gg <- ggplot(shp2, aes(X, Y)) +
     geom_polygon(data=shpl, aes(group=paste(PID, SID)), fill='#808080', colour=NA) +

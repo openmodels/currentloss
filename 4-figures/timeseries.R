@@ -7,7 +7,7 @@ library(PBSmapping)
 library(ggplot2)
 library(sf)
 
-do.for.subset <- "global" # "global" or "L+MIC"
+do.for.subset <- "L+MIC" # "global" or "L+MIC"
 
 persist <- "0.6"
 trade.method <- "dd"

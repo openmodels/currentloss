@@ -55,30 +55,10 @@ sumbyiso <- sumbymc2.both %>% filter(is.na(weight) | weight > 1e-10) %>% group_b
                      signchange=paste(sign(total.0), "->", sign(total.1)),
                      total=ifelse(all(is.na(product.chg)), wtd.median(totimpact + tradeimpact + slrimpact, weights=weight, normwt=T), wtd.median(product.chg, weights=weight, normwt=T)), prod25=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .25, weights=weight, normwt=T), wtd.quantile(product.chg, .25, weights=weight, normwt=T)), prod75=ifelse(all(is.na(product.chg)), wtd.quantile(totimpact + tradeimpact + slrimpact, .75, weights=weight, normwt=T), wtd.quantile(product.chg, .75, weights=weight, normwt=T)))
 
-shp <- importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp")
-polydata <- attr(shp, 'PolyData')
-
-cents <- calcCentroid(shp, rollup=2)
-areas <- calcArea(shp, rollup=2)
-centroids <- cents %>% left_join(areas, by=c('PID', 'SID')) %>% group_by(PID) %>%
-    dplyr::summarize(X=X[which.max(area)], Y=Y[which.max(area)])
-
-source("src/lib/distance.R")
-centroids$show <- F
-for (PID in order(polydata$POP_EST, decreasing=T)) {
-    dists <- gcd.slc(centroids$X[PID], centroids$Y[PID], centroids$X[centroids$show], centroids$Y[centroids$show])
-    if (all(dists > 600))
-        centroids$show[PID] <- T
-}
-centroids$show[centroids$X < -176] <- F
-centroids$show[centroids$X > 176] <- F
-centroids$show[centroids$Y < -50] <- F
-centroids$show[centroids$Y > 65] <- F
+source("src/lib/loadmaps.R")
 
 shp2 <- shp %>% left_join(polydata[, c('PID', 'ADM0_A3')]) %>% left_join(sumbyiso, by=c('ADM0_A3'='ISO'))
 centroids2 <- centroids %>% left_join(polydata[, c('PID', 'ADM0_A3')]) %>% left_join(sumbyiso, by=c('ADM0_A3'='ISO'))
-
-shpl <- importShapefile("data/regions/ne_10m_land/ne_10m_land.shp")
 
 gg <- ggplot(shp2, aes(X, Y)) +
     geom_polygon(data=shpl, aes(group=paste(PID, SID)), fill='#808080', colour=NA) +

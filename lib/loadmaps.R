@@ -1,6 +1,9 @@
 source("src/lib/distance.R")
 source("src/lib/myPBSmapping.R")
 
+if (!exists("loadmaps.distance"))
+    loadmaps.distance <- 600
+
 shp <- importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp")
 polydata <- attr(shp, 'PolyData')
 
@@ -12,7 +15,7 @@ centroids <- cents %>% left_join(areas, by=c('PID', 'SID')) %>% group_by(PID) %>
 centroids$show <- F
 for (PID in order(polydata$POP_EST, decreasing=T)) {
     dists <- gcd.slc(centroids$X[PID], centroids$Y[PID], centroids$X[centroids$show], centroids$Y[centroids$show])
-    if (all(dists > 600))
+    if (all(dists > loadmaps.distance))
         centroids$show[PID] <- T
 }
 centroids$show[centroids$X < -176] <- F

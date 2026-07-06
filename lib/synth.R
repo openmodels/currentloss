@@ -47,12 +47,12 @@ get.weighted.mcts <- function(allyr.ww, iso.weight, do.for.subset) {
     allyr3
 }
 
-get.weighted.ts <- function(allyr.ww, iso.weight, do.for.subset) {
+get.weighted.ts <- function(allyr.ww, iso.weight, do.for.subset, qrange=.25) {
     allyr3 <- get.weighted.mcts(allyr.ww, iso.weight, do.for.subset) %>%
         group_by(Year) %>%
         dplyr::summarize(solow = ifelse(all(is.na(total)), NA, wtd.median(total - totimpact - tradeloss - slrloss, weights = weight2, normwt = T)),
-                         prod25 = ifelse(all(is.na(total)), ifelse(all(is.na(totimpact)), NA, wtd.quantile(totimpact - tradeloss - slrloss, .25, weights = weight2, normwt = T)), wtd.quantile(total, .25, weights = weight2, normwt = T)),
-                         prod75 = ifelse(all(is.na(total)), ifelse(all(is.na(totimpact)), NA, wtd.quantile(totimpact - tradeloss - slrloss, .75, weights = weight2, normwt = T)), wtd.quantile(total, .75, weights = weight2, normwt = T)),
+                         prod25 = ifelse(all(is.na(total)), ifelse(all(is.na(totimpact)), NA, wtd.quantile(totimpact - tradeloss - slrloss, .5 - qrange, weights = weight2, normwt = T)), wtd.quantile(total, .5 - qrange, weights = weight2, normwt = T)),
+                         prod75 = ifelse(all(is.na(total)), ifelse(all(is.na(totimpact)), NA, wtd.quantile(totimpact - tradeloss - slrloss, .5 + qrange, weights = weight2, normwt = T)), wtd.quantile(total, .5 + qrange, weights = weight2, normwt = T)),
                          total = ifelse(all(is.na(total)), ifelse(all(is.na(totimpact)), NA, wtd.median(totimpact - tradeloss - slrloss, weights = weight2, normwt = T)), wtd.median(total, weights = weight2, normwt = T)),
                          totimpact = ifelse(all(is.na(totimpact)), NA, wtd.median(totimpact, weights = weight2, normwt = T)),
                          slrloss = ifelse(all(is.na(slrloss)), NA, wtd.median(slrloss, weights = weight2, normwt = T)),
