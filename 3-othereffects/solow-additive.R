@@ -10,7 +10,7 @@ library(rstan)
 library(parallel)
 
 do.mcs <- 1:30
-persist <- "0.36"
+persist <- "0.46"
 do.trade.suffix <- "-mcr2all"
 do.cores <- detectCores() / 4
 

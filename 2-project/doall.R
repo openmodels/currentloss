@@ -5,7 +5,7 @@ library(readxl)
 library(PBSmapping)
 library(MASS)
 
-source("~/projects/research-common/R/myPBSmapping.R")
+source("src/lib/myPBSmapping.R")
 source("src/2-project/driver.R")
 source("src/lib/utils.R")
 
@@ -27,7 +27,19 @@ papers <- list("Dell et al. 2012" = "src/models/djo.R",
                "Henseler & Schumacher 2019" = "src/models/henselerschumacher.R",
                "Burke et al. 2018" = "src/models/burkeetal2018.R",
                "De Vos & Everaert 2021" = "src/models/devoseveraert.R",
-               "Yang et al. 2023" = "src/models/yangetal.R")
+               "Yang et al. 2023" = "src/models/yangetal.R",
+               "Bareille et al. 2024" = "src/models/bareilleetal.R",
+               "Zhang et al. 2024" = "src/models/zhangetal.R",
+               "Meierrieks & Stadelmann 2024" = "src/models/meierrieksstadelmann.R",
+               "Apergis & Rehman 2024" = "src/models/apergisrehman.R",
+               "Brown et al. 2013" = "src/models/brownetal.R",
+               "Kahn et al. 2017" = "src/models/kahnetal2017.R",
+               "Liu et al. 2023" = "src/models/liuetal.R",
+               "Yang et al. 2025" = "src/models/yangetal2025.R",
+               "Gupta et al. 2024" = "src/models/guptaetal.R",
+               "Jiao et al. 2024" = "src/models/jiaoetal.R",
+               "Benhamed et al. 2023" = "src/models/benhamedetal.R",
+               "Desbordes & Eberhardt 2024" = "src/models/desbordeseberhardt.R")
 
 results <- data.frame()
 allres <- data.frame()
@@ -41,7 +53,7 @@ for (paper in names(papers)) {
             funcs <- get.funcs(name)
             if (is.null(funcs))
                 next
-            oneres <- project.single(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper %in% c("Kotz et al. 2022", "Kalkuhl & Wenz 2020", "Damania et al. 2020", "Zhao et al. 2018"), 1, 0))
+            oneres <- project.single(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper %in% c("Kotz et al. 2022", "Kalkuhl & Wenz 2020", "Damania et al. 2020", "Zhao et al. 2018", "Bareille et al. 2024", "Kahn et al. 2017", "Meierrieks & Stadelmann 2024", "Zhang et al. 2024"), 1, 0))
             if (contemp.only == F)
                 oneres.not.contemp.only <- oneres
             else {
@@ -74,6 +86,7 @@ for (paper in names(papers)) {
 }
 
 write.csv(allres, "data/allres.csv", row.names=F)
+## allres = read.csv("data/allres.csv")
 
 library(ggplot2)
 
@@ -106,35 +119,48 @@ ggsave("figures/lagimpacts.pdf", width=8, height=4)
 MCNUM <- 30 # Have lots of models
 rm(allres, allres2)
 
-if (file.exists("data/mcres.RData")) {
-    load("data/mcres.RData")
-} else {
-    mcres <- data.frame()
-}
-if (file.exists("data/mcres2.RData")) {
-    load("data/mcres2.RData")
-} else {
-    mcres2 <- data.frame()
-}
-for (paper in names(papers)) {
-    source(papers[[paper]])
-    for (name in unique(results$name[results$paper == paper])) {
-        if (any(mcres$paper == paper & mcres$name == name) || any(mcres2$paper == paper & mcres2$name == name))
-            next
-        print(c(paper, name))
-        funcs <- get.funcs(name)
-        contemp.only <- results$contemp.only[results$paper == paper & results$name == name & results$preferred][1]
-        onemcres <- project.mc(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper %in% c("Kotz et al. 2022", "Kalkuhl & Wenz 2020", "Damania et al. 2020", "Zhao et al. 2018"), 1, 0))
-        if (which(names(papers) == paper) < 10) {
-            mcres <- rbind(mcres, cbind(onemcres, name=name, paper=paper, contemp.only=contemp.only))
-            save(mcres, file="data/mcres.RData")
-        } else {
-            mcres2 <- rbind(mcres2, cbind(onemcres, name=name, paper=paper, contemp.only=contemp.only))
-            save(mcres2, file="data/mcres2.RData")
+## ## Drop specific models for regeneration
+## for (impose.contemp.only in c(F, T)) {
+##     load(paste0("data/mcres", ifelse(impose.contemp.only, "-contemp", ""), ".RData"))
+##     mcres <- subset(mcres, !(paper %in% c("Brown et al. 2013", "Yang et al. 2025")))
+##     save(mcres, file=paste0("data/mcres", ifelse(impose.contemp.only, "-contemp", ""), ".RData"))
+## }
+
+for (impose.contemp.only in c(F, T)) {
+    if (file.exists(paste0("data/mcres", ifelse(impose.contemp.only, "-contemp", ""), ".RData"))) {
+        load(paste0("data/mcres", ifelse(impose.contemp.only, "-contemp", ""), ".RData"))
+    } else {
+        mcres <- data.frame()
+    }
+    if (file.exists(paste0("data/mcres2", ifelse(impose.contemp.only, "-contemp", ""), ".RData"))) {
+        load(paste0("data/mcres2", ifelse(impose.contemp.only, "-contemp", ""), ".RData"))
+    } else {
+        mcres2 <- data.frame()
+    }
+    for (paper in names(papers)) {
+        source(papers[[paper]])
+        for (name in unique(results$name[results$paper == paper])) {
+            if (any(mcres$paper == paper & mcres$name == name) || any(mcres2$paper == paper & mcres2$name == name))
+                next
+            print(c(paper, name))
+            funcs <- get.funcs(name)
+            if (impose.contemp.only) {
+                contemp.only <- T
+            } else {
+                contemp.only <- results$contemp.only[results$paper == paper & results$name == name & results$preferred][1]
+            }
+            onemcres <- project.mc(funcs$setup, funcs$simulate, contemp.only=contemp.only, adm.level=ifelse(paper %in% c("Kotz et al. 2022", "Kalkuhl & Wenz 2020", "Damania et al. 2020", "Zhao et al. 2018"), 1, 0))
+            if (which(names(papers) == paper) < 10) {
+                mcres <- rbind(mcres, cbind(onemcres, name=name, paper=paper, contemp.only=contemp.only))
+                save(mcres, file=paste0("data/mcres", ifelse(impose.contemp.only, "-contemp", ""), ".RData"))
+            } else {
+                mcres2 <- rbind(mcres2, cbind(onemcres, name=name, paper=paper, contemp.only=contemp.only))
+                save(mcres2, file=paste0("data/mcres2", ifelse(impose.contemp.only, "-contemp", ""), ".RData"))
+            }
         }
     }
-}
 
-mcres <- rbind(mcres, mcres2)
-save(mcres, file="data/mcres.RData")
-file.remove("data/mcres2.RData")
+    mcres <- rbind(mcres, mcres2)
+    save(mcres, file=paste0("data/mcres", ifelse(impose.contemp.only, "-contemp", ""), ".RData"))
+    file.remove(paste0("data/mcres2", ifelse(impose.contemp.only, "-contemp", ""), ".RData"))
+}

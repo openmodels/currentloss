@@ -1,4 +1,4 @@
-setwd("~/research/currentloss/search2")
+setwd("/Users/admin/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses/")
 
 library(dplyr)
 
@@ -43,3 +43,12 @@ allfurther$Final.Verdict[allfurther$Final.include] <- "include"
 table(allfurther$Final.Verdict)
 
 subset(allfurther, !included & Final.include)
+
+## Combine with new systematic review
+
+library(readxl)
+sysrev <- read_excel("data/search/Current Losses Review Process.xlsx")
+
+## Total DOIs
+
+alldoi <- unique(c(alldf$DOI, sysrev$DOI))

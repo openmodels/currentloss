@@ -1,5 +1,5 @@
 if (F) {
-    setwd("~/Library/CloudStorage/GoogleDrive-tahmid@udel.edu/My Drive/Current Losses")
+    setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
     source("driver.R")
     source("utils.R")

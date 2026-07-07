@@ -1,6 +1,20 @@
 library(readxl)
 library(reshape2)
 
+load.allres <- function(persist) {
+    load("data/mcres.RData")
+    mcres <- subset(mcres, paper != "Kotz et al. 2022")
+
+    load("data/mcres-decumul.RData")
+    toadd = decumul.bypersist[[as.character(persist)]]
+
+    rm(decumul.bypersist)
+    allres <- rbind(mcres, toadd)
+    rm(mcres, toadd)
+
+    allres
+}
+
 read.metaanal.trade <- function(trade.method, persist) {
     if (grepl("-mcpaperall", trade.method)) {
         print("Loading Monte Carlo over all spec.")

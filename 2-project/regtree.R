@@ -1,29 +1,20 @@
-## NOT UPDATED FOR v2
-
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
 library(dplyr)
 library(rpart)
 library(rpart.plot)
+source("src/lib/loadutils.R")
 
-load("data/mcres.RData")
-load("data/mcres-decumul.RData")
-
-persist <- '0.21'
-
-allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[persist]])
+persist <- '0.6'
+allres <- load.allres(persist)
 
 ### COPIED FROM randforest.R
 
 ## Find rows for valid models that are NA (before some point in that model)
 allstat <- allres %>% group_by(ISO, paper, name) %>% summarize(status=ifelse(all(is.na(dimpact)), NA, max(Year[is.na(dimpact) & Year < 2000]))) %>%
     group_by(paper, name) %>% summarize(status=max(status, na.rm=T))
-allresfix <- allres %>% group_by(ISO, paper, name) %>% filter(!all(is.na(dimpact))) %>%
+allres2 <- allres %>% group_by(ISO, paper, name) %>% filter(!all(is.na(dimpact))) %>%
     mutate(dimpact=ifelse(is.na(dimpact), 0, dimpact))
-allres2 <- allres %>% left_join(allresfix, by=c('ISO', 'Year', 'paper', 'name', 'mc'), suffix=c('.ori', '.fix'))
-allres2$dimpact <- ifelse(is.na(allres2$dimpact.ori), allres2$dimpact.fix, allres2$dimpact.ori)
-allstat2 <- allres2 %>% group_by(ISO, paper, name) %>% summarize(status=ifelse(all(is.na(dimpact)), NA, max(Year[is.na(dimpact) & Year < 2000]))) %>%
-    group_by(paper, name) %>% summarize(status=max(status, na.rm=T))
 
 source("src/lib/loadmetadata.R")
 

@@ -6,7 +6,10 @@ library(readxl)
 library(dplyr)
 library(PBSmapping)
 
+do.skip.existing <- F
 sample.approaches <- c("mainmed", "main", "all")
+
+mem.maxVSize(Inf)
 
 load("data/mcres.RData")
 load("data/mcres-decumul.RData")
@@ -22,11 +25,23 @@ main.models <- list("Dell et al. 2012"="Main 2.3", "Burke et al. 2015"="Main", "
 		    "Henseler & Schumacher 2019"="Main spec.",
 		    "Burke et al. 2018"="Main spec.",
 		    "De Vos & Everaert 2021"="Table 5, CCEPbc",
-		    "Yang et al. 2023"="Table 6, FE-NLS, 6")
+		    "Yang et al. 2023"="Table 6, FE-NLS, 6",
+                    "Bareille et al. 2024" = "Table 3, Model 4",
+                    "Zhang et al. 2024" = "Table A3",
+                    "Meierrieks & Stadelmann 2024" = "Table 2, Column 6",
+                    "Apergis & Rehman 2024" = "Table 2",
+                    "Brown et al. 2013" = "Table 2, T2W",
+                    #"Kahn et al. 2017" = NULL, # Preferred in model 3, with no temperature
+                    "Liu et al. 2023" = "Table S1, Lag 1",
+                    "Yang et al. 2025" = "Panel B, Covariate-dependent threshold",
+                    "Gupta et al. 2024" = "Table 1, Split",
+                    "Jiao et al. 2024" = "Adaptation IIS",
+                    "Benhamed et al. 2023" = "Table 4, LMI/HI, Contiguity",
+                    "Desbordes & Eberhardt 2024" = "Table 3, CCE3, Col 6")
 model.order <- rev(names(main.models))
 
 for (sample.approach in sample.approaches) {
-    for (persist in c("0", "0.21", "0.36", "0.47")) {
+    for (persist in c("0.6", "0", "0.36", "0.78")) {
         allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[persist]])
 
         ## Find rows for valid models that are NA (before some point in that model)
@@ -43,7 +58,7 @@ for (sample.approach in sample.approaches) {
             print(c(persist, mcii))
 
             outpath <- paste0("data/metaanal/mcpaperres-", persist, "-", sample.approach, "-", mcii, ".RData")
-            if (file.exists(outpath))
+            if (file.exists(outpath) && do.skip.existing)
                 next
 
             results <- data.frame()

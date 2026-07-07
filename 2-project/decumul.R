@@ -6,7 +6,7 @@ if (F) {
     dimpact <- rnorm(40)
     accum <- stats::filter(c(rep(0, 30), dimpact), (1 - .21)^(0:30), sides=1)[-1:-30]
 
-    decay <- (1 - 0.21)^(0:30)
+    decay <- (1 - 0.36)^(0:30)
 
     ## Initialize vector to store reconstructed dimpact
     reconstructed_dimpact <- accum
@@ -24,7 +24,7 @@ load("data/mcres.RData")
 ## Construct decumulated value for Kotz et al.
 
 decumul.bypersist <- list()
-for (persist in c(0, 0.21, 0.36, 0.47)) {
+for (persist in c(0, 0.36, 0.60, 0.78)) {
     mcres.kotz <- subset(mcres, paper == "Kotz et al. 2022")
     decay <- (1 - persist)^(0:30)
     revdeca <- rev(decay[-1])
@@ -55,7 +55,7 @@ save(decumul.bypersist, file="data/mcres-decumul.RData")
 library(dplyr)
 
 if (F) {
-    for (persist in c(0.08, 0.21)) {
+    for (persist in c(0.08, 0.36)) {
         mcres.kotz <- subset(mcres, paper == "Kotz et al. 2022")
         df.test <- decumul.bypersist[[as.character(persist)]] %>% group_by(paper, name, ISO, mc) %>%
             mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - persist)^(0:30), sides=1)[-1:-30])
@@ -64,11 +64,11 @@ if (F) {
     }
 }
 
-mcres.final <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.36"]])
+mcres.final <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[["0.6"]])
 
 results <- mcres.final %>% group_by(Year, ISO, name, paper) %>% summarize(dimpact=mean(dimpact))
 
-source("~/projects/research-common/R/myPBSmapping.R")
+source("src/lib/myPBSmapping.R")
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 results2 <- results %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%
     group_by(Year, name, paper) %>% summarize(dimpact.pop=sum(dimpact * POP_EST, na.rm=T) / sum(POP_EST[!is.na(dimpact)]))

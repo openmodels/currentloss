@@ -1,4 +1,5 @@
 library(sf)
+library(dplyr)
 
 get.weighted.mcts <- function(allyr.ww, iso.weight, do.for.subset) {
     df.gdp2 <- read.wb("data/capital/API_NY.GDP.MKTP.KD_DS2_en_excel_v2_5871893.xls", 'GDP.2015')
@@ -46,12 +47,12 @@ get.weighted.mcts <- function(allyr.ww, iso.weight, do.for.subset) {
     allyr3
 }
 
-get.weighted.ts <- function(allyr.ww, iso.weight, do.for.subset) {
+get.weighted.ts <- function(allyr.ww, iso.weight, do.for.subset, qrange=.25) {
     allyr3 <- get.weighted.mcts(allyr.ww, iso.weight, do.for.subset) %>%
         group_by(Year) %>%
         dplyr::summarize(solow = ifelse(all(is.na(total)), NA, wtd.median(total - totimpact - tradeloss - slrloss, weights = weight2, normwt = T)),
-                         prod25 = ifelse(all(is.na(total)), ifelse(all(is.na(totimpact)), NA, wtd.quantile(totimpact - tradeloss - slrloss, .25, weights = weight2, normwt = T)), wtd.quantile(total, .25, weights = weight2, normwt = T)),
-                         prod75 = ifelse(all(is.na(total)), ifelse(all(is.na(totimpact)), NA, wtd.quantile(totimpact - tradeloss - slrloss, .75, weights = weight2, normwt = T)), wtd.quantile(total, .75, weights = weight2, normwt = T)),
+                         prod25 = ifelse(all(is.na(total)), ifelse(all(is.na(totimpact)), NA, wtd.quantile(totimpact - tradeloss - slrloss, .5 - qrange, weights = weight2, normwt = T)), wtd.quantile(total, .5 - qrange, weights = weight2, normwt = T)),
+                         prod75 = ifelse(all(is.na(total)), ifelse(all(is.na(totimpact)), NA, wtd.quantile(totimpact - tradeloss - slrloss, .5 + qrange, weights = weight2, normwt = T)), wtd.quantile(total, .5 + qrange, weights = weight2, normwt = T)),
                          total = ifelse(all(is.na(total)), ifelse(all(is.na(totimpact)), NA, wtd.median(totimpact - tradeloss - slrloss, weights = weight2, normwt = T)), wtd.median(total, weights = weight2, normwt = T)),
                          totimpact = ifelse(all(is.na(totimpact)), NA, wtd.median(totimpact, weights = weight2, normwt = T)),
                          slrloss = ifelse(all(is.na(slrloss)), NA, wtd.median(slrloss, weights = weight2, normwt = T)),
@@ -102,6 +103,23 @@ prep.levels.allyr.ww <- function(allyr.ww) {
 
 get.allyr.ww <- function(persist, trade.method) {
     load(paste0("data/allyr-ww-", persist, "-", trade.method, ".RData"))
+    if (file.exists(paste0("data/allyr-ww-", persist, "-", trade.method, "-pass2.RData"))) {
+        allyr.ww.pass1 <- allyr.ww
+        load(paste0("data/allyr-ww-", persist, "-", trade.method, "-pass2.RData"))
+        allyr.ww.pass2 <- allyr.ww
+        scores <- rbind(cbind(pass='pass1', allyr.ww.pass1 %>% group_by(ISO, mc) %>% dplyr::summarize(weight=mean(ess * lp, na.rm=T))),
+                        cbind(pass='pass2', allyr.ww.pass2 %>% group_by(ISO, mc) %>% dplyr::summarize(weight=mean(ess * lp, na.rm=T)))) %>%
+            mutate(weight=ifelse(is.na(weight), 0, weight)) %>%
+            group_by(ISO, mc) %>% dplyr::summarize(pass=pass[which.max(weight)])
+        allyr.ww <- data.frame()
+        for (ii in 1:nrow(scores)) {
+            if (scores$pass[ii] == 'pass1') {
+                allyr.ww <- rbind(allyr.ww, subset(allyr.ww.pass1, ISO == scores$ISO[ii] & mc == scores$mc[ii]))
+            } else {
+                allyr.ww <- rbind(allyr.ww, subset(allyr.ww.pass2, ISO == scores$ISO[ii] & mc == scores$mc[ii]))
+            }
+        }
+    }
     allyr.ww[allyr.ww$ISO == 'SDN', which(is.na(allyr.ww[allyr.ww$ISO == 'ABW', ][1, ]))] <- NA # country change affects
 
     ## Duplicate final values only for NA capitals

@@ -6,6 +6,8 @@ library(readxl)
 library(dplyr)
 library(mice)
 
+mem.maxVSize(Inf)
+
 load("data/mcres.RData")
 load("data/mcres-decumul.RData")
 
@@ -30,10 +32,10 @@ nummc <- max(mcres$mc)
 
 ## Exclude columns from Zhao et al. because of extreme (> 100%) single-year impacts
 mcres <- subset(mcres, paper != "Zhao et al. 2018" | !(name %in% c("Table 3, Col. 2", "Table 3, Col. 3", "Table 3, Col. 5", "Table 3, Col. 6", "Table 3, Col. 7")))
-for (persist in c("0.36", "0.21", "0.47", "0"))
+for (persist in c("0.6", "0.36", "0.78", "0"))
     decumul.bypersist[[persist]] <- subset(decumul.bypersist[[persist]], name != "With Linear Trends")
 
-for (persist in c("0.36", "0.21", "0.47", "0")) {
+for (persist in c("0.6", "0.36", "0.78", "0")) {
     allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), decumul.bypersist[[persist]])
 
     ## Find rows for valid models that are NA (before some point in that model)

@@ -2,23 +2,23 @@
 ## setwd("~/research/currentloss")
 ## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
 
-do.skip.existing <- F
-do.obsimport <- F
+do.skip.existing <- T
+do.obsimport <- T
 
 library(ranger)
 library(readxl)
 library(dplyr)
-source("~/projects/research-common/R/myPBSmapping.R")
+source("src/lib/myPBSmapping.R")
+
+mem.maxVSize(Inf)
 
 rf.approaches <- c("all", "controls", "nonlinear", "dataset")
 
-load("data/mcres.RData")
-
 rfstats <- data.frame()
 
-for (persist in c("0", "0.21", "0.36", "0.47")) {
+for (persist in c("0.6", "0", "0.36", "0.78")) {
 for (rf.approach in rf.approaches) {
-    if (do.obsimport && (persist != "0.36" || rf.approach != "all"))
+    if (do.obsimport && (persist != "0.6" || rf.approach != "all"))
       next
 
     if (rf.approach == 'all') {
@@ -26,6 +26,8 @@ for (rf.approach in rf.approaches) {
     } else {
         savepath <- function(mcii) paste0("data/metaanal/mcrfres-", persist, "-", rf.approach, "-", mcii, ifelse(do.obsimport, "-obs", ""), ".RData")
     }
+
+    load("data/mcres.RData")
 
     if (do.skip.existing) {
         foundall <- T
@@ -39,10 +41,14 @@ for (rf.approach in rf.approaches) {
             next
     }
 
+    mcres <- subset(mcres, paper != "Kotz et al. 2022")
+
     load("data/mcres-decumul.RData")
     kotzreplace <- decumul.bypersist[[persist]]
     rm('decumul.bypersist')
-    allres <- rbind(subset(mcres, paper != "Kotz et al. 2022"), kotzreplace)
+    allres <- rbind(mcres, kotzreplace)
+    rm('kotzreplace')
+    rm('mcres')
 
     ## Find rows for valid models that are NA (before some point in that model)
     allstat <- allres %>% group_by(ISO, paper, name) %>% summarize(status=ifelse(all(is.na(dimpact)), NA, max(Year[is.na(dimpact) & Year < 2000]))) %>%
@@ -50,28 +56,29 @@ for (rf.approach in rf.approaches) {
     allres2 <- allres %>% group_by(ISO, paper, name) %>% filter(!all(is.na(dimpact))) %>%
         mutate(dimpact=ifelse(is.na(dimpact), 0, dimpact))
 
+    MCNUM <- max(allres$mc)
+    isos <- unique(allres$ISO)
+    years <- unique(allres$Year)
+
+    rm(allres)
+
     allstat2 <- allres2 %>% group_by(ISO, paper, name) %>% summarize(status=ifelse(all(is.na(dimpact)), NA, max(Year[is.na(dimpact) & Year < 2000]))) %>%
       group_by(paper, name) %>% summarize(status=max(status, na.rm=T))
 
 source("src/lib/loadmetadata.R")
-
-MCNUM <- max(allres$mc)
-isos <- unique(allres$ISO)
-years <- unique(allres$Year)
 
 for (mcii in 1:MCNUM) {
     if (do.skip.existing && file.exists(savepath(mcii)))
         next
     print(savepath(mcii))
 
-    allres3 <- subset(allres2, mc == mcii)
     results <- data.frame()
 
     for (iso in isos) {
         for (year in years) {
             print(c(rf.approach, persist, mcii, iso, year))
 
-            allres4 <- subset(allres3, !is.na(dimpact) & Year == year & ISO == iso) %>% left_join(metadata, by=c('paper'='Paper', 'name'='Name'))
+            allres4 <- subset(subset(allres2, mc == mcii), !is.na(dimpact) & Year == year & ISO == iso) %>% left_join(metadata, by=c('paper'='Paper', 'name'='Name'))
 
             if (rf.approach == 'all') {
                 values <- allres4[, c('dimpact', 'Q.Weather', 'Q.Poverty', 'Q.Temp', 'Q.Prec', 'Q.YearFE', 'Q.Trends',

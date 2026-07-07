@@ -4,14 +4,14 @@ library(dplyr)
 library(mice)
 library(ggplot2)
 
-source("~/projects/research-common/R/myPBSmapping.R")
+source("src/lib/myPBSmapping.R")
 source("src/lib/loadmetadata.R")
 
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
 allres <- data.frame()
 for (mc in 1:30) {
-    filepath <- paste0("data/metaanal/mcrfres-0.36-", mc, "-obs.RData")
+    filepath <- paste0("data/metaanal/mcrfres-0.6-", mc, "-obs.RData")
     if (!file.exists(filepath)) {
         print(paste("Missing after", mc))
         break
@@ -36,7 +36,19 @@ main.models <- list("Dell et al. 2012"="Main 2.3", "Burke et al. 2015"="Main", "
 		    "Henseler & Schumacher 2019"="Main spec.",
 		    "Burke et al. 2018"="Main spec.",
 		    "De Vos & Everaert 2021"="Table 5, CCEPbc",
-		    "Yang et al. 2023"="Table 6, FE-NLS, 6")
+		    "Yang et al. 2023"="Table 6, FE-NLS, 6",
+                    "Bareille et al. 2024" = "Table 3, Model 4",
+                    "Zhang et al. 2024" = "Table A3",
+                    "Meierrieks & Stadelmann 2024" = "Table 2, Column 6",
+                    "Apergis & Rehman 2024" = "Table 2",
+                    "Brown et al. 2013" = "Table 2, T2W",
+                    "Kahn et al. 2017" = "not used", # Preferred in model 3, with no temperature
+                    "Liu et al. 2023" = "Table S1, Lag 1",
+                    "Yang et al. 2025" = "Panel B, Covariate-dependent threshold",
+                    "Gupta et al. 2024" = "Table 1, Split",
+                    "Jiao et al. 2024" = "Adaptation IIS",
+                    "Benhamed et al. 2023" = "Table 4, LMI/HI, Contiguity",
+                    "Desbordes & Eberhardt 2024" = "Table 3, CCE3, Col 6")
 allres2$main <- sapply(1:nrow(allres2), function(ii) main.models[[allres2$paper[ii]]] == allres2$name[ii])
 
 allres3 <- allres2 %>% group_by(paper) %>% summarize(low=min(usage), high=max(usage), count=length(usage), main=usage[main])
@@ -78,13 +90,29 @@ for (ii in 1:99) {
 }
 pdf <- rbind(pdf, data.frame(paper=newnames, usage=c(rbind(allres5$main, rep(0.001, nrow(allres5)))), x=4, width=1))
 
-colors <- c('#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#800000', '#808000', '#008080', '#000080', '#FFA500', '#800080', '#A52A2A', '#008000', '#FF6347')
+pdf$origpaper <- sapply(pdf$paper, function(pp) paste(head(strsplit(as.character(pp), " ")[[1]], -1), collapse=" "))
+
+labels <- data.frame()
+for (origpaper in unique(pdf$origpaper)) {
+    if (origpaper == 'white')
+        next
+    pdf2 <- subset(pdf, x == 4)
+    pdf2$cumloc <- cumsum(pdf2$usage)
+    indexes <- which(pdf2$origpaper == origpaper)
+    labels <- rbind(labels, data.frame(origpaper, y=max(pdf2$cumloc) - mean(c(0, pdf2$cumloc)[c(indexes[1], tail(indexes, 1) + 2)])))
+}
+
+library(Polychrome)
+data(glasbey)
+
+colors <- glasbey[2:28]
 allres5$color <- colors[as.numeric(factor(allres5$paper))]
 
 ggplot(pdf) +
     geom_col(aes(x=4 - x, y=usage, fill=paper, width=width)) +
-    geom_label(data=data.frame(label=levels(factor(allres5$paper)), y=1.08 - (1:length(unique(allres5$paper)) - 0.5) / (length(unique(allres5$paper)) - 1.1)),
-               aes(x=0, y=y, label=label), size=2) +
+    geom_label(data=labels, aes(x=0, y=y, label=origpaper), size=2) +
+    ## geom_label(data=data.frame(label=levels(factor(allres5$paper)), y=1.08 - (1:length(unique(allres5$paper)) - 0.5) / (length(unique(allres5$paper)) - 1.1)),
+    ##            aes(x=0, y=y, label=label), size=2) +
     theme_bw() +
     theme(axis.title.y=element_blank(),
           axis.text.y=element_blank(),
@@ -93,4 +121,4 @@ ggplot(pdf) +
     scale_fill_manual(breaks=newnames, values=c(rbind(allres5$color, rep("#FFFFFF", nrow(allres5))))) +
     scale_x_continuous(NULL, breaks=c(4, 2, 0), labels=c("Random Forest", "Total R2", "Main Only"), expand=c(0, 0)) +
     scale_y_continuous(expand=c(0, 0))
-ggsave("figures/weightings.pdf", width=6.5, height=4)
+ggsave("figures/weightings.pdf", width=6.5, height=6)

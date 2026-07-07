@@ -7,10 +7,10 @@ library(PBSmapping)
 library(ggplot2)
 library(sf)
 
-do.for.subset <- "global" # "global" or "L+MIC"
+do.for.subset <- "L+MIC" # "global" or "L+MIC"
 
-persist <- "0.36"
-trade.method <- "dd-mcr2all"
+persist <- "0.6"
+trade.method <- "dd"
 source("src/lib/utils2.R")
 source("src/lib/synth.R")
 
@@ -87,8 +87,8 @@ gp <- ggplot(allyr3.pop, aes(Year)) +
     theme_bw() + scale_y_continuous(y_label, labels=scales::percent) +
     scale_x_continuous(NULL, expand=c(0, 0), limits=c(1959, 2023)) +
     scale_colour_manual(NULL, breaks=c("Direct Impact", "Direct + SLR", "Direct + SLR + Trade", "Total Impact", "Output-weighted Total"), values=c("#1b9e77", "#7570b3", "#d95f02", "#000000", "#808080")) +
-    theme(legend.position=c(.5, .25))
-ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-", persist, "-", trade.method, ".pdf"), width=6.25, height=3.9)
+    theme(legend.position=c(.4, .25))
+ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-", persist, "-", trade.method, ".pdf"), width=4, height=3.9) # width = 6.25 - 2.5 for bars
 
 ## Pres fig 1: direct-only
 gp <- ggplot(allyr3.pop, aes(Year)) +
@@ -157,17 +157,7 @@ ggsave(paste0("figures/globaltime-noloess_", do.for.subset, "-step5-", persist, 
 
 ## Numbers for pres
 tail(allyr3.pop, 1)
-##    Year   solow  prod25  prod75   total totimpact slrloss tradeloss
-##    2023 -0.0190 -0.0477 -0.0333 -0.0380   -0.0237 0.00112   0.00591
-## RF:
-##    Year   solow prod25  prod75   total totimpact slrloss tradeloss
-## 1  2023 -0.0368 -0.107 -0.0252 -0.0751   -0.0447 0.00105    0.0131
 tail(allyr3.gdp, 1)
-##    Year   solow  prod25  prod75   total totimpact  slrloss tradeloss
-##    2023 -0.0138 -0.0262 -0.0129 -0.0169   -0.0101 0.000406   0.00471
-## RF:
-##    Year   solow  prod25  prod75   total totimpact  slrloss tradeloss
-## 1  2023 -0.0266 -0.0644 -0.0222 -0.0456   -0.0289 0.000375    0.0101
 
 ## Numbers for report
 allyr3.pop.mc <- get.weighted.mcts(allyr.ww, 'pop', do.for.subset)
@@ -176,19 +166,6 @@ allyr3.pop.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
     dplyr::summarize(mu=log2lev(wtd.median(total, weights=weight2, normwt=T)),
               ci25=log2lev(wtd.quantile(total, .25, weights=weight2, normwt=T)),
               ci75=log2lev(wtd.quantile(total, .75, weights=weight2, normwt=T)))
-## Global:
-##        mu    ci25    ci75
-## 1  -0.0373 -0.0466 -0.0327
-## L+MIC:
-##        mu    ci25    ci75
-## 1 -0.0426 -0.0521 -0.0369
-## RF:
-## Global:
-##        mu   ci25    ci75
-## 1 -0.0724 -0.101 -0.0249
-## L+MIC:
-##        mu   ci25    ci75
-## 1 -0.0766 -0.114 -0.0255
 
 allyr3.gdp.mc <- get.weighted.mcts(allyr.ww, 'gdp', do.for.subset)
 allyr3.gdp.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
@@ -196,19 +173,6 @@ allyr3.gdp.mc %>% filter(Year == 2023) %>% group_by(mc) %>%
     dplyr::summarize(mu=log2lev(wtd.median(total, weights=weight2, normwt=T)),
               ci25=log2lev(wtd.quantile(total, .25, weights=weight2, normwt=T)),
               ci75=log2lev(wtd.quantile(total, .75, weights=weight2, normwt=T)))
-## Global:
-##        mu    ci25    ci75
-## 1 -0.0167 -0.0259 -0.0129
-## L+MIC:
-##        mu    ci25    ci75
-## 1 -0.0347 -0.0406 -0.0239
-## RF:
-## Global:
-##        mu    ci25    ci75
-## 1 -0.0445 -0.0624 -0.0220
-## L+MIC:
-##        mu    ci25    ci75
-## 1 -0.0571 -0.0848 -0.0208
 
 ## Determine ranges
 
@@ -257,8 +221,6 @@ y_axis_label <- if (do.for.subset == "L+MIC") {
 
 ## Number for report
 sum(subset(pdf4, Year == 2023)$value)
-## -1609.793
-## RF: -4067.772
 
 gp <- ggplot(subset(pdf4, Year >= 1960), aes(Year)) +
     #coord_cartesian(ylim=c(-10000, 0)) +

@@ -1,0 +1,45 @@
+## setwd("~/Library/CloudStorage/GoogleDrive-jrising@udel.edu/My Drive/Research/Current Losses")
+
+if (F) {
+    source("src/2-project/driver.R")
+    source("src/lib/utils.R")
+}
+
+get.funcs <- function(name) {
+    if (name == "Table 3, 1a") {
+        beta <- c(5.726, -0.009)
+        se <- c(9.582, 0.017)
+    } else if (name == "Table 3, 2a") {
+        beta <- c(7.380, -0.012)
+        se <- c(9.532, 0.017)
+    }
+
+    coeffs <- matrix(NA, MCNUM, length(beta))
+    for (cc in 1:length(beta))
+        coeffs[, cc] <- rnorm(MCNUM, beta[cc] / 100, se[cc] / 100)
+
+    setup <- function(mcii) {
+        if (is.null(mcii))
+            return(beta / 100)
+        as.numeric(coeffs[mcii,])
+    }
+
+    simulate <- function(coeffs, year, subera5, contemp.only=F) {
+        (subera5$t2m - 273.15) * coeffs[1] + (subera5$t2m - 273.15)^2 * coeffs[2]
+    }
+
+    return(list(setup=setup, simulate=simulate))
+}
+
+if (F) {
+    funcs <- get.funcs("Table 3, 1a")
+
+    oneres <- project.single(funcs$setup, funcs$simulate, adm.level=1)
+    oneres.adm1 <- oneres %>% group_by(Year, ISO) %>% summarize(dimpact=mean(dimpact))
+    oneres.adm0 <- project.single(funcs$setup, funcs$simulate, adm.level=0)
+    plot((oneres.adm1 %>% filter(ISO == 'THA'))$dimpact)
+    lines((oneres.adm0 %>% filter(ISO == 'THA'))$dimpact)
+
+    plot((oneres.adm1 %>% filter(ISO == 'NOR'))$dimpact)
+    lines((oneres.adm0 %>% filter(ISO == 'NOR'))$dimpact)
+}
