@@ -32,3 +32,4 @@ mean(omegas2) # 0.355
 
 omegas3 <- c(0.70, 0.77, 0.87)
 mean(omegas3) # 0.78
+
