@@ -131,15 +131,6 @@ results2$stars <- ifelse(sign(results2$`0.1%`) == sign(results2$`99.9%`), "***",
                   ifelse(sign(results2$`5%`) == sign(results2$`95%`), "*", "")))
 
 ## Key question: Can growth regression with both pick up persistence vs. transience?
-## dyy.TT.TTdTT and eyy.TT.TTdTT say it can.
-## Notes:
-## eyy.TT.TT says that transient impacts would be picked up by a dy ~ T regression.
-## dyy.TT.dTT says that persistent impacts are partly picked up by a dy ~ dT regression.
-## dyy.TTdTT.TT and dyy.TTdTT.dTT show that's held through if true has both transient and persistent, but only check for one.
-## Including both TT and dTT is always fine in my experiments...
-
-## ! I bet if recovers in 2 years, will be completely mis-interpretted.
-## But is that the question...
 
 ## 1. Does Burke et al. imply persistence? NO! It picks up an effect when it's not there.
 results2[rownames(results2) == "eyy.TT.TT",]
@@ -150,6 +141,3 @@ results2[rownames(results2) == "dyy.TTdTT.dTT",]
 results2[rownames(results2) %in% c('fyy.TT.TTdTT1', 'fyy.TT.TTdTT2'),]
 ## 4. Can the regressinos that include both properly identify persistence that lasts 2 years? NO! Picks up a T effect, but it is not persistent.
 results2[rownames(results2) %in% c('gyy.TT.TTdTT1', 'gyy.TT.TTdTT2'),]
-
-## 5. OKAY, but regression with both perfectly picks up the level of my style of persistence.
-## 6. But does that mean you project it as the sum and get the same thing? NO! That would include part of the persistence lasting forever, and that's not what I describe.

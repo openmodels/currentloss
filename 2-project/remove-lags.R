@@ -6,27 +6,10 @@ library(ggplot2)
 library(Hmisc)
 library(xtable)
 library(mice)
+source("src/lib/persist.R")
 
 do.fullmc <- T
 do.lagonly <- T
-
-remove.lags <- function(dimpact, lags, omega) { # lags is K-1 in my notation
-    if (lags == 0)
-        return(dimpact)
-    result <- dimpact[1]
-    withpersist <- dimpact[1]
-    for (tt in 1:lags) {
-        result[tt+1] <- dimpact[tt+1] - (1 - omega) * withpersist[tt]
-        withpersist[tt+1] <- dimpact[tt+1]
-    }
-    for (tt in (lags + 1):(length(dimpact)-1)) {
-        nn <- tt - lags
-        result[tt+1] <- dimpact[tt+1] + sum((1 - omega)^(lags + 1 + (1:nn)) * dimpact[nn - (1:nn) + 1]) - (1 - omega) * withpersist[tt]
-        withpersist[tt+1] <- result[tt+1] + (1 - omega) * withpersist[tt]
-    }
-
-    return(result)
-}
 
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
