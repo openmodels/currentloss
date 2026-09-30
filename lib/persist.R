@@ -26,9 +26,9 @@ persist.waidelich <- function(x, drop.lags, persist) {
 
 persist.general <- function(x, persist, drop.lags, do.waidelich) {
     if (do.waidelich) {
-        persist.waidelich(x, drop.lags, persist)
+        persist.waidelich(x, drop.lags, as.numeric(persist))
     } else {
-        persist.decay(remove.lags(x, drop.lags, persist), persist)
+        persist.decay(remove.lags(x, drop.lags, as.numeric(persist)), as.numeric(persist))
     }
 }
 
