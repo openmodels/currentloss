@@ -21,7 +21,7 @@ remove.lags <- function(dimpact, lags, persist) { # lags is K-1 in my notation
 }
 
 persist.waidelich <- function(x, drop.lags, persist) {
-    x + c(rep(0, drop.lags), cumsum(x) * (1 - persist))[1:length(x)]
+    x + c(rep(0, drop.lags + 1), cumsum(x) * (1 - persist))[1:length(x)]
 }
 
 persist.general <- function(x, persist, drop.lags, do.waidelich) {
