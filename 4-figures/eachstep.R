@@ -6,6 +6,7 @@ source("src/lib/myPBSmapping.R")
 
 source("src/lib/synth.R")
 source("src/lib/loadutils.R")
+source("src/lib/persist.R")
 
 polydata <- attr(importShapefile("data/regions/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp"), 'PolyData')
 
@@ -43,7 +44,7 @@ for (metaanal in c(paste0('mcpaperres-PERSIST-', c("mainmed", "main", "all")),
             if (nrow(results) == 0)
                 next
             results2 <- results %>% group_by(ISO, mc) %>%
-                mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - persist)^(0:30), sides=1)[-1:-30])
+                mutate(totimpact=persist.general(dimpact, persist, 0, do.waidelich))
         }
 
         results3 <- results2 %>% left_join(polydata[, c('ADM0_A3', 'POP_EST')], by=c('ISO'='ADM0_A3')) %>%

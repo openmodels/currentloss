@@ -30,7 +30,7 @@ allres2 <- allres %>% filter(!is.na(dimpact)) %>% left_join(polydata[, c('ADM0_A
 
 allres2.smooth <- allres2 %>% group_by(paper, name) %>% mutate(mu=stats::filter(c(rep(0, 9), mu), rep(1/10, 10), method='conv')[5:(length(mu)+4)])
 allres2.smooth2 <- allres2.smooth %>% group_by(paper, name) %>%
-    mutate(mu=stats::filter(c(rep(0, 30), mu), (1 - as.numeric(persist))^(0:30), sides=1)[-1:-30])
+    mutate(mu=persist.general(mu, persist, 0, do.waidelich))
 
 trade.method <- "dd-mcr2all"
 source("src/lib/utils2.R")

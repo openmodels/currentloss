@@ -45,7 +45,7 @@ for (persist in c('0.6', '0', '0.36', '0.78')) {
     results <- read.metaanal.trade(do.outdir.suffix, persist)
 
     results2 <- results %>% group_by(ISO, mc) %>%
-        mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - as.numeric(persist))^(0:30), sides=1)[-1:-30]) %>%
+        mutate(totimpact=persist.general(dimpact, persist, 0, do.waidelich)) %>%
         left_join(slr2, by=c('ISO', 'Year'='year', 'mc'))
     results2$slrloss[is.na(results2$slrloss)] <- 0
 

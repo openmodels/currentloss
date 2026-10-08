@@ -5,7 +5,7 @@ source("src/lib/loadutils.R")
 ## Grab pre-Solow results for countries without capital info
 results <- read.metaanal.trade(trade.method, persist)
 results2 <- results %>% group_by(ISO, mc) %>%
-    mutate(totimpact=stats::filter(c(rep(0, 30), dimpact), (1 - as.numeric(persist))^(0:30), sides=1)[-1:-30])
+    mutate(totimpact=persist.general(dimpact, persist, 0, do.waidelich))
 
 df.gdp3 <- load.gdp3()
 slr2 <- load.slr2(df.gdp3)
